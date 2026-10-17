@@ -283,8 +283,8 @@ CREATE POLICY doctor_isolation ON ehr_encounters_parsed
 
 ## 7. Чеклист прогресса (обновлять ежедневно)
 
-- [ ] сб 17.10 вечер: main.py + docker-compose + healthz
-- [ ] вс 18.10: schema.sql 12 таблиц + RLS + seed; pii_scrubber.c + тесты
+- [x] сб 17.10 вечер: ~~main.py + docker-compose + healthz~~ → выполнено 18.10 (перезапланировано)
+- [x] вс 18.10: schema.sql 12 таблиц + RLS (26 политик, тесты зелёные) + seed; pii_scrubber.c (22 теста, 182 МБ/с)
 - [ ] пн 19.10: JWT RBAC + QR-bind; WS-шина + outbox < 50 мс; simd_lexer.c; анкета CustDev разослана; созвоны с трекером записаны
 - [ ] вт 20.10: 3 микросети ONNX + латентности + интеграция
 - [ ] ср 21.10: интерфейс врача MVP (сайдбар + светофор + SLA + графики); вебинары 17:00/19:00

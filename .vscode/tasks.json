@@ -66,6 +66,30 @@
             "command": "python3 backend/api_router_bio.py",
             "isBackground": true,
             "problemMatcher": []
+        },
+        {
+            "label": "8. Поднять инфраструктуру (docker: db+redis+api)",
+            "type": "shell",
+            "command": "docker compose up -d --build",
+            "problemMatcher": []
+        },
+        {
+            "label": "9. Seed БД (демо-данные)",
+            "type": "shell",
+            "command": "python3 backend/db/seed.py",
+            "problemMatcher": []
+        },
+        {
+            "label": "10. RLS-тест изоляции данных",
+            "type": "shell",
+            "command": "python3 scripts/test_rls.py",
+            "problemMatcher": []
+        },
+        {
+            "label": "11. Тест pii_scrubber (152-ФЗ)",
+            "type": "shell",
+            "command": "python3 benchmarks/test_pii_scrubber.py",
+            "problemMatcher": []
         }
     ]
 }

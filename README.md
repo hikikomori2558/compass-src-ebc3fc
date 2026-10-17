@@ -62,6 +62,12 @@ python3 benchmarks/generate_scientific_plots.py # графики -> benchmarks/p
 
 # 4. Web-API (Swagger UI)
 python3 backend/api_router_bio.py               # http://127.0.0.1:8000/docs
+
+# 5. Инфраструктура и БД (Метрика №12, RLS, Zero-PII)
+docker compose up -d --build                    # PostgreSQL 16 + Redis 7 (AOF) + API
+python3 backend/db/seed.py                      # демо-данные (2 врача, 3 пациента, шкалы, ОХЛП)
+python3 scripts/test_rls.py                     # изоляция врач/пациент + Zero-PII
+python3 benchmarks/test_pii_scrubber.py         # обезличивание ПДн (152-ФЗ), ~180 МБ/с
 ```
 
 Все скрипты можно запускать из корня репозитория — пути к `.so`, JSON и графикам резолвит `backend/bio_paths.py`.
