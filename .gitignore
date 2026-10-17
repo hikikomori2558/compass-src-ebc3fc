@@ -1,0 +1,30 @@
+# Python & окружение
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Скомпилированные бинарники C-Core (собираются локально через scripts/build_c_core.py)
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+c_core/build/
+
+# Тяжелые веса внешних моделей с Hugging Face (кэшируются локально)
+models_cache/
+*.bin
+*.safetensors
+
+# Локальные БД и системные файлы
+*.db
+*.sqlite3
+postgres_data/
+redis_data/
+.DS_Store
+Thumbs.db
+.env
