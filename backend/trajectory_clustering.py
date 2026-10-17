@@ -43,8 +43,8 @@ MASK_MESSAGES = {
     1 << 2: "ГИПЕРКОРТИЗОЛЕМИЯ: Повышен утренний кортизол (> 600 нмоль/л) — выраженная активация ГГН-оси.",
     1 << 3: "СОМАТИЧЕСКАЯ МАСКА АСТЕНИИ: Латентный дефицит железа (ферритин < 30 мкг/л) или анемия (Hb < 120 г/л, контроль по ОХЛП).",
     1 << 4: "БИОХИМИЧЕСКИЙ КОНТРОЛЬ ОХЛП: Повышение КФК (> 200 Ед/л) — контроль мышечного тонуса.",
-    1 << 5: "КАРДИО-БЕЗОПАСНОСТЬ (QTc > 450 мс): Авиандр® НЕ удлиняет интервал QT (преимущество перед гидроксизином и эсциталопрамом).",
-    1 << 6: "ФАРМАКОГЕНЕТИКА СИОЗС (SLC6A4 5-HTTLPR S/S / HTR2A / CYP2C19): Обоснован выбор Авиандра® (не ингибирует SERT).",
+    1 << 5: "КАРДИОКОНТЕКСТ: QTc > 450 мс — удлинение зафиксировано; кардиопрофиль учесть при выборе терапии (решение принимает врач).",
+    1 << 6: "ФАРМАКОГЕНЕТИКА/АНАМНЕЗ: непереносимость СИОЗС или маркеры SLC6A4/HTR2A/CYP2C19 — фактор для рассмотрения терапии; сам по себе не основание выбора препарата.",
     1 << 7: "МЕТРИКА №3 (Неполные данные ЭМК): В выписке отсутствуют креатинин (СКФ) или биохимия печени (Чайлд-Пью). Рекомендуется дообследование.",
 }
 
@@ -75,6 +75,9 @@ class CPatientClinicalInput(ctypes.Structure):
         ("hemoglobin_g_l", ctypes.c_float),
         ("cpk_u_l", ctypes.c_float),
         ("ecg_qtc_ms", ctypes.c_float),
+        # Порядок полей = порядок в compass_core.h; новые поля — строго в конце (ABI).
+        ("ascites_grade", ctypes.c_uint8),
+        ("hepatic_encephalopathy_grade", ctypes.c_uint8),
     ]
 
 
@@ -170,13 +173,16 @@ class RapiraCCoreBridge:
             "child_pugh_score": int(c_out.child_pugh_score),
             "child_pugh_class": c_out.child_pugh_class.decode("utf-8"),
             "cyp2d6_exposure_multiplier": round(float(c_out.cyp2d6_exposure_multiplier), 2),
-            "transient_sedation_prob_day1_4_pct": round(float(c_out.transient_sedation_prob_day1_4), 1),
+            "transient_sedation_risk_index": round(float(c_out.transient_sedation_prob_day1_4), 1),
+            # ИЛЛЮСТРАТИВНЫЙ индекс адаптации, НЕ вероятность. Фактические частоты — ОХЛП:
+            # часто (1–10%): головная боль, головокружение, сонливость, парестезия, астения.
             "ddi_verified_safe_bitmask": int(c_out.ddi_verified_safe),
             "ddi_warning_bitmask": int(c_out.ddi_warning_flags),
             "endocrine_and_somatic_masks": masks_notes,
             "rppg_autonomic_metrics": {
-                "hrv_rmssd_ms": round(float(c_out.hrv_rmssd_ms), 1),
-                "baevsky_stress_index": round(float(c_out.baevsky_stress_index), 1),
+                # 0 из C-ядра = телеметрия не подключена; честный None вместо выдуманных чисел
+                "hrv_rmssd_ms": round(float(c_out.hrv_rmssd_ms), 1) if c_out.hrv_rmssd_ms > 0 else None,
+                "baevsky_stress_index": round(float(c_out.baevsky_stress_index), 1) if c_out.baevsky_stress_index > 0 else None,
             },
             "pk_summary_168h": {
                 "parent_cmax_pg_ml": round(float(c_out.parent_cmax_pg_ml), 1),

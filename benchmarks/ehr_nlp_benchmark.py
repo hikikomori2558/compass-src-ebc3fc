@@ -11,7 +11,15 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
-from trajectory_clustering import COMED_METOPROLOL, COMED_DULOXETINE  # noqa: E402
+from trajectory_clustering import (
+    COMED_METOPROLOL,
+    COMED_DULOXETINE,
+    COMED_CIPROFLOXACIN,
+    COMED_FLUCONAZOLE,
+    COMED_STRONG_CYP2D6_INHIB,
+    COMED_SEROTONERGIC,
+    COMED_SEDATIVES_ETHANOL,
+)  # noqa: E402
 from clinical_rule_engine import ClinicalCompassRuleEngine  # noqa: E402
 from bio_paths import VIGNETTES_PATH, PROTOCOL_PATH  # noqa: E402
 
@@ -213,6 +221,34 @@ class SyntheticClinicalVignettesGenerator:
 class HybridEHRParser:
     """Гибридный парсер 5 шаблонов ЭМК под единую структуру C-ядра v2.6."""
 
+    @staticmethod
+    def _extract_comedication_bitmask(text_low: str) -> int:
+        """Комедикация из свободного текста. Списки сверены с инструкцией Авиандр®
+        (раздел «Взаимодействие», 18.10.2026): серотонинергические — антидепрессанты,
+        триптаны, опиоиды; ингибиторы CYP2D6 — дифенгидрамин, кетоконазол, хинидин,
+        гидроксихлорохин; пароксетин/флуоксетин попадают в обе группы."""
+        m = 0
+        serotonergic = ("сертралин", "пароксетин", "флуоксетин", "амитриптилин", "трамадол",
+                        "суматриптан", "золмитриптан", "литий", "зверобой")
+        strong_2d6 = ("дифенгидрамин", "кетоконазол", "хинидин", "гидроксихлорохин",
+                      "пароксетин", "флуоксетин")
+        for w in serotonergic:
+            if w in text_low:
+                m |= COMED_SEROTONERGIC
+                break
+        for w in strong_2d6:
+            if w in text_low:
+                m |= COMED_STRONG_CYP2D6_INHIB
+                break
+        if "метопролол" in text_low:    m |= COMED_METOPROLOL
+        if "дулоксетин" in text_low:    m |= COMED_DULOXETINE
+        if "ципрофлоксацин" in text_low: m |= COMED_CIPROFLOXACIN
+        if "флуконазол" in text_low:    m |= COMED_FLUCONAZOLE
+        if ("бензодиазеп" in text_low or "диазепам" in text_low or "нейролептик" in text_low
+                or "снотворн" in text_low or "алкогол" in text_low or "этанол" in text_low):
+            m |= COMED_SEDATIVES_ETHANOL
+        return m
+
     def parse_ehr_record(self, raw_text: str) -> Dict[str, Any]:
         raw_strip = raw_text.strip()
         if raw_strip.startswith("{") and raw_strip.endswith("}"):
@@ -228,9 +264,7 @@ class HybridEHRParser:
                 is_cirrhosis = ("класс b" in cp_label or "класс a" in cp_label or "цирроз" in cp_label)
                 has_hepatic_labs = bool(cp_label)
 
-                comed_mask = 0
-                if "метопролол" in notes: comed_mask |= COMED_METOPROLOL
-                if "дулоксетин" in notes: comed_mask |= COMED_DULOXETINE
+                comed_mask = self._extract_comedication_bitmask(notes)
 
                 return {
                     "icd10_code": doc.get("diagnosis_icd10", "F41.1"),
@@ -282,9 +316,7 @@ class HybridEHRParser:
         cssrs_m = re.search(r"c-?ssrs\s*[=:]*\s*(\d+)", text_low)
         mdq_m = re.search(r"mdq\s*[=:]*\s*(\d+)", text_low)
 
-        comed_mask = 0
-        if "метопролол" in text_low: comed_mask |= COMED_METOPROLOL
-        if "дулоксетин" in text_low: comed_mask |= COMED_DULOXETINE
+        comed_mask = self._extract_comedication_bitmask(text_low)
 
         return {
             "icd10_code": icd10,
@@ -380,8 +412,12 @@ def run_validation_benchmark_100_vignettes() -> Dict[str, Any]:
 
 
 def run_time_motion_ergonomics_study() -> Dict[str, Any]:
+    """ЦЕЛЕВЫЕ ОРИЕНТИРЫ, а не результаты. Чек-лист кейса (п. 4 и 6): хронометраж
+    не слепой, при N=3–5 — описательная статистика без p-value; в протокол и презентацию
+    фактические цифры и реальный N вписываются ТОЛЬКО по факту замера 24.10."""
     return {
-        "clinicians_participated": 5,
+        "measurement_status": "TARGET_ESTIMATE_UNTIL_CHRONOMETRY_2026_10_24",
+        "clinicians_planned": 5,
         "vignettes_per_clinician": 10,
         "baseline_mean_time_formatted": "8 мин 45 сек",
         "compass_mean_time_formatted": "1 мин 12 сек",
@@ -391,7 +427,7 @@ def run_time_motion_ergonomics_study() -> Dict[str, Any]:
         "compass_clicks_count": 3,
         "missed_contraindications_baseline_pct": 18.0,
         "missed_contraindications_compass_pct": 0.0,
-        "statistical_significance": "p < 0.0001 (парный t-критерий Стьюдента / критерий Уилкоксона)",
+        "statistical_significance": "не заявляется: сравнительный (не слепой) хронометраж, описательная статистика по факту замера",
     }
 
 
@@ -407,7 +443,7 @@ def generate_markdown_protocol_for_jury() -> str:
 * **Выявление экстренных показаний «ОБЯЗАТЕЛЬНО к психиатру» (ст. 23 / ст. 29 Закона № 3185-1):** Recall = `{nlp_bench['mandatory_psychiatrist_alert_metrics']['recall'] * 100:.1f}%`, F1 = `{nlp_bench['mandatory_psychiatrist_alert_metrics']['f1_score']:.4f}`.
 * **Точность 3-уровневой маршрутизации:** `{nlp_bench['overall_routing_accuracy_pct']}%`.
 * **Устойчивость к неполным данным (Метрика №3):** `{nlp_bench['missing_data_resilience_accuracy_pct']}%` (0 сбоев).
-* **Эргономика (Метрика №4, Time-Motion Study):** сокращение времени врача с **{ergo_bench['baseline_mean_time_formatted']}** (24 клика) до **{ergo_bench['compass_mean_time_formatted']}** (3 клика) — ускорение в **{ergo_bench['speedup_factor_x']} раза** ({ergo_bench['statistical_significance']}).
+* **Эргономика (Метрика №4, сравнительный хронометраж):** целевой ориентир — с **{ergo_bench['baseline_mean_time_formatted']}** (24 клика) до **{ergo_bench['compass_mean_time_formatted']}** (3 клика). **Статус: {ergo_bench['measurement_status']}** — фактические значения, N участников и описательная статистика будут вписаны по результатам хронометража с врачами 24.10.2026 (без p-value при малом N).
 """
     with open(PROTOCOL_PATH, "w", encoding="utf-8") as f:
         f.write(md)

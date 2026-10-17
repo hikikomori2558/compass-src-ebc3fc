@@ -27,7 +27,7 @@ extern "C" {
 #define COMED_DULOXETINE            (1u << 1) // Ингибитор CYP2D6 (безопасно по РКИ ХимРар 2025)
 #define COMED_CIPROFLOXACIN         (1u << 2) // Сильный ингибитор CYP1A2 (безопасно по РКИ ХимРар 2025)
 #define COMED_FLUCONAZOLE           (1u << 3) // Сильный ингибитор CYP2C19/P-gp (безопасно по РКИ ХимРар 2025)
-#define COMED_STRONG_CYP2D6_INHIB   (1u << 4) // Пароксетин, флуоксетин, хинидин, тербинафин, дифенгидрамин
+#define COMED_STRONG_CYP2D6_INHIB   (1u << 4) // Ингибиторы CYP2D6 по инструкции: дифенгидрамин, кетоконазол, хинидин, гидроксихлорохин (+ пароксетин/флуоксетин из раздела «антидепрессанты»)
 #define COMED_SEROTONERGIC          (1u << 5) // СИОЗС, ТЦА, трамадол, триптаны, литий, зверобой
 #define COMED_SEDATIVES_ETHANOL     (1u << 6) // Бензодиазепины, нейролептики, H1-блокаторы, этанол
 
@@ -38,8 +38,8 @@ extern "C" {
 #define MASK_HYPERCORTISOLEMIA       (1u << 2) // Утренний кортизол > 600 нмоль/л
 #define MASK_IRON_DEFICIENCY_ANEMIA  (1u << 3) // Ферритин < 30 мкг/л или Hb < 120 г/л (контроль Hb по ОХЛП)
 #define MASK_ELEVATED_CPK            (1u << 4) // КФК > 200 Ед/л (контроль редкого НЯ по ОХЛП)
-#define MASK_QTC_PROLONGED_ADVANTAGE (1u << 5) // QTc > 450 мс: Авиандр безопасен (не удлиняет QT)
-#define MASK_SSRI_GENETIC_RESIST     (1u << 6) // Маркеры SLC6A4 S/S, HTR2A или CYP2C19 -> выбор Авиандра
+#define MASK_QTC_PROLONGED_ADVANTAGE (1u << 5) // QTc > 450 мс: удлинение зафиксировано, кардиопрофиль учесть при выборе терапии (решение врача; без сравнительных заявлений)
+#define MASK_SSRI_GENETIC_RESIST     (1u << 6) // Фармакогенетика/непереносимость СИОЗР в анамнезе: фактор для рассмотрения, сам по себе не основание выбора препарата
 #define MASK_MISSING_CRITICAL_LABS   (1u << 7) // Метрика №3: не указан креатинин или билирубин/альбумин/МНО
 
 typedef struct {
@@ -67,6 +67,8 @@ typedef struct {
     float hemoglobin_g_l;                   // Гемоглобин (< 120 г/л)
     float cpk_u_l;                          // КФК
     float ecg_qtc_ms;                       // QTc на ЭКГ (мс)
+    uint8_t ascites_grade;                  // Асцит: 0 = нет данных (трактуется как «нет»), 1 = лёгкий, 2 = умеренный/напряжённый (Чайлд-Пью)
+    uint8_t hepatic_encephalopathy_grade;   // Печёночная энцефалопатия: 0 = нет данных, 1 = I–II, 2 = III–IV (Чайлд-Пью)
 } PatientClinicalInput;
 
 typedef struct {
@@ -83,10 +85,10 @@ typedef struct {
     float m1_cmax_pg_ml;
     float m1_ctrough_ss_pg_ml;
     float cyp2d6_exposure_multiplier;
-    float transient_sedation_prob_day1_4;   // Прогноз транзиторной сонливости в 1-4 дни (%)
+    float transient_sedation_prob_day1_4;   // ИЛЛЮСТРАТИВНЫЙ индекс адаптации 1–4 дней, НЕ вероятность; фактические частоты НЯ — в ОХЛП (часто 1–10%: головная боль, головокружение, сонливость, парестезия, астения)
     uint32_t endocrine_somatic_mask_flags;
-    float hrv_rmssd_ms;
-    float baevsky_stress_index;
+    float hrv_rmssd_ms;                     // 0 = телеметрия не подключена (нет данных, а не «норма»)
+    float baevsky_stress_index;             // 0 = телеметрия не подключена
 } CompassCoreOutput;
 
 typedef struct {

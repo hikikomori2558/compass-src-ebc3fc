@@ -28,7 +28,11 @@ static uint8_t calc_child_pugh_from_labs(const PatientClinicalInput* in, char* c
         *cp_class = 'N';
         return 0;
     }
-    uint8_t pts = 2; // 2 базовых балла (нет асцита и энцефалопатии)
+    uint8_t pts = 0; // Чайлд-Пью: 5 параметров по 1–3 балла
+    // Асцит и энцефалопатия — обязательные параметры шкалы; 0 = нет данных,
+    // трактуем как «нет» (1 балл), врач может уточнить в интерфейсе.
+    pts += (in->ascites_grade == 2) ? 3 : ((in->ascites_grade == 1) ? 2 : 1);
+    pts += (in->hepatic_encephalopathy_grade == 2) ? 3 : ((in->hepatic_encephalopathy_grade == 1) ? 2 : 1);
     if (in->bilirubin_umol_l < 34.0f) pts += 1;
     else if (in->bilirubin_umol_l <= 50.0f) pts += 2;
     else pts += 3;
@@ -188,14 +192,20 @@ void evaluate_compass_core_v26(const PatientClinicalInput* in, CompassCoreOutput
 
     solve_pk_rk4_168h(cyp_mult, out);
 
-    float sed_prob = 5.5f * cyp_mult;
-    if (cm & COMED_SEDATIVES_ETHANOL) sed_prob += 12.0f;
-    if (in->age >= 65)                sed_prob += 3.5f;
-    if (sed_prob > 48.0f)             sed_prob = 48.0f;
-    out->transient_sedation_prob_day1_4 = sed_prob;
+    // Индекс транзиторной адаптации 1–4 дней: ИЛЛЮСТРАТИВНАЯ модель (не вероятность!),
+    // монотонно растёт с кумуляцией (CYP2D6), седативной комедикацией и возрастом 65+.
+    // Фактические частоты НЯ берём из ОХЛП, а не отсюда: часто 1–10% — головная боль,
+    // головокружение, сонливость, парестезия, астения (обычно проходят самостоятельно).
+    float sed_index = 5.5f * cyp_mult;
+    if (cm & COMED_SEDATIVES_ETHANOL) sed_index += 12.0f;
+    if (in->age >= 65)                sed_index += 3.5f;
+    if (sed_index > 48.0f)            sed_index = 48.0f;
+    out->transient_sedation_prob_day1_4 = sed_index;
 
-    out->hrv_rmssd_ms = (cyp_mult > 1.5f) ? 26.5f : 34.0f;
-    out->baevsky_stress_index = (in->cortisol_morning_nmol_l > 550.0f) ? 280.0f : 145.0f;
+    // rPPG/HRV-телеметрия в контуре не подключена — оставляем честный ноль
+    // («нет данных»), а не выдуманные константы. Появится датчик — появятся значения.
+    out->hrv_rmssd_ms = 0.0f;
+    out->baevsky_stress_index = 0.0f;
 }
 
 // 5. Акустический DSP-экстрактор голоса (voice_dsp.c)
@@ -242,7 +252,7 @@ void extract_voice_dsp_v26(const float* pcm_16khz, int n_samples, VoiceDSPOutput
     out->pause_ratio          = (n_frames > 0) ? ((float)silent_frames / (float)n_frames) : 0.0f;
     out->shimmer_local_pct    = (voiced > 0) ? (float)((shimmer_acc / (double)voiced) * 100.0) : 2.1f;
     out->jitter_local_pct     = out->shimmer_local_pct * 0.28f;
-    out->f0_mean_hz           = 135.0f + (float)(zc % 45);
+    out->f0_mean_hz           = 135.0f + (float)(zc % 45); // заглушка до FFT-оценки F0: порядок правдоподобный, значение иллюстративное
     out->f0_std_hz            = (out->pause_ratio > 0.38f) ? 8.5f : 22.0f;
     out->hnr_db               = 18.5f - out->shimmer_local_pct * 0.6f;
     out->speech_rate_syl_sec  = (1.0f - out->pause_ratio) * 4.8f;
