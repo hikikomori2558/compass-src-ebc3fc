@@ -66,6 +66,8 @@ app = FastAPI(
 )
 app.add_middleware(
     CORSMiddleware,
+    # Дефолт «*» — это демо-режим чемпионата: сайдбар врача живёт на другом порту.
+    # В бою сюда приходит список доменов МИС через CORS_ORIGINS, и «*» запрещён.
     allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
     allow_methods=["*"],
     allow_headers=["*"],

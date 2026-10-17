@@ -57,15 +57,16 @@ async def main() -> None:
     await owner.close()
     assert len(users) == 2, "seed не выполнен: нет демо-врачей (запусти python3 backend/db/seed.py)"
     doc_a_id, doc_b_id = str(users[0]["user_id"]), str(users[1]["user_id"])
-    login_a = users[0]["login"]
 
     n_owner = await session_counts(APP_DSN, "ADMIN_METHODOLOGIST", doc_a_id)
     n_a = await session_counts(APP_DSN, "DOCTOR_NEUROLOGIST", doc_a_id)
     n_b = await session_counts(APP_DSN, "DOCTOR_PSYCHIATRIST", doc_b_id)
 
-    check("Admin видит все слепки ЭМК", n_owner >= 1, f"rows={n_owner}")
-    check(f"Врач {login_a} видит только своих", n_a >= 1, f"rows={n_a}")
-    check("Изоляция: врач Б видит другой набор", n_a != n_b or n_b == 0, f"A={n_a}, B={n_b}")
+    # В seed ровно один слепок ЭМК, и он принадлежит неврологу — поэтому ассерты точные,
+    # а не «больше нуля». Размазанные проверки — способ спрятать баг, не способ поймать.
+    check("Admin видит все слепки ЭМК", n_owner == 1, f"rows={n_owner}")
+    check(f"Врач {users[0]['login']} видит ровно своих", n_a == 1, f"rows={n_a}")
+    check("Изоляция: врач Б (психиатр) не видит чужих слепков", n_b == 0, f"rows={n_b}")
 
     # Fail-closed: без контекста — пусто
     conn = await asyncpg.connect(APP_DSN)
@@ -73,16 +74,25 @@ async def main() -> None:
         n_noctx = await conn.fetchval("SELECT count(*) FROM ehr_encounters_parsed")
         check("Fail-closed: без app.role данных нет", n_noctx == 0, f"rows={n_noctx}")
 
-        # Пациент видит только себя (берём id первого пациента через owner)
+        # Пациент видит только себя. Берём НЕ случайного пациента, а того, у кого
+        # точно есть слепок ЭМК (иначе тест мерил случайность, а не политику),
+        # и тут же проверяем негатив: любой другой пациент видит ноль строк.
         await conn.close()
         conn = await asyncpg.connect(OWNER_DSN)
-        pat = await conn.fetchval("SELECT patient_hash_id FROM patient_pii_vault ORDER BY 1 LIMIT 1")
+        pat_with = await conn.fetchval("SELECT patient_hash_id FROM ehr_encounters_parsed LIMIT 1")
+        pat_rows = await conn.fetch(
+            "SELECT patient_hash_id FROM patient_pii_vault WHERE patient_hash_id <> $1 LIMIT 1", pat_with
+        )
+        pat_without = pat_rows[0]["patient_hash_id"]
         await conn.close()
         conn = await asyncpg.connect(APP_DSN)
         await conn.execute("SELECT set_config('app.role', 'PATIENT', false)")
-        await conn.execute("SELECT set_config('app.user_id', $1, false)", str(pat))
+        await conn.execute("SELECT set_config('app.user_id', $1, false)", str(pat_with))
         n_pat = await conn.fetchval("SELECT count(*) FROM ehr_encounters_parsed")
-        check("Пациент видит свою ЭМК", n_pat >= 0, f"rows={n_pat}")
+        check("Пациент видит ровно свою ЭМК", n_pat == 1, f"rows={n_pat}")
+        await conn.execute("SELECT set_config('app.user_id', $1, false)", str(pat_without))
+        n_pat2 = await conn.fetchval("SELECT count(*) FROM ehr_encounters_parsed")
+        check("Чужой пациент не видит ничего", n_pat2 == 0, f"rows={n_pat2}")
 
         # Zero-PII: vault недоступен роли приложения
         try:

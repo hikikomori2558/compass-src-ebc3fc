@@ -65,6 +65,8 @@ python3 backend/api_router_bio.py               # http://127.0.0.1:8000/docs
 
 # 5. Инфраструктура и БД (Метрика №12, RLS, Zero-PII)
 docker compose up -d --build                    # PostgreSQL 16 + Redis 7 (AOF) + API
+# Схема применяется только при ПЕРВОМ старте чистого тома: поменял schema.sql —
+# пересоздай стек с нуля: docker compose down -v && docker compose up -d --build
 python3 backend/db/seed.py                      # демо-данные (2 врача, 3 пациента, шкалы, ОХЛП)
 python3 scripts/test_rls.py                     # изоляция врач/пациент + Zero-PII
 python3 benchmarks/test_pii_scrubber.py         # обезличивание ПДн (152-ФЗ): ~0.5 ГБ/с чистый C, ~300 МБ/с сквозные

@@ -37,6 +37,10 @@ LANGUAGE sql STABLE AS $$
   SELECT NULLIF(current_setting('app.user_id', true), '')::uuid;
 $$;
 
+-- Двойная семантика app.user_id (важно для middleware бэкенда):
+--   для ролей DOCTOR_*/ADMIN — это users_auth.user_id;
+--   для роли PATIENT — это patient_hash_id из вальта (у пациента нет записи в users_auth).
+
 -- ============================================================================
 -- 1/12. users_auth & rbac_roles (роли DOCTOR_*, PATIENT, ADMIN_METHODOLOGIST, MFA)
 -- ============================================================================
@@ -92,6 +96,9 @@ CREATE TABLE doctor_patient_bindings (
   bound_at        timestamptz NOT NULL DEFAULT now(),
   UNIQUE (doctor_id, patient_hash_id)
 );
+-- Частичный индекс под app_is_attending(): горячий вопрос «мой ли это пациент?»
+-- решается по patient_hash_id среди активных привязок, без полного скана.
+CREATE INDEX idx_bindings_patient_active ON doctor_patient_bindings (patient_hash_id) WHERE active;
 
 -- SECURITY DEFINER: выполняется от владельца → нет рекурсии RLS на bindings
 -- (создаётся ПОСЛЕ таблицы bindings — PostgreSQL валидирует связи SQL-функций при создании)
@@ -218,6 +225,9 @@ CREATE TABLE critical_events_outbox (
   published_to_redis boolean NOT NULL DEFAULT false,
   created_at         timestamptz NOT NULL DEFAULT now()
 );
+-- Релей забирает только неопубликованное, и с каждым сбоем сети их становится больше —
+-- без частичного индекса он бы сканировал всю историю outbox'а.
+CREATE INDEX idx_outbox_unpublished ON critical_events_outbox (created_at) WHERE NOT published_to_redis;
 
 -- ============================================================================
 -- Row-Level Security: врач видит ТОЛЬКО своих пациентов, пациент — только себя.
@@ -279,15 +289,18 @@ BEGIN
   END LOOP;
 END $$;
 
--- Пользователи: врачи/админ видят реестр сотрудников (нужно для login-флоу и направлений),
--- пациент — только свою запись.
-CREATE POLICY users_select ON users_auth FOR SELECT USING (
-  app_current_role() IN ('DOCTOR_PSYCHIATRIST','DOCTOR_NEUROLOGIST','DOCTOR_GP','ADMIN_METHODOLOGIST','AUTH_SERVICE')
-  OR (app_current_role() = 'PATIENT' AND user_id = app_current_user_id())
-);
+-- ----------------------------------------------------------------------------
+-- СОЗНАТЕЛЬНО БЕЗ RLS (не удаляйте эти комментарии при ревью):
+--   users_auth — приложению нужен password_hash для проверки логина (argon2
+--   верифицируется на стороне бэкенда), а врачам — реестр коллег для направлений.
+--   Пациентские ПДн здесь не хранятся: пациенты в users_auth не заводятся,
+--   их идентичность — patient_hash_id из вальта (см. привязки по QR).
+--   audit_log — append-only журнал безопасности, запись без чтения (см. GRANT).
+--   critical_events_outbox — служебная очередь релея, clinical_payload содержит
+--   только обезличенные patient_hash_id.
+--   rbac_roles, psychometric_scales_registry, grls_drugs_ohpl_catalog — справочники.
+-- ----------------------------------------------------------------------------
 
--- outbox: пишет бэкенд, читает релей — сервисный доступ без пациентского скопа
-CREATE POLICY outbox_all ON critical_events_outbox FOR ALL TO compass_api USING (true) WITH CHECK (true);
 
 -- ----------------------------------------------------------------------------
 -- Права роли приложения. patient_pii_vault НЕ выдаётся вообще (Zero-PII).

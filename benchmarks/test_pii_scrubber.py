@@ -91,9 +91,57 @@ for dose in [
     check(f"Нет ложного срабатывания: {dose[:34]}...", mask == 0 and clean == dose)
 
 # Горячая линия (публичный номер) технически матчится как телефон — так и задумано:
-# скраббер не решает, чей это номер, он заменяет все похожие на ПДн.
+# скраббер не решает, чей это номер, он заменяет всё, похожее на ПДн.
 clean, mask, _ = S.scrub("Телефон доверия: 8-800-200-47-03")
 check("Публичный 11-значный номер тоже заменяется (политика по умолчанию)", (mask & 1) != 0)
+
+# --- 7d. Адский блок: контракт C-API напрямую, без удобств моста ---
+import ctypes  # noqa: E402
+
+from pii_scrubber import SIZE_T_MAX, _bind, _load_lib  # noqa: E402
+
+_lib = _load_lib()
+_bind(_lib)   # без этого ctypes вернёт указатель как c_int и обрежет size_t — тест соврёт
+check("pii_scrubber_new(NULL) честно возвращает NULL", not _lib.pii_scrubber_new(None))
+
+# Буфера не хватает: контракт как у snprintf — возвращается (size_t)-1, содержимое out
+# после этого не определено (может быть частичный вывод). Проверяем строгое: ни один
+# байт не выходит за ЗАЯВЛЕННУЮ ёмкость, хотя физически памяти подложили больше.
+_tiny_in = b"tel +7 913 123 45 67 and some plain text here"
+_tiny_buf = ctypes.create_string_buffer(64)          # реальная память — 64 байта
+_rc = _lib.pii_scrub_stream(_tiny_in, _tiny_buf, 8, b"pepper", None)   # cap=8 — заведомо мало
+check("Малый буфер -> (size_t)-1", _rc == SIZE_T_MAX)
+_junk = bytes(_tiny_buf)
+check("Ни байта за заявленной границей cap=8", _junk[8:] == b"\x00" * 56, repr(_junk[:24]))
+
+# Длина псевдонима — часть контракта идемпотентности: 8 hex-символов не могут
+# собрать 11 цифр телефона/СНИЛС или 16 цифр полиса, поэтому повторный scrub
+# гарантированно не трогает уже вставленные псевдонимы.
+_sample, _, _ = S.scrub("Иванов И.И.")
+_hexpart = _sample.split("PII_")[1] if "PII_" in _sample else ""
+check("Псевдоним содержит ровно 8 hex-символов", len(_hexpart) == 8 and all(c in "0123456789abcdef" for c in _hexpart), _hexpart)
+
+# Идемпотентность на случайных текстах: scrub(scrub(x)) == scrub(x).
+_idem_ok = True
+random.seed(42)
+for _ in range(300):
+    parts = []
+    for _k in range(random.randint(1, 6)):
+        r = random.random()
+        if r < 0.3:
+            parts.append(f"Иванов И.И. {random.randint(20, 80)} лет")
+        elif r < 0.6:
+            parts.append(f"тел. +7 9{random.randint(100, 999)} {random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(10, 99)}")
+        else:
+            parts.append(f"креатинин {random.randint(50, 200)} мкмоль/л, СКФ {random.randint(40, 120)}")
+    x = "; ".join(parts) + "."
+    once, _, _ = S.scrub(x)
+    twice, _, _ = S.scrub(once)
+    if once != twice:
+        _idem_ok = False
+        print(f"    не идемпотентно: {x!r} -> {once!r} -> {twice!r}")
+        break
+check("Идемпотентность: повторный scrub не трогает псевдонимы (300 случайных текстов)", _idem_ok)
 
 # --- 8. Текст без ПДн проходит без изменений ---
 plain = "Жалобы на тревогу и инсомнию после COVID-19. Назначен Авиандр 20 мг 2 раза в сутки."

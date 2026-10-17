@@ -36,8 +36,12 @@ typedef struct pii_scrubber pii_scrubber;
 pii_scrubber* pii_scrubber_new(const char* pepper);   // NULL, если перец пустой
 void          pii_scrubber_free(pii_scrubber* s);
 
-// Основной вход. in — NUL-терминированный UTF-8. Возвращает число записанных в out байт,
-// (size_t)-1 — если out_cap маловато (вызывай снова с буфером побольше).
+// Основной вход. in — NUL-терминированный UTF-8 (внутренние NUL обрежут текст, как у strlen).
+// Возвращает число записанных в out байт БЕЗ терминатора и кладёт '\0' в out[длина],
+// так что буфер должен иметь запас +1 байт. Если ёмкости не хватило — вернётся
+// (size_t)-1, а содержимое out после этого не определено (возможен частичный вывод,
+// ровно как у snprintf): вызови снова с буфером побольше. Границу out_cap скраббер
+// не переходит никогда. Функция потокобезопасна: контекст только читается.
 size_t pii_scrubber_scrub(const pii_scrubber* s, const char* in, char* out,
                           size_t out_cap, uint32_t* found_mask);
 

@@ -14,8 +14,9 @@ import ctypes
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Any
+from typing import Dict, Optional, Tuple
 
 _DIR = str(Path(__file__).resolve().parent)
 if _DIR not in sys.path:
@@ -24,6 +25,8 @@ if _DIR not in sys.path:
 from bio_paths import CORE_LIB, REPO_ROOT  # noqa: E402
 
 SIZE_T_MAX = ctypes.c_size_t(-1).value
+_LIB_LOCK = threading.Lock()   # защита от двойной автопересборки при первом заходе
+_LEGACY_LIB: Optional[ctypes.CDLL] = None
 
 # Порядок важен: биты совпадают с PII_FOUND_* из pii_scrubber.h.
 KIND_BITS = [
@@ -37,18 +40,19 @@ KIND_BITS = [
 
 def _load_lib() -> ctypes.CDLL:
     """Грузит libcompass_core.so; если собирали до появления pii_scrubber — пересобирает."""
-    def load():
-        return ctypes.CDLL(str(CORE_LIB))
+    with _LIB_LOCK:
+        def load():
+            return ctypes.CDLL(str(CORE_LIB))
 
-    if not CORE_LIB.exists():
-        subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "build_c_core.py")], check=True)
-        return load()
-    lib = load()
-    if not hasattr(lib, "pii_scrubber_new"):
-        # в .so ещё нет нового API — пересобираем c_core и грузим заново
-        subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "build_c_core.py")], check=True)
+        if not CORE_LIB.exists():
+            subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "build_c_core.py")], check=True)
+            return load()
         lib = load()
-    return lib
+        if not hasattr(lib, "pii_scrubber_new"):
+            # в .so ещё нет нового API — пересобираем c_core и грузим заново
+            subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "build_c_core.py")], check=True)
+            lib = load()
+        return lib
 
 
 def _bind(lib: ctypes.CDLL) -> None:
@@ -84,6 +88,10 @@ class PiiScrubber:
         if not self._ctx:
             raise RuntimeError("pii_scrubber_new вернул NULL — пустой перец?")
         self._buf = None   # переиспользуемый выходной буфер, растём только когда не влезает
+        # ctypes отпускает GIL на время C-вызова, поэтому два потокa FastAPI вполне
+        # могут оказаться здесь одновременно. Буфер у инстанса один — охраняем замком.
+        # Критическая секция — микросекунды, сериализации никто не заметит.
+        self._buf_lock = threading.Lock()
         atexit.register(self._destroy)
 
     def _destroy(self) -> None:
@@ -92,20 +100,24 @@ class PiiScrubber:
             self._ctx = None
 
     def scrub_bytes(self, raw: bytes) -> Tuple[bytes, int, Dict[str, bool]]:
-        """Горячий путь без UTF-8-кодеков: bytes -> bytes. Буфер живёт в инстансе,
-        поэтому повторные вызовы не платят за аллокацию и обнуление нескольких мегабайт."""
+        """Горячий путь без UTF-8-кодеков: bytes -> bytes.
+
+        Внутри raw не должно быть NUL — как у strlen, всё после него игнорируется.
+        В ЭМК-текстах NUL не водится, так что это ограничение только документируем.
+        """
         mask = ctypes.c_uint32(0)
-        cap = 2 * len(raw) + 128
-        if self._buf is None or len(self._buf) < cap:
-            self._buf = ctypes.create_string_buffer(cap)
-        while True:
-            n = self._lib.pii_scrubber_scrub(self._ctx, raw, self._buf, len(self._buf), ctypes.byref(mask))
-            if n != SIZE_T_MAX:
-                # memoryview-слайс вместо .raw: не тащим хвост буфера за собой
-                out = memoryview(self._buf)[:n].tobytes()
-                kinds = {name: bool(mask.value & bit) for bit, name in KIND_BITS}
-                return out, mask.value, kinds
-            self._buf = ctypes.create_string_buffer(len(self._buf) * 2)
+        with self._buf_lock:
+            cap = 2 * len(raw) + 128
+            if self._buf is None or len(self._buf) < cap:
+                self._buf = ctypes.create_string_buffer(cap)
+            while True:
+                n = self._lib.pii_scrubber_scrub(self._ctx, raw, self._buf, len(self._buf), ctypes.byref(mask))
+                if n != SIZE_T_MAX:
+                    # memoryview-слайс вместо .raw: не тащим хвост буфера за собой
+                    out = memoryview(self._buf)[:n].tobytes()
+                    kinds = {name: bool(mask.value & bit) for bit, name in KIND_BITS}
+                    return out, mask.value, kinds
+                self._buf = ctypes.create_string_buffer(len(self._buf) * 2)
 
     def scrub(self, text: str) -> Tuple[str, int, Dict[str, bool]]:
         """Удобная обёртка для текста: кодируем, чистим, декодируем обратно."""
@@ -115,8 +127,11 @@ class PiiScrubber:
 
 def legacy_scrub(text: str, pepper: str) -> Tuple[str, int, Dict[str, bool]]:
     """Разовый вызов без кэша — оставлен для A/B-теста эквивалентности в benchmarks."""
-    lib = _load_lib()
-    _bind(lib)
+    global _LEGACY_LIB
+    if _LEGACY_LIB is None:
+        _LEGACY_LIB = _load_lib()
+        _bind(_LEGACY_LIB)
+    lib = _LEGACY_LIB
     raw = text.encode("utf-8")
     cap = 2 * len(raw) + 128
     mask = ctypes.c_uint32(0)

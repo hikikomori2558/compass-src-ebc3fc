@@ -400,6 +400,11 @@ size_t pii_scrubber_scrub(const pii_scrubber* s, const char* restrict in, char* 
     }
 
     if (found_mask) *found_mask = mask;
+
+    // Терминатор не входит в возвращаемую длину, но пишем его всегда, когда влезает:
+    // пусть тот, кто использует out как C-строку, не читает мусор за хвостом.
+    if (oi + 1 > out_cap) return (size_t)-1;
+    out[oi] = '\0';
     return oi;
 }
 
