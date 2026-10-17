@@ -1,12 +1,21 @@
 # clinical_rule_engine.py — Движок правил COMPASS-HYBRID v2.6 + Kintsugi DAM + Закон № 3185-1 + Приказ № 1071
 import json
+import sys
 import time
+from pathlib import Path
 from typing import Dict, Any, List, Optional
-from trajectory_clustering import (
+
+# Плоские импорты биоконтура (backend/trajectory_clustering.py, benchmarks/*) при любом способе запуска
+_DIR = str(Path(__file__).resolve().parent)
+if _DIR not in sys.path:
+    sys.path.insert(0, _DIR)
+
+from trajectory_clustering import (  # noqa: E402
     RapiraCCoreBridge,
     TrajectoryClusterEngine24D,
     COMED_METOPROLOL,
 )
+from bio_paths import KB_PATH  # noqa: E402
 
 
 class KintsugiVoiceBiomarkerAdapter:
@@ -61,7 +70,7 @@ class KintsugiVoiceBiomarkerAdapter:
 class ClinicalCompassRuleEngine:
     def __init__(
         self,
-        kb_path: str = "./clinical_knowledge_base.json",
+        kb_path: str = str(KB_PATH),
         c_bridge: Optional[RapiraCCoreBridge] = None,
     ):
         self.kb_path = kb_path

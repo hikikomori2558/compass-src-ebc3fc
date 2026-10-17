@@ -25,13 +25,47 @@
             }
         },
         {
-            "label": "3. Проверить C-Core (Smoke Test)",
+            "label": "3. Проверить C-Core (Smoke Test + бенчмарк отклика)",
             "type": "shell",
             "command": "python3 scripts/smoke_test_c_core.py",
             "presentation": {
                 "reveal": "always",
                 "panel": "shared"
             }
+        },
+        {
+            "label": "4. Тест 3 эталонных сценариев (rule engine)",
+            "type": "shell",
+            "command": "python3 backend/clinical_rule_engine.py",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "5. Бенчмарк 100 синтетических ЭМК (протокол апробации)",
+            "type": "shell",
+            "command": "python3 benchmarks/ehr_nlp_benchmark.py",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "6. Научные графики -> benchmarks/plots/",
+            "type": "shell",
+            "command": "python3 benchmarks/generate_scientific_plots.py",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "7. Запустить bio API сервер (Swagger :8000)",
+            "type": "shell",
+            "command": "python3 backend/api_router_bio.py",
+            "isBackground": true,
+            "problemMatcher": []
         }
     ]
 }

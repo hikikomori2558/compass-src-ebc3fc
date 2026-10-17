@@ -1,13 +1,21 @@
 # api_router_bio.py — Боевой FastAPI роутер и автономный сервер части Разработчика №2 (COMPASS-HYBRID v2.6)
 import ctypes
+import sys
 import time
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, FastAPI
 from pydantic import BaseModel, Field
 
-from trajectory_clustering import RapiraCCoreBridge, CVoiceDSPOutput
-from clinical_rule_engine import ClinicalCompassRuleEngine
-from ehr_nlp_benchmark import (
+# Плоские импорты биоконтура (trajectory_clustering / clinical_rule_engine / ehr_nlp_benchmark)
+# работают и как `python3 backend/api_router_bio.py`, и как `uvicorn backend.api_router_bio:app`
+_DIR = str(Path(__file__).resolve().parent)
+if _DIR not in sys.path:
+    sys.path.insert(0, _DIR)
+
+from trajectory_clustering import RapiraCCoreBridge, CVoiceDSPOutput  # noqa: E402
+from clinical_rule_engine import ClinicalCompassRuleEngine  # noqa: E402
+from ehr_nlp_benchmark import (  # noqa: E402
     HybridEHRParser,
     run_validation_benchmark_100_vignettes,
     run_time_motion_ergonomics_study,

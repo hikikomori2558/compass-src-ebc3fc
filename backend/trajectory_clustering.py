@@ -2,8 +2,17 @@
 import ctypes
 import os
 import subprocess
+import sys
 import time
+from pathlib import Path
 from typing import Dict, Any, List
+
+# Плоские импорты биоконтура (backend/clinical_rule_engine.py, benchmarks/*) при любом способе запуска
+_DIR = str(Path(__file__).resolve().parent)
+if _DIR not in sys.path:
+    sys.path.insert(0, _DIR)
+
+from bio_paths import CORE_LIB, CORE_SRC  # noqa: E402
 
 PK_HORIZON_168H = 168
 
@@ -105,7 +114,7 @@ class CVoiceDSPOutput(ctypes.Structure):
 
 
 class RapiraCCoreBridge:
-    def __init__(self, so_path: str = "./libcompass_core.so", c_src: str = "./compass_core.c"):
+    def __init__(self, so_path: str = str(CORE_LIB), c_src: str = str(CORE_SRC)):
         if not os.path.exists(so_path) or (
             os.path.exists(c_src) and os.path.getmtime(c_src) > os.path.getmtime(so_path)
         ):

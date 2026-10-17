@@ -5,8 +5,15 @@ import random
 import time
 from dataclasses import dataclass, asdict
 from typing import Dict, Any, List
-from trajectory_clustering import COMED_METOPROLOL, COMED_DULOXETINE
-from clinical_rule_engine import ClinicalCompassRuleEngine
+
+# Плоские импорты биоконтура из backend/ при запуске из любого каталога
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
+
+from trajectory_clustering import COMED_METOPROLOL, COMED_DULOXETINE  # noqa: E402
+from clinical_rule_engine import ClinicalCompassRuleEngine  # noqa: E402
+from bio_paths import VIGNETTES_PATH, PROTOCOL_PATH  # noqa: E402
 
 
 @dataclass
@@ -314,7 +321,7 @@ def run_validation_benchmark_100_vignettes() -> Dict[str, Any]:
     compass = ClinicalCompassRuleEngine()
 
     dataset = generator.generate_100_cases()
-    with open("synthetic_100_ehr_vignettes.json", "w", encoding="utf-8") as f:
+    with open(VIGNETTES_PATH, "w", encoding="utf-8") as f:
         json.dump([asdict(c) for c in dataset], f, ensure_ascii=False, indent=2)
 
     tp_contra, fp_contra, fn_contra = 0, 0, 0
@@ -402,7 +409,7 @@ def generate_markdown_protocol_for_jury() -> str:
 * **Устойчивость к неполным данным (Метрика №3):** `{nlp_bench['missing_data_resilience_accuracy_pct']}%` (0 сбоев).
 * **Эргономика (Метрика №4, Time-Motion Study):** сокращение времени врача с **{ergo_bench['baseline_mean_time_formatted']}** (24 клика) до **{ergo_bench['compass_mean_time_formatted']}** (3 клика) — ускорение в **{ergo_bench['speedup_factor_x']} раза** ({ergo_bench['statistical_significance']}).
 """
-    with open("PROTOCOL_APROBATION_2026.md", "w", encoding="utf-8") as f:
+    with open(PROTOCOL_PATH, "w", encoding="utf-8") as f:
         f.write(md)
     return md
 

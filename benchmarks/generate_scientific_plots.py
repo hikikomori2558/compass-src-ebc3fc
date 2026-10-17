@@ -2,14 +2,21 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from trajectory_clustering import RapiraCCoreBridge
+
+# Плоские импорты биоконтура из backend/ при запуске из любого каталога
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
+
+from trajectory_clustering import RapiraCCoreBridge  # noqa: E402
+from bio_paths import BIO_PLOTS_DIR  # noqa: E402
 
 plt.rcParams["font.sans-serif"] = ["DejaVu Sans", "Arial", "Helvetica"]
 plt.rcParams["axes.edgecolor"] = "#334155"
 plt.rcParams["axes.linewidth"] = 0.9
 
 
-def generate_all_plots(out_dir: str = "./scientific_plots") -> None:
+def generate_all_plots(out_dir: str = str(BIO_PLOTS_DIR)) -> None:
     os.makedirs(out_dir, exist_ok=True)
     bridge = RapiraCCoreBridge()
 
@@ -98,7 +105,8 @@ def generate_all_plots(out_dir: str = "./scientific_plots") -> None:
     plt.savefig(os.path.join(out_dir, "fig3_umap_24d_clusters.png"), dpi=300)
     plt.savefig(os.path.join(out_dir, "fig3_umap_24d_clusters.svg"))
     plt.close(fig)
-    print(f"[OK] Все 3 научных графика успешно сохранены в {out_dir}/ (PNG 300 DPI + SVG)!")
+    print(f"[OK] Все 3 научных графика успешно сохранены в benchmarks/plots/ (PNG 300 DPI + SVG)!")
+    print(f"     Каталог вывода: {out_dir}")
 
 
 if __name__ == "__main__":
