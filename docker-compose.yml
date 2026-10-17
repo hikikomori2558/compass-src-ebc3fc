@@ -1,0 +1,59 @@
+# COMPASS-HYBRID v2.6 — инфраструктура команды Rapira (Разработчик №1)
+# Подъём:  docker compose up -d
+# Логи:    docker compose logs -f api
+# Схема БД применяется автоматически при ПЕРВОМ старте тома (docker-entrypoint-initdb.d).
+# Seed:    python3 backend/db/seed.py   (после поднятия db)
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: compass_db
+    environment:
+      POSTGRES_DB: compass
+      POSTGRES_USER: compass_app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-compass_demo}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./backend/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U compass_app -d compass"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    container_name: compass_redis
+    # Метрика №7 (RPO=0): AOF с appendfsync always — каждая запись на диск до ACK
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "always"]
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: .
+    container_name: compass_api
+    environment:
+      DATABASE_URL: postgresql://compass_api:compass_api_demo@db:5432/compass
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_me}
+      PII_PEPPER: ${PII_PEPPER:-dev_pepper_change_me}
+      CORS_ORIGINS: "*"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pg_data:
+  redis_data:
