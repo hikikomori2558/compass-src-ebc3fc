@@ -24,7 +24,8 @@ START_TS = time.time()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # БД/Redis опциональны при старте: сервер поднимается даже без docker-стека
+    # БД и Redis подключаем по-доброму: нет стека — сервер всё равно встаёт и отвечает
+    # биоэндпоинтами (полезно для быстрых прогонов без docker compose).
     app.state.pg_pool = None
     app.state.redis = None
     dsn = os.getenv(
@@ -73,6 +74,8 @@ app.add_middleware(
 
 @app.middleware("http")
 async def telemetry_middleware(request: Request, call_next):
+    # Каждый запрос сам себе секундомер: латентность уходит в кольцо и в заголовок ответа,
+    # откуда её забирает SLA-панель интерфейса врача (Метрики №1 и №6).
     t0 = time.perf_counter()
     response = await call_next(request)
     ms = (time.perf_counter() - t0) * 1000.0

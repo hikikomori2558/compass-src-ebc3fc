@@ -2,11 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 test_rls.py — проверка Row-Level Security (Метрика №12 + ст. 13 323-ФЗ).
-Врач А не видит пациентов врача Б; пациент видит только себя;
-patient_pii_vault недоступен роли приложения вовсе (Zero-PII).
 
-Запуск: python3 scripts/test_rls.py
-DSN роли приложения: APP_DATABASE_URL=postgresql://compass_api:compass_api_demo@localhost:5432/compass
+Идея теста простая: каждый «пользователь» получает своё соединение — ровно как в бою,
+где контекст выставляет middleware бэкенда. Врач А не должен видеть пациентов врача Б,
+пациент — только себя, а роли приложения вообще нельзя заглядывать в patient_pii_vault.
+Проверки честные: считаем строки, а не верим политикам на слово.
+
+Запуск: python3 scripts/test_rls.py (сначала docker compose up -d db и backend/db/seed.py)
+APP_DATABASE_URL / OWNER_DATABASE_URL можно переопределить через окружение.
 """
 import asyncio
 import os

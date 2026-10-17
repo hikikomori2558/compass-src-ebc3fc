@@ -2,15 +2,18 @@
 # -*- coding: utf-8 -*-
 """
 test_pii_scrubber.py — тесты и бенчмарк обезличивания ПДн (Метрика №13, 152-ФЗ).
-Запуск: python3 benchmarks/test_pii_scrubber.py  (или pytest benchmarks/test_pii_scrubber.py)
+Прогон: python3 benchmarks/test_pii_scrubber.py — без pytest, честные [OK]/[FAIL] в консоль.
+Здесь же A/B-проверка: кэшированный путь (pii_scrubber_new) и легаси (pii_scrub_stream)
+обязаны давать побайтово одинаковый результат.
 """
+import random
 import sys
 import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
-from pii_scrubber import PiiScrubber  # noqa: E402
+from pii_scrubber import PiiScrubber, legacy_scrub  # noqa: E402
 
 FAILURES = []
 
@@ -62,6 +65,36 @@ S2 = PiiScrubber(pepper="other_pepper")
 c3, _, _ = S2.scrub("Иванов И.И.")
 check("Другой перец = другой псевдоним", c3 != c1)
 
+# --- 7b. A/B: кэшированный путь == легаси-путь (побайтово) ---
+ab_texts = [
+    "Иванов И.И., тел. +7 (913) 123-45-67, snils 123-456-789 00, mail: a.b@x.ru.",
+    "Петрова Мария Сергеевна, 8 800 200 47 03, полис 1234567890123456.",
+    "Креатинин 86 мкмоль/л, СКФ 74, АД 130/80. Без ПДн.",
+    "",
+]
+ab_ok = True
+for t in ab_texts:
+    cached = S.scrub(t)
+    legacy = legacy_scrub(t, "test_pepper")
+    if (cached[0], cached[1]) != (legacy[0], legacy[1]):
+        ab_ok = False
+        print(f"    расхождение на: {t!r}\n    cached={cached[0]!r}\n    legacy={legacy[0]!r}")
+check("A/B: кэш и легаси дают одинаковый результат", ab_ok)
+
+# --- 7c. Ложные срабатывания, которых быть не должно ---
+for dose in [
+    "Авиандр 20 мг 2 раза в сутки за 30 минут до еды.",
+    "Больница №7, отделение №3, палата 12.",
+    "Курс 24 недели, доза 40 мг/сут.",
+]:
+    clean, mask, _ = S.scrub(dose)
+    check(f"Нет ложного срабатывания: {dose[:34]}...", mask == 0 and clean == dose)
+
+# Горячая линия (публичный номер) технически матчится как телефон — так и задумано:
+# скраббер не решает, чей это номер, он заменяет все похожие на ПДн.
+clean, mask, _ = S.scrub("Телефон доверия: 8-800-200-47-03")
+check("Публичный 11-значный номер тоже заменяется (политика по умолчанию)", (mask & 1) != 0)
+
 # --- 8. Текст без ПДн проходит без изменений ---
 plain = "Жалобы на тревогу и инсомнию после COVID-19. Назначен Авиандр 20 мг 2 раза в сутки."
 clean, mask, _ = S.scrub(plain)
@@ -95,8 +128,6 @@ except ImportError as e:  # noqa: BLE001
     print(f"[SKIP] Интеграционный тест (нет парсера): {e}")
 
 # --- 11. Пропускная способность (Метрика №13: потоковое обезличивание) ---
-import random  # noqa: E402
-
 random.seed(2026)
 words = ["жалобы", "тревога", "креатинин", "СКФ", "инсомния", "Авиандр", "назначение", "контроль", "осмотр"]
 chunks = []
@@ -113,8 +144,19 @@ t0 = time.perf_counter()
 clean, mask, _ = S.scrub(big)
 dt = time.perf_counter() - t0
 mb_s = len(big.encode()) / 1e6 / dt
-print(f"[i] Пропускная способность: {mb_s:.1f} МБ/с ({len(big.encode())/1e6:.1f} МБ за {dt*1000:.0f} мс, mask={mask:#x})")
-check("Пропускная способность > 10 МБ/с", mb_s > 10)
+print(f"[i] Сквозная (UTF-8 кодеки + мост): {mb_s:.0f} МБ/с ({len(big.encode())/1e6:.1f} МБ за {dt*1000:.0f} мс, mask={mask:#x})")
+
+# Чистый C-конвейер: те же данные, но без кодеков и с переиспользуемым буфером.
+# Это число и есть честная скорость нативного контура для слайда Метрики №13.
+big_raw = big.encode("utf-8")
+t0 = time.perf_counter()
+clean_raw, mask2, _ = S.scrub_bytes(big_raw)
+dt2 = time.perf_counter() - t0
+mb_s_c = len(big_raw) / 1e6 / dt2
+print(f"[i] Чистый C-конвейер (scrub_bytes): {mb_s_c:.0f} МБ/с ({dt2*1000:.0f} мс)")
+check("Сквозная пропускная способность > 100 МБ/с", mb_s > 100)
+check("Чистый C-конвейер > 300 МБ/с", mb_s_c > 300)
+check("scrub и scrub_bytes согласованы", clean_raw.decode("utf-8") == clean and mask == mask2)
 
 print()
 if FAILURES:

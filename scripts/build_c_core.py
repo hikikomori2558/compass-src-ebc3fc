@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Кроссплатформенный сборщик нативного ядра libcompass_core.so
-Автоматически определяет macOS (Apple Silicon M-series) / Linux / Windows.
+Сборка нативного ядра libcompass_core.so — одна команда на любой машине команды.
+Под macOS на Apple Silicon и на x86-линуксе флаги подбираются сами, так что
+«у меня не компилируется» больше не аргумент. Библиотека в git не живёт (.gitignore),
+каждый собирает её локально под свою платформу.
 """
 
 import platform
@@ -16,9 +18,10 @@ C_DIR = ROOT / "c_core"
 OUT_LIB = C_DIR / "libcompass_core.so"
 
 def main():
+    # Берём вообще все .c из c_core/ — новое C-модули подхватываются без правок скрипта.
     c_files = sorted(C_DIR.glob("*.c"))
     if not c_files:
-        print("[!] В папке c_core/ пока нет .c файлов (ожидаем заливку C-Core от Михаила).")
+        print("[!] В c_core/ пусто — собирать нечего.")
         sys.exit(0)
 
     arch = platform.machine().lower()

@@ -67,7 +67,7 @@ python3 backend/api_router_bio.py               # http://127.0.0.1:8000/docs
 docker compose up -d --build                    # PostgreSQL 16 + Redis 7 (AOF) + API
 python3 backend/db/seed.py                      # демо-данные (2 врача, 3 пациента, шкалы, ОХЛП)
 python3 scripts/test_rls.py                     # изоляция врач/пациент + Zero-PII
-python3 benchmarks/test_pii_scrubber.py         # обезличивание ПДн (152-ФЗ), ~180 МБ/с
+python3 benchmarks/test_pii_scrubber.py         # обезличивание ПДн (152-ФЗ): ~0.5 ГБ/с чистый C, ~300 МБ/с сквозные
 ```
 
 Все скрипты можно запускать из корня репозитория — пути к `.so`, JSON и графикам резолвит `backend/bio_paths.py`.
