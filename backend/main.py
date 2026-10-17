@@ -64,16 +64,9 @@ app = FastAPI(
     description="Светофор маршрутизации Авиандр®: C-Core + 24D кластеры + NLP ЭМК + WebSocket-алертинг",
     lifespan=lifespan,
 )
-app.add_middleware(
-    CORSMiddleware,
-    # Дефолт «*» — это демо-режим чемпионата: сайдбар врача живёт на другом порту.
-    # В бою сюда приходит список доменов МИС через CORS_ORIGINS, и «*» запрещён.
-    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
+# Порядок важен (доки FastAPI): последняя добавленная middleware — самая внешняя.
+# Поэтому сначала телеметрия, а CORS — последним: тогда CORS-заголовки есть и на
+# ответах телеметрии/ошибок, а не только на счастливом пути маршрутов.
 @app.middleware("http")
 async def telemetry_middleware(request: Request, call_next):
     # Каждый запрос сам себе секундомер: латентность уходит в кольцо и в заголовок ответа,
@@ -84,6 +77,18 @@ async def telemetry_middleware(request: Request, call_next):
     TELEMETRY_RING.append({"path": request.url.path, "method": request.method, "ms": round(ms, 3), "status": response.status_code})
     response.headers["x-latency-ms"] = f"{ms:.3f}"
     return response
+
+
+app.add_middleware(
+    CORSMiddleware,
+    # Дефолт «*» — это демо-режим чемпионата: сайдбар врача живёт на другом порту.
+    # В бою сюда приходит список доменов МИС через CORS_ORIGINS, и «*» запрещён.
+    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
+    allow_methods=["*"],
+    allow_headers=["*"],
+    # без expose_headers браузер наш кастомный x-latency-ms просто не покажет (доки CORS)
+    expose_headers=["x-latency-ms"],
+)
 
 
 @app.get("/healthz", tags=["system"])

@@ -81,6 +81,18 @@ for t in ab_texts:
         print(f"    расхождение на: {t!r}\n    cached={cached[0]!r}\n    legacy={legacy[0]!r}")
 check("A/B: кэш и легаси дают одинаковый результат", ab_ok)
 
+# --- 7b+. Кросс-проверка криптографии: наш C-HMAC vs hashlib (OpenSSL) ---
+# Псевдоним = первые 8 hex-символов HMAC-SHA256(pepper, фрагмент). Если наша
+# самописная реализация SHA-256/HMAC ошиблась хоть в одном бите — тест это поймёт,
+# потому что hashlib сам прогнан по тестовым векторам RFC 4231.
+import hashlib  # noqa: E402
+import hmac as hmac_std  # noqa: E402
+
+_frag = "81234567890"   # матчится как телефон — фрагмент предсказуем
+_tok, _tmask, _ = S.scrub(f"тел. {_frag}")
+_expected = hmac_std.new(b"test_pepper", _frag.encode("utf-8"), hashlib.sha256).hexdigest()[:8]
+check("C-HMAC совпадает с hashlib/RFC 4231 побайтово", _tok == f"тел. PII_{_expected}" and (_tmask & 1), f"{_tok!r} vs PII_{_expected}")
+
 # --- 7c. Ложные срабатывания, которых быть не должно ---
 for dose in [
     "Авиандр 20 мг 2 раза в сутки за 30 минут до еды.",
