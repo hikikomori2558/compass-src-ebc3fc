@@ -1,0 +1,207 @@
+{
+  "schema_version": "2026.10.v2.6",
+  "HotReloadSupported": true,
+  "human_in_the_loop_disclaimer": "Клинический ассистент подготовил структурированную сводку, выявил факторы риска и сформировал проект рекомендаций. Окончательное клиническое решение и назначение терапии подтверждает только лечащий врач (Условие №7).",
+  "psychometric_scales_registry": {
+    "HADS": {
+      "code": "HADS",
+      "title_ru": "Госпитальная шкала тревоги и депрессии (HADS-A / HADS-D)",
+      "target_role": "PATIENT_SELF_REPORT",
+      "items_count": 14,
+      "subscales": ["HADS_A", "HADS_D"],
+      "validation_passport": {
+        "authors_ru": "Морозова М.А., Потанин С.С., Бениашвили А.Г. и соавт.",
+        "year": 2023,
+        "citation": "Валидация русскоязычной версии Госпитальной шкалы тревоги и депрессии (HADS) в общей популяции, 2023",
+        "license_type": "Validated Russian Clinical Adaptation (Academic/Clinical Use)",
+        "recommended_by_minzdrav_kr": true
+      },
+      "cutoffs": {
+        "0_7": {"level": "NORMAL", "label_ru": "Норма (отсутствие достоверно выраженных симптомов)"},
+        "8_10": {"level": "SUBCLINICAL", "label_ru": "Субклинически выраженная тревога / депрессия"},
+        "11_21": {"level": "CLINICAL", "label_ru": "Клинически выраженная тревога / депрессия"}
+      }
+    },
+    "PHQ-9": {
+      "code": "PHQ-9",
+      "title_ru": "Опросник здоровья пациента (тяжесть депрессии PHQ-9)",
+      "target_role": "PATIENT_SELF_REPORT",
+      "items_count": 9,
+      "critical_item_index": 9,
+      "validation_passport": {
+        "authors_ru": "Погосова Н.В., Довженко Т.В. и др. (2014); Золотарева А.А. (2023)",
+        "year": 2023,
+        "citation": "Золотарева А.А. Диагностика депрессии: психометрическая оценка русскоязычной версии PHQ-9 // Клиническая и специальная психология. 2023;12(4)",
+        "license_type": "Public Domain (Pfizer Inc. — free for clinical & commercial use without permission)",
+        "recommended_by_minzdrav_kr": true
+      },
+      "cutoffs": {
+        "0_4": {"level": "NONE", "label_ru": "Депрессивная симптоматика отсутствует"},
+        "5_9": {"level": "MILD", "label_ru": "Легкая депрессия"},
+        "10_14": {"level": "MODERATE", "label_ru": "Умеренная депрессия"},
+        "15_19": {"level": "MODERATELY_SEVERE", "label_ru": "Умеренно тяжелая депрессия"},
+        "20_27": {"level": "SEVERE", "label_ru": "Тяжелая депрессия (требуется обязательная консультация психиатра)"}
+      }
+    },
+    "GAD-7": {
+      "code": "GAD-7",
+      "title_ru": "Шкала генерализованного тревожного расстройства (ГТР-7 / GAD-7)",
+      "target_role": "PATIENT_SELF_REPORT",
+      "items_count": 7,
+      "validation_passport": {
+        "authors_ru": "Золотарева А.А.",
+        "year": 2023,
+        "citation": "Золотарева А.А. Адаптация русскоязычной версии шкалы генерализованного тревожного расстройства (GAD-7) // Консультативная психология и психотерапия. 2023;31(4)",
+        "license_type": "Public Domain (Pfizer Inc. — free for clinical & commercial use)",
+        "recommended_by_minzdrav_kr": true
+      },
+      "cutoffs": {
+        "0_4": {"level": "MINIMAL", "label_ru": "Минимальная тревога"},
+        "5_9": {"level": "MILD", "label_ru": "Легкая тревога"},
+        "10_14": {"level": "MODERATE", "label_ru": "Умеренная тревога"},
+        "15_21": {"level": "SEVERE", "label_ru": "Выраженная (тяжелая) тревога"}
+      }
+    },
+    "C-SSRS": {
+      "code": "C-SSRS",
+      "title_ru": "Колумбийская шкала серьезности суицидальных намерений (скрининг)",
+      "target_role": "CLINICIAN_AND_TRIAGE",
+      "items_count": 6,
+      "validation_passport": {
+        "authors_ru": "КР Минздрава РФ (адаптация Columbia Lighthouse Project)",
+        "year": 2024,
+        "citation": "Клинические рекомендации Минздрава РФ «Депрессивный эпизод, Рекуррентное депрессивное расстройство» (2024)",
+        "license_type": "Free for Clinical & Healthcare Use (Columbia Lighthouse Project)",
+        "recommended_by_minzdrav_kr": true
+      },
+      "cutoffs": {
+        "0": {"level": "NO_RISK", "label_ru": "Суицидальный риск не выявлен"},
+        "1_3": {"level": "MODERATE_SUICIDAL_RISK", "label_ru": "Суицидальные мысли (ОБЯЗАТЕЛЬНО направление к психиатру по ст. 23 Закона № 3185-1)"},
+        "4_6": {"level": "ACUTE_CRITICAL_RISK", "label_ru": "Активный суицидальный план/намерение (КРИТИЧЕСКИЙ АЛЕРТ по ст. 29 п. «а» Закона № 3185-1)"}
+      }
+    },
+    "SIGH-A": {
+      "code": "SIGH-A",
+      "title_ru": "Структурированное интервью шкалы тревоги Гамильтона (HAMA / SIGH-A)",
+      "target_role": "CLINICIAN_RATED",
+      "items_count": 14,
+      "validation_passport": {
+        "authors_ru": "Кинкулькина М.А., Волель Б.А., Морозова М.А. и соавт. (применялась в РКИ Авиандра)",
+        "year": 2025,
+        "citation": "Неврология, нейропсихиатрия, психосоматика. 2025;17(6):44–53",
+        "license_type": "Public Domain Clinical Scale",
+        "recommended_by_minzdrav_kr": true
+      },
+      "cutoffs": {
+        "0_7": {"level": "REMISSION", "label_ru": "Ремиссия (отсутствие тревоги, <= 7 баллов)"},
+        "8_17": {"level": "MILD", "label_ru": "Легкая тревога"},
+        "18_24": {"level": "MODERATE", "label_ru": "Умеренная тревога"},
+        "25_56": {"level": "SEVERE", "label_ru": "Тяжелая тревога"}
+      }
+    },
+    "MADRS": {
+      "code": "MADRS",
+      "title_ru": "Шкала Монтгомери — Асберг для оценки депрессии",
+      "target_role": "CLINICIAN_RATED",
+      "items_count": 10,
+      "validation_passport": {
+        "authors_ru": "КР Минздрава РФ (2024); РКИ Авиандра (Кинкулькина М.А., Волель Б.А., 2025)",
+        "year": 2024,
+        "citation": "Клинические рекомендации Минздрава РФ «Депрессивный эпизод, РДР» (2024)",
+        "license_type": "Standard Clinical Scale",
+        "recommended_by_minzdrav_kr": true
+      },
+      "cutoffs": {
+        "0_6": {"level": "NORMAL", "label_ru": "Отсутствие депрессии (ремиссия)"},
+        "7_19": {"level": "MILD", "label_ru": "Малый депрессивный эпизод"},
+        "20_34": {"level": "MODERATE", "label_ru": "Умеренный депрессивный эпизод"},
+        "35_60": {"level": "SEVERE", "label_ru": "Большой (тяжелый) депрессивный эпизод"}
+      }
+    },
+    "KOP-25": {
+      "code": "KOP-25",
+      "title_ru": "Российский количественный опросник приверженности лечению (КОП-25)",
+      "target_role": "PATIENT_SELF_REPORT",
+      "items_count": 25,
+      "validation_passport": {
+        "authors_ru": "Николаев Н.А., Скирденко Ю.П. (РНМОТ)",
+        "year": 2018,
+        "citation": "Национальное руководство РНМОТ «Приверженность лечению»",
+        "license_type": "Russian National Medical Society of Therapists (РНМОТ) Standard",
+        "recommended_by_minzdrav_kr": true
+      },
+      "cutoffs": {
+        "0_49": {"level": "LOW", "label_ru": "Низкая приверженность (высокий риск самостоятельной отмены ЛП!)"},
+        "50_69": {"level": "MEDIUM", "label_ru": "Средняя приверженность (требуется цифровой контроль приема)"},
+        "70_100": {"level": "HIGH", "label_ru": "Высокая приверженность терапии"}
+      }
+    },
+    "MDQ": {
+      "code": "MDQ",
+      "title_ru": "Опросник расстройств настроения (скрининг БАР / гипомании)",
+      "target_role": "PATIENT_SELF_REPORT",
+      "items_count": 13,
+      "validation_passport": {
+        "authors_ru": "КР Минздрава РФ по БАР и депрессии",
+        "year": 2024,
+        "citation": "Скрининг биполярного спектра перед назначением антидепрессантов",
+        "license_type": "Clinical Screening Standard",
+        "recommended_by_minzdrav_kr": true
+      },
+      "cutoffs": {
+        "0_6": {"level": "NEGATIVE", "label_ru": "Признаков БАР не выявлено"},
+        "7_13": {"level": "POSITIVE_BIPOLAR_SCREEN", "label_ru": "Подозрение на БАР (ОБЯЗАТЕЛЬНО направление к психиатру, риск инверсии аффекта!)"}
+      }
+    }
+  },
+  "aviandr_clinical_trials_reference_corridors": {
+    "GAD_36_WEEKS_SECHENOV_2025": {
+      "study_title": "Долгосрочная терапия ГТР препаратом Авиандр (36 недель, Сеченовский Университет)",
+      "authors": "Кинкулькина М.А., Волель Б.А., Смолярчук Е.А., Иващенко А.В., Иващенко А.А. и соавт. (2025)",
+      "journal": "Неврология, нейропсихиатрия, психосоматика. 2025;17(6):44–53",
+      "sample_size": 98,
+      "response_rate_pct": 83.7,
+      "remission_rate_pct": 66.7,
+      "sigh_a_trajectory": [
+        {"week": 0, "mean": 22.06, "sd": 5.80},
+        {"week": 2, "mean": 19.12, "sd": 5.91},
+        {"week": 8, "mean": 14.12, "sd": 5.44},
+        {"week": 16, "mean": 9.84, "sd": 5.44},
+        {"week": 24, "mean": 7.44, "sd": 5.13},
+        {"week": 36, "mean": 6.90, "sd": 6.20}
+      ],
+      "madrs_trajectory": [
+        {"week": 0, "mean": 14.60, "sd": 7.62},
+        {"week": 36, "mean": 4.15, "sd": 5.33}
+      ],
+      "moca_trajectory": [
+        {"week": 0, "mean": 27.40, "sd": 1.91},
+        {"week": 36, "mean": 29.00, "sd": 1.54}
+      ]
+    },
+    "POST_COVID_ADAPTATION_4_WEEKS_2024": {
+      "study_title": "РКИ III фазы при пост-COVID тревоге и расстройстве адаптации",
+      "authors": "Попова В.Б., Антонова Е.А. и соавт. (2024)",
+      "journal": "Журнал неврологии и психиатрии им. С.С. Корсакова. 2024;124(7):1–8",
+      "sample_size": 109,
+      "week_1_reduction_pct": 40.0,
+      "week_4_responder_rate_pct": 83.0,
+      "week_4_remission_rate_pct": 74.4
+    }
+  },
+  "therapy_options_grls_catalog": {
+    "AVIANDR": {
+      "trade_name": "Авиандр®",
+      "inn": "Маритупирдин (Maritupirdine)",
+      "ru_number": "ЛП-№(002445)-(РГ-RU) от 31.05.2023",
+      "ath_code": "N05BX",
+      "in_label_icd10": ["F41.1", "F41.9", "F43.2", "R45.7", "Z60.0"],
+      "completed_phase3_off_label_icd10": {
+        "F41.0": "Паническое расстройство: успешно завершено КИ III фазы (Сеченовский Университет, март 2026, N=228). До внесения показания в ОХЛП ГРЛС назначение возможно только по решению врача / врачебной комиссии (ВК).",
+        "F33": "Рекуррентное депрессивное расстройство: КИ III фазы. Требуется решение врача / ВК."
+      },
+      "dosing_regimen": "По 1 таблетке (20 мг) 2 раза в сутки (утром и вечером) строго за 30 минут до еды, не разжёвывая. Суточная доза — 40 мг. При пропуске дозы НЕ принимать двойную дозу.",
+      "receptor_profile": "Антагонист 5-HT7, 5-HT6, 5-HT2A, 5-HT2C, альфа-2 адренорецепторов и H1-гистаминовых рецепторов. Не взаимодействует с ГАМК (нет зависимости и синдрома отмены) и SERT/NET/DAT (нет сексуальной дисфункции и набора веса)."
+    }
+  }
+}
