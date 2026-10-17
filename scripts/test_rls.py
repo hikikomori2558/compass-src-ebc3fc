@@ -20,11 +20,11 @@ import asyncpg
 
 APP_DSN = os.getenv(
     "APP_DATABASE_URL",
-    "postgresql://compass_api:compass_api_demo@localhost:5432/compass",
+    "postgresql://compass_api:compass_api_demo@localhost:5433/compass",
 )
 OWNER_DSN = os.getenv(
     "OWNER_DATABASE_URL",
-    "postgresql://compass_app:compass_demo@localhost:5432/compass",
+    "postgresql://compass_app:compass_demo@localhost:5433/compass",
 )
 
 FAILURES = []

@@ -229,6 +229,109 @@ CREATE TABLE critical_events_outbox (
 -- без частичного индекса он бы сканировал всю историю outbox'а.
 CREATE INDEX idx_outbox_unpublished ON critical_events_outbox (created_at) WHERE NOT published_to_redis;
 
+-- ----------------------------------------------------------------------------
+-- Доработки по чек-листу дорабора кейса (P0): согласия, коммуникации, доставка
+-- уведомлений, версионирование правил, источники обоснований, вовлечённость.
+-- ----------------------------------------------------------------------------
+
+-- ИДС: без записи согласия пациентский контур не активируется (152-ФЗ ст. 10,
+-- 323-ФЗ ст. 13). Версия текста фиксируется — согласие относится к конкретной редакции.
+CREATE TABLE consents (
+  consent_id      bigserial PRIMARY KEY,
+  patient_hash_id uuid NOT NULL REFERENCES patient_pii_vault(patient_hash_id),
+  consent_type    text NOT NULL CHECK (consent_type IN ('PERSONAL_DATA_PROCESSING','TELEMONITORING','VOICE_PROCESSING','VIDEO_RPPG','RESEARCH')),
+  text_version    text NOT NULL,
+  granted_at      timestamptz NOT NULL DEFAULT now(),
+  revoked_at      timestamptz,
+  revoke_reason   text
+);
+CREATE INDEX idx_consents_patient ON consents (patient_hash_id, consent_type) WHERE revoked_at IS NULL;
+
+-- Задача 6: асинхронный чат врач-пациент. Тексты пациента проходят пред-триаж,
+-- но ответ клинического характера пишет только врач (Условие 3).
+CREATE TABLE messages (
+  message_id      bigserial PRIMARY KEY,
+  patient_hash_id uuid NOT NULL REFERENCES patient_pii_vault(patient_hash_id),
+  sender_role     text NOT NULL CHECK (sender_role IN ('PATIENT','DOCTOR','SYSTEM_INFO')),
+  sender_id       uuid REFERENCES users_auth(user_id),
+  thread_kind     text NOT NULL DEFAULT 'CLINICAL' CHECK (thread_kind IN ('CLINICAL','REGIMEN','SOCIAL')),
+  priority        smallint NOT NULL DEFAULT 1 CHECK (priority BETWEEN 1 AND 3), -- 3 = клинически важно
+  body            text NOT NULL,
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_messages_patient_time ON messages (patient_hash_id, created_at DESC);
+
+CREATE TABLE message_receipts (
+  message_id  bigint PRIMARY KEY REFERENCES messages(message_id) ON DELETE CASCADE,
+  delivered_at timestamptz,
+  read_at     timestamptz
+);
+
+-- Доставка уведомлений врачу по каналам. Ключевая честная метрика алертинга —
+-- «время до подтверждения человеком», а не миллисекунды доставки байта.
+CREATE TABLE notification_deliveries (
+  delivery_id  bigserial PRIMARY KEY,
+  alert_id     bigint REFERENCES clinical_alerts_and_routing(alert_id),
+  channel      text NOT NULL CHECK (channel IN ('WEBSOCKET','WEB_PUSH','SMS_GATEWAY','EMAIL')),
+  sent_at      timestamptz,
+  delivered_at timestamptz,
+  confirmed_by_doctor_at timestamptz,   -- вот она, метрика Условия 5/6
+  payload_kind text NOT NULL DEFAULT 'EMPTY_PING'  -- в канале только «откройте систему», без клиники
+);
+
+-- Метрика 10: правила и шкалы версионируются. Смена поведения системы = новая версия
+-- записи, а не правка кода; каждая версия проходит регрессионный набор перед активацией.
+CREATE TABLE rule_versions (
+  rule_set_id   text NOT NULL,          -- 'aviandr_hard_stops', 'alert_routing_dsl', ...
+  version       text NOT NULL,
+  content_sha256 text NOT NULL,
+  is_active     boolean NOT NULL DEFAULT false,
+  regression_passed boolean NOT NULL DEFAULT false,
+  activated_by  uuid REFERENCES users_auth(user_id),  -- методист, не система сама
+  activated_at  timestamptz,
+  PRIMARY KEY (rule_set_id, version)
+);
+
+CREATE TABLE scale_versions (
+  scale_code text NOT NULL,
+  version    text NOT NULL,
+  content_sha256 text NOT NULL,
+  is_active  boolean NOT NULL DEFAULT false,
+  PRIMARY KEY (scale_code, version)
+);
+
+-- Метрика 5 (обоснованность): каждая рекомендация ссылается на источник с версией
+-- и датой сверки по первоисточнику. Ни одной рекомендации без строки здесь.
+CREATE TABLE guideline_sources (
+  source_id   text PRIMARY KEY,         -- 'AVIANDR_OHLP', 'KR_GTR_2024', ...
+  doc_title   text NOT NULL,
+  doc_ref     text NOT NULL,            -- номер РУ / ID в рубрикаторе КР / DOI
+  verified_url text NOT NULL,
+  verified_at date NOT NULL,
+  note        text
+);
+
+-- Вовлечённость пациента (см. docs/PRODUCT_DESIGN.md): серии и скоринг как у Duolingo —
+-- мягкая игровая механика против дропаута на 1-2-й неделе. Данные обезличены (hash_id).
+CREATE TABLE patient_engagement (
+  patient_hash_id uuid PRIMARY KEY REFERENCES patient_pii_vault(patient_hash_id),
+  streak_days     integer NOT NULL DEFAULT 0,
+  best_streak     integer NOT NULL DEFAULT 0,
+  daily_score     smallint NOT NULL DEFAULT 0 CHECK (daily_score BETWEEN 0 AND 100),
+  total_points    integer NOT NULL DEFAULT 0,
+  last_checkin_date date,
+  badges          jsonb NOT NULL DEFAULT '[]'::jsonb
+);
+
+-- Условие 3: hard stop не блокирует врача физически. Любой override — с причиной,
+-- автором и попадает в неизменяемый аудит (см. audit_log).
+ALTER TABLE therapy_plans_and_prescriptions
+  ADD COLUMN override_reason text,
+  ADD COLUMN overridden_by uuid REFERENCES users_auth(user_id),
+  ADD COLUMN override_confirmed_at timestamptz;
+
+
+
 -- ============================================================================
 -- Row-Level Security: врач видит ТОЛЬКО своих пациентов, пациент — только себя.
 -- Fail-closed: без set_config('app.role'/'app.user_id') выборка пуста.
@@ -249,6 +352,12 @@ ALTER TABLE adverse_events_and_risks       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE adverse_events_and_risks       FORCE  ROW LEVEL SECURITY;
 ALTER TABLE clinical_alerts_and_routing    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clinical_alerts_and_routing    FORCE  ROW LEVEL SECURITY;
+ALTER TABLE consents                       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE consents                       FORCE  ROW LEVEL SECURITY;
+ALTER TABLE messages                       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages                       FORCE  ROW LEVEL SECURITY;
+ALTER TABLE patient_engagement             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patient_engagement             FORCE  ROW LEVEL SECURITY;
 
 -- Привязки: врач — свои, пациент — свои (без app_is_attending: иначе рекурсия RLS)
 CREATE POLICY bindings_select ON doctor_patient_bindings FOR SELECT USING (
@@ -270,7 +379,8 @@ BEGIN
   FOREACH t IN ARRAY ARRAY[
     'ehr_encounters_parsed', 'patient_scale_assessments', 'multimodal_biomarkers_ts',
     'therapy_plans_and_prescriptions', 'medication_adherence_logs',
-    'adverse_events_and_risks', 'clinical_alerts_and_routing'
+    'adverse_events_and_risks', 'clinical_alerts_and_routing',
+    'consents', 'messages', 'patient_engagement'
   ] LOOP
     EXECUTE format($f$CREATE POLICY %I_select ON %I FOR SELECT USING (
       app_current_role() = 'ADMIN_METHODOLOGIST'
