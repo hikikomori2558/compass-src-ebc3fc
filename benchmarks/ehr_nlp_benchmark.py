@@ -438,7 +438,7 @@ def generate_markdown_protocol_for_jury() -> str:
     md = f"""# ПРОТОКОЛ КЛИНИКО-ТЕХНИЧЕСКОЙ АПРОБАЦИИ СППВР «COMPASS-HYBRID v2.6» (Команда 20-П «Rapira»)
 **Правовой режим апробации:** В строгом соответствии со ст. 13 ФЗ № 323-ФЗ (врачебная тайна) и ст. 10 ФЗ № 152-ФЗ (специальные категории ПДн) тестирование проведено на корпусе из **100 синтетических клинических виньеток (`synthetic_100_ehr_vignettes.json`)** в 5 шаблонах ЭМК.
 
-* **Среднее время сквозной обработки 1 истории болезни (NLP + C-Core RK4 168ч + 24D GMM/DTW):** `{nlp_bench['mean_end_to_end_latency_ms']} мс`.
+* **Среднее время сквозной обработки 1 истории болезни (NLP + C-Core RK4 168ч + 24D стратификация):** `{nlp_bench['mean_end_to_end_latency_ms']} мс`.
 * **Перехват 8 абсолютных противопоказаний ОХЛП «Авиандр®»:** Recall = `{nlp_bench['contraindication_detection_metrics']['recall'] * 100:.1f}%`, F1 = `{nlp_bench['contraindication_detection_metrics']['f1_score']:.4f}`.
 * **Выявление экстренных показаний «ОБЯЗАТЕЛЬНО к психиатру» (ст. 23 / ст. 29 Закона № 3185-1):** Recall = `{nlp_bench['mandatory_psychiatrist_alert_metrics']['recall'] * 100:.1f}%`, F1 = `{nlp_bench['mandatory_psychiatrist_alert_metrics']['f1_score']:.4f}`.
 * **Точность 3-уровневой маршрутизации:** `{nlp_bench['overall_routing_accuracy_pct']}%`.

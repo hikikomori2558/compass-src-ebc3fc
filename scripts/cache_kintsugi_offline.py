@@ -18,6 +18,10 @@ def build_offline_calibration_manifest() -> Dict[str, Any]:
     return {
         "manifest_version": "2026.10.v2.6",
         "offline_ready": True,
+        # П1 реестра (docs/DEV1_PLAN.md 0-ter): квантили ниже — НАША рабочая гипотеза
+        # для витрины, а не калибровка по датасету: репозиторий dam-dataset удалён
+        # из публичного доступа (401, проверено 18.10.2026). На защите так и говорить.
+        "calibration_status": "INTERNAL_HYPOTHESIS_NOT_DATASET_CALIBRATED",
         "model_metadata": {
             "hf_model_repo": "KintsugiHealth/dam",
             "hf_dataset_repo": "KintsugiHealth/dam-dataset",

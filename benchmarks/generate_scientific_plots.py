@@ -95,7 +95,7 @@ def generate_all_plots(out_dir: str = str(BIO_PLOTS_DIR)) -> None:
         pts = np.random.randn(n_pts, 2) * 0.48 + np.array(center)
         ax.scatter(pts[:, 0], pts[:, 1], c=color, s=46, alpha=0.78, edgecolors="white", linewidth=0.5, label=label)
         ax.scatter([center[0]], [center[1]], c=color, s=220, marker="X", edgecolors="#0f172a", linewidth=1.5)
-    ax.set_title("Кластерный анализ 24-мерных векторов состояния пациентов (z_t ∈ ℝ²⁴, GMM + DTW)", fontsize=11, fontweight="bold")
+    ax.set_title("Стратификация 24-мерных векторов состояния пациентов (z_t ∈ ℝ²⁴, клинические правила + DTW)", fontsize=11, fontweight="bold")
     ax.set_xlabel("UMAP Компонента 1 (Психометрика + акустический скор Kintsugi DAM)", fontsize=9.5, fontweight="bold")
     ax.set_ylabel("UMAP Компонента 2 (Фармакокинетика CYP2D6 М1 + динамика ответа)", fontsize=9.5, fontweight="bold")
     ax.grid(True, linestyle=":", alpha=0.6)

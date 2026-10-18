@@ -1,4 +1,4 @@
-# trajectory_clustering.py — Уровень I (ctypes мост) + Уровень II (24D вектор z_t и кластеры К1-К5 GMM+DTW)
+# trajectory_clustering.py — Уровень I (ctypes мост) + Уровень II (24D вектор z_t и стратификация К1–К5: детерминированные клинические правила + DTW)
 import ctypes
 import os
 import subprocess
@@ -272,8 +272,11 @@ class TrajectoryClusterEngine24D:
             float(pk_adherence.get("pdc_adherence_pct", 95.0)),
             float(pk_adherence.get("kop25_score", 78.0)),
             float(pk_adherence.get("meal_30min_timing_rmse_min", 6.5)),
-            float(biomarkers.get("kintsugi_anx_score", 1.0)),
-            float(biomarkers.get("kintsugi_dep_score", 0.0)),
+            # Оси 14–15 — голосовые скоры: НАБЛЮДЕНИЕ (experimental), вне клинических
+            # решений (П1 реестра: DAM обучена на английской речи). Оси остаются в
+            # векторе, чтобы тренд-витрина видела динамику, но правила их не читают.
+            float(biomarkers.get("experimental_voice_anx_class", 1.0)),
+            float(biomarkers.get("experimental_voice_dep_class", 0.0)),
             float(biomarkers.get("voice_pause_ratio", 0.18)),
             float(biomarkers.get("questionnaire_response_sec_per_item", 4.2)),
             float(biometrics_endocrine.get("hrv_rmssd_ms", 34.0)),
@@ -285,48 +288,56 @@ class TrajectoryClusterEngine24D:
         ]
         return [round(v, 3) for v in z_24]
 
-    def assign_cluster_gmm_dtw(
+    def assign_cluster(
         self,
         z_24: List[float],
         patient_sigh_a_history: List[float],
         reported_transient_drowsiness: bool = False,
         icd10_code: str = "F41.1",
     ) -> Dict[str, Any]:
+        """Детерминированная стратификация К1–К5: пороговые правила из кейса/КР + DTW
+        до коридора РКИ. Никакого «GMM» здесь нет и не притворяется: вероятности
+        принадлежности появятся, когда будет реальный датасет (план: RWE-пилот)."""
         suicidal_score = z_24[4]
         phq9 = z_24[3]
         therapy_day = z_24[9]
         m1_ctrough = z_24[10]
-        kintsugi_dep = z_24[15]
         pause_ratio = z_24[16]
         resp_time_sec = z_24[17]
 
         ref_curve = [val for _, val in self.SECHENOV_36W_SIGH_A[: max(len(patient_sigh_a_history), 1)]]
         dtw_dist = self.compute_dtw_distance(patient_sigh_a_history or [22.0], ref_curve)
 
+        matched_rule = ""
         if suicidal_score >= 1.0 or phq9 >= 20.0:
             cluster_key = "K5_RESISTANCE_OR_ACUTE_CRISIS"
-            probs = {"K1": 0.01, "K2": 0.02, "K3": 0.02, "K4": 0.05, "K5": 0.90}
-        elif (resp_time_sec < 1.5 or phq9 <= 8.0) and (kintsugi_dep >= 2.0 or pause_ratio >= 0.40):
+            matched_rule = "суицидальные маркеры (композит п.9+C-SSRS >= 1) или PHQ-9 >= 20"
+        elif (resp_time_sec < 1.5 or phq9 <= 8.0) and pause_ratio >= 0.40:
+            # Только языконезависимая C-фича (доля пауз): голосовые классы DAM в
+            # решениях не участвуют (П1). Прокликивание + речевая заторможенность.
             cluster_key = "K4_HIDDEN_DISSIMULATION_PSEUDOCOMPLIANCE"
-            probs = {"K1": 0.04, "K2": 0.06, "K3": 0.05, "K4": 0.82, "K5": 0.03}
+            matched_rule = "анкета за < 1.5 с/вопрос или PHQ-9 <= 8 при доле пауз речи >= 0.40"
         elif therapy_day <= 7.0 and (reported_transient_drowsiness or m1_ctrough > 420.0):
             cluster_key = "K2_TRANSIENT_H1_ADAPTATION_DROPOUT_RISK"
-            probs = {"K1": 0.10, "K2": 0.78, "K3": 0.08, "K4": 0.02, "K5": 0.02}
+            matched_rule = "день терапии <= 7 при сонливости (отчёт) или Ctrough М1 > 420 пг/мл"
         elif icd10_code in ("F43.2", "R45.7", "Z60.0"):
             cluster_key = "K1_FAST_POST_COVID_RESPONDER"
-            probs = {"K1": 0.84, "K2": 0.06, "K3": 0.07, "K4": 0.02, "K5": 0.01}
+            matched_rule = "МКБ F43.2 / R45.7 / Z60.0 — пост-COVID / расстройство адаптации"
         else:
             cluster_key = "K3_CUMULATIVE_GAD_36W_RESPONDER"
-            probs = {"K1": 0.09, "K2": 0.05, "K3": 0.82, "K4": 0.02, "K5": 0.02}
+            matched_rule = "хроническое течение ГТР без маркеров К1/К2/К4/К5 — кумулятивный ответ"
 
         meta = self.CLUSTERS_METADATA[cluster_key]
         return {
             "assigned_cluster_code": meta["code"],
             "assigned_cluster_title": meta["title_ru"],
+            "stratification_method": "deterministic_clinical_rules_v1 + DTW",
+            "stratification_evidence": matched_rule,
             "clinical_benchmark": meta["benchmark"],
             "recommended_control_action": meta["control_action"],
-            "gmm_posterior_probabilities": probs,
             "dtw_distance_to_sechenov_rki": dtw_dist,
-            "umap_2d_projection": meta["umap_coords"],
+            # Иллюстративная 2D-проекция для витрины (координаты кластеров заданы
+            # вручную, это НЕ модельное вложение — честная метка для жюри и UI).
+            "illustrative_2d_projection": meta["umap_coords"],
             "state_vector_24d": z_24,
         }

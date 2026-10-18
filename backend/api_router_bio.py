@@ -110,7 +110,7 @@ def evaluate_patient_checkin(req: PatientFollowupCheckinRequest) -> Dict[str, An
     )
 
 
-@bio_router.post("/patient/voice-biomarkers", summary="[Голосовой радар] C-DSP + KintsugiHealth/dam и детекция диссимуляции (Кластер К4)")
+@bio_router.post("/patient/voice-biomarkers", summary="[Голосовой радар, ИССЛЕДОВАТЕЛЬСКИЙ РЕЖИМ] C-DSP-фичи; классы DAM — вне клинических решений (П1)")
 def analyze_voice_biomarkers(req: VoiceBiomarkerCheckinRequest) -> Dict[str, Any]:
     t0 = time.perf_counter()
     if req.pcm_samples_16khz and len(req.pcm_samples_16khz) > 0:

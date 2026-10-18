@@ -58,14 +58,18 @@ class KintsugiVoiceBiomarkerAdapter:
 
         return {
             "model_source": "KintsugiHealth/dam (Apache 2.0, Whisper-Small multi-task acoustic head)",
-            "voice_depression_class": dep_class,
-            "voice_anxiety_class": anx_class,
+            # П1 реестра (docs/DEV1_PLAN.md 0-ter): DAM обучена на английской речи —
+            # классы носят ИССЛЕДОВАТЕЛЬСКИЙ характер и не участвуют ни в одном
+            # клиническом решении (ни алерты, ни маршрутизация, ни К4).
+            "clinical_scope": "EXPERIMENTAL_RESEARCH_ONLY",
+            "experimental_voice_depression_class": dep_class,
+            "experimental_voice_anxiety_class": anx_class,
             "acoustic_parameters": acoustic_features,
             "dissimulation_flag": dissimulation_detected,
             "dissimulation_warning": (
-                "ВНИМАНИЕ (Кластер К4): Обнаружена скрытая диссимуляция! "
-                "В текстовой анкете пациент отметил норму, но акустические биомаркеры голоса "
-                "(Kintsugi DAM + Pause Ratio) указывают на выраженную симптоматику."
+                "ИССЛЕДОВАТЕЛЬСКИЙ СИГНАЛ (не диагноз): расхождение текстовой анкеты и "
+                "акустических параметров речи (языконезависимые C-фичи). Рекомендуется "
+                "врачу провести углублённый клинический опрос."
                 if dissimulation_detected
                 else None
             ),
@@ -104,7 +108,6 @@ class ClinicalCompassRuleEngine:
         mdq_score = clinical_state.get("mdq_bipolar_score", 0)
         has_psychosis = clinical_state.get("has_psychotic_symptoms", False)
         severe_ae = clinical_state.get("severe_adverse_event", False)
-        voice_dep_class = clinical_state.get("voice_depression_class", 0)
         week_of_therapy = clinical_state.get("week_of_therapy", 0)
         symptom_reduction_pct = clinical_state.get("symptom_reduction_pct", 100.0)
         failed_ssri = clinical_state.get("failed_first_line_ssri", False)
@@ -157,8 +160,8 @@ class ClinicalCompassRuleEngine:
                 recommended_reasons.append(f"Отсутствие снижения симптоматики >= 25% к {week_of_therapy}-й неделе.")
             if failed_ssri:
                 recommended_reasons.append("Непереносимость или неэффективность 1-й линии терапии (СИОЗС) в анамнезе.")
-            if voice_dep_class == 2 and phq9_total < 10:
-                recommended_reasons.append("Акустический скор Kintsugi DAM = 2 при низком PHQ-9 (скрытая диссимуляция).")
+            # П1: голосовые классы DAM в маршрутизацию не попадают (англоязычная модель,
+            # experimental) — скрытая диссимуляция ловится правилами К4 по C-DSP-паузам.
 
         if mandatory_reasons:
             routing_category = "MANDATORY_PSYCHIATRIST"
@@ -268,7 +271,7 @@ class ClinicalCompassRuleEngine:
         # 2. Юридическая и клиническая маршрутизация
         routing_res = self.evaluate_routing_and_alerts(clinical_state)
 
-        # 3. 24-мерный вектор состояния и кластеризация GMM + DTW (К1-К5)
+        # 3. 24-мерный вектор состояния и стратификация К1–К5 (правила + DTW)
         z_24 = self.cluster_engine.build_24d_state_vector(
             psychometrics={
                 "hads_a": clinical_state.get("hads_a", 13.0),
@@ -281,8 +284,9 @@ class ClinicalCompassRuleEngine:
             dynamics={"therapy_day": clinical_state.get("therapy_day", 3.0)},
             pk_adherence={"m1_ctrough_pg_ml": c_res["pk_summary_168h"]["m1_ctrough_ss_pg_ml"]},
             biomarkers={
-                "kintsugi_anx_score": clinical_state.get("voice_anxiety_class", 1.0),
-                "kintsugi_dep_score": clinical_state.get("voice_depression_class", 0.0),
+                # experimental: оси наблюдения, в решениях не участвуют (П1 реестра)
+                "experimental_voice_anx_class": clinical_state.get("experimental_voice_anxiety_class", 1.0),
+                "experimental_voice_dep_class": clinical_state.get("experimental_voice_depression_class", 0.0),
                 "voice_pause_ratio": clinical_state.get("voice_pause_ratio", 0.18),
                 "questionnaire_response_sec_per_item": clinical_state.get("resp_sec", 4.2),
             },
@@ -294,7 +298,7 @@ class ClinicalCompassRuleEngine:
                 "endocrine_somatic_mask_flag": 1.0 if c_res["endocrine_and_somatic_masks"] else 0.0,
             },
         )
-        cluster_res = self.cluster_engine.assign_cluster_gmm_dtw(
+        cluster_res = self.cluster_engine.assign_cluster(
             z_24=z_24,
             patient_sigh_a_history=sigh_a_history or [22.0, 19.0],
             reported_transient_drowsiness=reported_drowsiness_day3,
