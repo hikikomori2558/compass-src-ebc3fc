@@ -75,6 +75,12 @@ python3 benchmarks/test_pii_scrubber.py         # обезличивание П�
 python3 benchmarks/test_auth.py                 # 27 проверок: логин/refresh/RBAC/QR/bind
 # Демо-врачи (после seed): neuro.ivlanov / psych.petrova / admin.metod,
 # пароль у всех compass-demo-2026. Эндпоинты: /api/v1/auth/{login,refresh,me,invite,bind}
+
+# 7. Шина экстренного алертинга (Условия 5–6, пустой пинг + подтверждение человеком)
+python3 benchmarks/test_ws_latency.py           # 17 проверок: чек-ин -> WS врачу ~12 мс
+# POST /api/v1/patient/checkin (идемпотентно), WS /ws/alerts/{doctor_id}?token=...,
+# POST /api/v1/alerts/{id}/confirm (метрика «время до подтверждения человеком»),
+# GET  /api/v1/alerts/unconfirmed (красный баннер). Релей: backend/alerts.py (outbox -> Redis Streams).
 ```
 
 Все скрипты можно запускать из корня репозитория — пути к `.so`, JSON и графикам резолвит `backend/bio_paths.py`.

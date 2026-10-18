@@ -90,6 +90,18 @@
             "type": "shell",
             "command": "python3 benchmarks/test_pii_scrubber.py",
             "problemMatcher": []
+        },
+        {
+            "label": "12. Тест аутентификации и QR-привязки",
+            "type": "shell",
+            "command": "python3 benchmarks/test_auth.py",
+            "problemMatcher": []
+        },
+        {
+            "label": "13. Тест WS-шины алертов (<50 мс, пустой пинг)",
+            "type": "shell",
+            "command": "python3 benchmarks/test_ws_latency.py",
+            "problemMatcher": []
         }
     ]
 }

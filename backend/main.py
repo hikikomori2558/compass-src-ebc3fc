@@ -16,6 +16,7 @@ if _DIR not in sys.path:
 from fastapi import FastAPI, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
+from api_alerts import alerts_router, ws_router  # noqa: E402
 from api_auth import auth_router  # noqa: E402
 from api_router_bio import bio_router  # noqa: E402
 
@@ -54,7 +55,18 @@ async def lifespan(app: FastAPI):
         print("[main] Redis: подключено")
     except Exception as e:  # noqa: BLE001
         print(f"[main] Redis недоступен (не критично): {e!r}")
+
+    # Релей критических алертов (Postgres outbox -> Redis Streams). Живёт, пока жив
+    # процесс: упал — стартанёт заново вместе с приложением, ничего не теряя (outbox).
+    from alerts import AlertRelay
+
+    app.state.alert_relay = AlertRelay()
+    if app.state.pg_pool is not None and app.state.redis is not None:
+        await app.state.alert_relay.start(app.state.pg_pool, app.state.redis)
+        print("[main] Alert relay: запущен (outbox -> Redis Streams)")
     yield
+    if getattr(app.state, "alert_relay", None):
+        await app.state.alert_relay.stop()
     if app.state.pg_pool:
         await app.state.pg_pool.close()
     if app.state.redis:
@@ -134,6 +146,8 @@ async def telemetry_summary():
 
 app.include_router(bio_router)
 app.include_router(auth_router)
+app.include_router(alerts_router)
+app.include_router(ws_router)
 
 
 if __name__ == "__main__":
