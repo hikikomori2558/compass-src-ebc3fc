@@ -19,6 +19,7 @@ c_core/build/
 models_cache/
 *.bin
 *.safetensors
+clinical_data/hf_cache/
 
 # Локальные БД и системные файлы
 *.db

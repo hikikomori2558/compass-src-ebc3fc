@@ -84,15 +84,15 @@ async def main() -> None:
         # Пользователи (пароль у всех 'demo' — argon2id)
         dr_neuro = await conn.fetchval(
             "INSERT INTO users_auth (role_code, login, password_hash, full_name) VALUES ('DOCTOR_NEUROLOGIST','neuro.ivlanov',$1,'Иванов Алексей Викторович (невролог)') RETURNING user_id",
-            hash_pw("demo"),
+            hash_pw("compass-demo-2026"),
         )
         dr_psych = await conn.fetchval(
             "INSERT INTO users_auth (role_code, login, password_hash, full_name, mfa_enabled) VALUES ('DOCTOR_PSYCHIATRIST','psych.petrova',$1,'Петрова Мария Сергеевна (психиатр)', true) RETURNING user_id",
-            hash_pw("demo"),
+            hash_pw("compass-demo-2026"),
         )
         await conn.fetchval(
             "INSERT INTO users_auth (role_code, login, password_hash, full_name, mfa_enabled) VALUES ('ADMIN_METHODOLOGIST','admin.metod',$1,'Методист Клинического Компаса', true)",
-            hash_pw("demo"),
+            hash_pw("compass-demo-2026"),
         )
 
         patients = []

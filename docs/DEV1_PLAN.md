@@ -332,7 +332,11 @@ CREATE POLICY doctor_isolation ON ehr_encounters_parsed
 - [x] доп. 18.10 (P0 чек-листа): движок правил как данные + 27 граничных тестов; P0-таблицы
       (consents/messages/deliveries/rule_versions/guideline_sources/engagement, override);
       Debian/Linux-сборка через Tailscale; доки REFERENCES/PRODUCT_DESIGN/THREAT_MODEL
-- [ ] пн 19.10: JWT RBAC + QR-bind; WS-шина + outbox < 50 мс; simd_lexer.c; анкета CustDev разослана; созвоны с трекером записаны
+- [ ] пн 19.10: JWT RBAC + QR-bind ~~;~~ → [x] auth-блок готов 18.10 (backend/auth.py,
+      db_ctx.py, api_auth.py; 27/27 тестов: логин/refresh/типы токенов/RBAC 401/403/
+      QR-приглашение одноразовое/bind с рождением пациента в вальте через SECURITY
+      DEFINER/ИДС/RLS-изоляция). Осталось: WS-шина + outbox < 50 мс; simd_lexer.c;
+      анкета CustDev (у Михаила есть данные N=18 — подтвердить методологию!); созвоны с трекером
 - [ ] вт 20.10: 3 микросети ONNX + латентности + интеграция
 - [ ] ср 21.10: интерфейс врача MVP (сайдбар + светофор + SLA + графики); вебинары 17:00/19:00
 - [ ] чт 22.10: PWA пациента + кризисный экран + IndexedDB; No-Code JSONLogic

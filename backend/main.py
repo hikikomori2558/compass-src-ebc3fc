@@ -16,6 +16,7 @@ if _DIR not in sys.path:
 from fastapi import FastAPI, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
+from api_auth import auth_router  # noqa: E402
 from api_router_bio import bio_router  # noqa: E402
 
 TELEMETRY_RING = deque(maxlen=500)
@@ -30,7 +31,9 @@ async def lifespan(app: FastAPI):
     app.state.redis = None
     dsn = os.getenv(
         "DATABASE_URL",
-        "postgresql://compass_api:compass_api_demo@localhost:5432/compass",
+        # 5433 — локальная конвенция репо (docker-compose.override.yml): 5432 на
+        # машинах разработчиков часто занят чужим postgres. В docker-сети api ходит на db:5432.
+        "postgresql://compass_api:compass_api_demo@localhost:5433/compass",
     )
     if os.getenv("ENABLE_DB", "1") == "1":
         try:
@@ -130,6 +133,7 @@ async def telemetry_summary():
 
 
 app.include_router(bio_router)
+app.include_router(auth_router)
 
 
 if __name__ == "__main__":

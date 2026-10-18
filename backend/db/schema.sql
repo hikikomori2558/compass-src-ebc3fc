@@ -330,6 +330,36 @@ ALTER TABLE therapy_plans_and_prescriptions
   ADD COLUMN overridden_by uuid REFERENCES users_auth(user_id),
   ADD COLUMN override_confirmed_at timestamptz;
 
+-- ----------------------------------------------------------------------------
+-- Привязка пациента по QR (день 5, Условия 1–2). Приглашение одноразовое, TTL 24 ч
+-- (требование чек-листа 1.1). Храним jti и sha256 полного токена: сам токен нигде
+-- не persists, однократность гарантирует атомарный UPDATE ... WHERE used_at IS NULL.
+-- Таблица сервисная (создаёт врач, поглощает /auth/bind) — сознательно без RLS.
+CREATE TABLE patient_invite_tokens (
+  jti             uuid PRIMARY KEY,
+  token_sha256    text NOT NULL,
+  doctor_id       uuid NOT NULL REFERENCES users_auth(user_id),
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  expires_at      timestamptz NOT NULL,
+  used_at         timestamptz,
+  used_by_patient uuid REFERENCES patient_pii_vault(patient_hash_id)
+);
+CREATE INDEX idx_invites_open ON patient_invite_tokens (doctor_id) WHERE used_at IS NULL;
+
+-- Единственная дверь роли приложения в PII-вальт: INSERT-ONLY через SECURITY DEFINER.
+-- compass_api не имеет SELECT на patient_pii_vault (см. гранты ниже), а новый пациент
+-- без этой функции был бы невозможен. Пустые шифротексты + key_version 0 = «реквизиты
+-- пациент ещё не внёс» (внесёт сам через PWA — записью, не чтением вальта).
+CREATE OR REPLACE FUNCTION create_patient_vault_entry() RETURNS uuid
+LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  INSERT INTO patient_pii_vault (fio_encrypted, phone_encrypted, snils_encrypted, key_version)
+  VALUES (''::bytea, ''::bytea, ''::bytea, 0)
+  RETURNING patient_hash_id;
+$$;
+REVOKE ALL ON FUNCTION create_patient_vault_entry() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION create_patient_vault_entry() TO compass_api;
+
+
 
 
 -- ============================================================================
@@ -367,6 +397,9 @@ CREATE POLICY bindings_select ON doctor_patient_bindings FOR SELECT USING (
 );
 CREATE POLICY bindings_insert ON doctor_patient_bindings FOR INSERT WITH CHECK (
   (app_current_role() IN ('DOCTOR_PSYCHIATRIST','DOCTOR_NEUROLOGIST','DOCTOR_GP') AND doctor_id = app_current_user_id())
+  -- AUTH_SERVICE — контекст эндпоинта /auth/bind: создаёт привязку по одноразовому QR,
+  -- doctor_id берётся из подписанного токена приглашения, а не из контекста сессии
+  OR (app_current_role() = 'AUTH_SERVICE')
 );
 CREATE POLICY bindings_update ON doctor_patient_bindings FOR UPDATE USING (
   app_current_role() IN ('DOCTOR_PSYCHIATRIST','DOCTOR_NEUROLOGIST','DOCTOR_GP') AND doctor_id = app_current_user_id()
@@ -389,6 +422,7 @@ BEGIN
     ) $f$, t, t);
     EXECUTE format($f$CREATE POLICY %I_insert ON %I FOR INSERT WITH CHECK (
       app_current_role() = 'ADMIN_METHODOLOGIST'
+      OR app_current_role() = 'AUTH_SERVICE'
       OR (app_current_role() IN ('DOCTOR_PSYCHIATRIST','DOCTOR_NEUROLOGIST','DOCTOR_GP') AND app_is_attending(patient_hash_id))
       OR (app_current_role() = 'PATIENT' AND patient_hash_id = app_current_user_id())
     ) $f$, t, t);

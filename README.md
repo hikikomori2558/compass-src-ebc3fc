@@ -70,6 +70,11 @@ docker compose up -d --build                    # PostgreSQL 16 + Redis 7 (AOF) 
 python3 backend/db/seed.py                      # демо-данные (2 врача, 3 пациента, шкалы, ОХЛП)
 python3 scripts/test_rls.py                     # изоляция врач/пациент + Zero-PII
 python3 benchmarks/test_pii_scrubber.py         # обезличивание ПДн (152-ФЗ): ~0.5 ГБ/с чистый C, ~300 МБ/с сквозные
+
+# 6. Аутентификация и привязка пациента по QR (Условия 1–2)
+python3 benchmarks/test_auth.py                 # 27 проверок: логин/refresh/RBAC/QR/bind
+# Демо-врачи (после seed): neuro.ivlanov / psych.petrova / admin.metod,
+# пароль у всех compass-demo-2026. Эндпоинты: /api/v1/auth/{login,refresh,me,invite,bind}
 ```
 
 Все скрипты можно запускать из корня репозитория — пути к `.so`, JSON и графикам резолвит `backend/bio_paths.py`.
