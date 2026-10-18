@@ -257,3 +257,19 @@ void extract_voice_dsp_v26(const float* pcm_16khz, int n_samples, VoiceDSPOutput
     out->hnr_db               = 18.5f - out->shimmer_local_pct * 0.6f;
     out->speech_rate_syl_sec  = (1.0f - out->pause_ratio) * 4.8f;
 }
+// Пакетный вычислитель с предвыборкой кэша процессора (Software Prefetching)
+void evaluate_compass_batch_v26(
+    const PatientClinicalInput* restrict in_array,
+    CompassCoreOutput* restrict out_array,
+    int count
+) 
+{
+    if (!in_array || !out_array || count <= 0) return;
+    for (int i = 0; i < count; ++i) {
+        if (i + 2 < count) {
+            __builtin_prefetch(&in_array[i + 2], 0, 3);
+            __builtin_prefetch(&out_array[i + 2], 1, 3);
+        }
+        evaluate_compass_core_v26(&in_array[i], &out_array[i]);
+    }
+}

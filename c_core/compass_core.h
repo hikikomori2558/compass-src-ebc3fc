@@ -6,6 +6,11 @@
 
 #ifdef __cplusplus
 extern "C" {
+void evaluate_compass_batch_v26(
+    const PatientClinicalInput* in_array,
+    CompassCoreOutput* out_array,
+    int count
+);
 #endif
 
 #define PK_HORIZON_168H 168 // 7 суток (168 часов) почасового RK4 моделирования
