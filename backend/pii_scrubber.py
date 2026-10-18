@@ -12,7 +12,6 @@
 import atexit
 import ctypes
 import os
-import subprocess
 import sys
 import threading
 from pathlib import Path
@@ -22,10 +21,9 @@ _DIR = str(Path(__file__).resolve().parent)
 if _DIR not in sys.path:
     sys.path.insert(0, _DIR)
 
-from bio_paths import CORE_LIB, REPO_ROOT  # noqa: E402
+from c_lib import load_core_lib  # noqa: E402  (единый загрузчик: кэш и пересборка общие с simd_lexer)
 
 SIZE_T_MAX = ctypes.c_size_t(-1).value
-_LIB_LOCK = threading.Lock()   # защита от двойной автопересборки при первом заходе
 _LEGACY_LIB: Optional[ctypes.CDLL] = None
 
 # Порядок важен: биты совпадают с PII_FOUND_* из pii_scrubber.h.
@@ -39,20 +37,8 @@ KIND_BITS = [
 
 
 def _load_lib() -> ctypes.CDLL:
-    """Грузит libcompass_core.so; если собирали до появления pii_scrubber — пересобирает."""
-    with _LIB_LOCK:
-        def load():
-            return ctypes.CDLL(str(CORE_LIB))
-
-        if not CORE_LIB.exists():
-            subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "build_c_core.py")], check=True)
-            return load()
-        lib = load()
-        if not hasattr(lib, "pii_scrubber_new"):
-            # в .so ещё нет нового API — пересобираем c_core и грузим заново
-            subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "build_c_core.py")], check=True)
-            lib = load()
-        return lib
+    """Единый загрузчик ядра: пересборка/кэш общие с simd_lexer (backend/c_lib.py)."""
+    return load_core_lib()
 
 
 def _bind(lib: ctypes.CDLL) -> None:

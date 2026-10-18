@@ -102,6 +102,12 @@
             "type": "shell",
             "command": "python3 benchmarks/test_ws_latency.py",
             "problemMatcher": []
+        },
+        {
+            "label": "14. Тест лексера ЭМК (Ахо—Корасик vs наивный)",
+            "type": "shell",
+            "command": "python3 benchmarks/test_lexer.py",
+            "problemMatcher": []
         }
     ]
 }

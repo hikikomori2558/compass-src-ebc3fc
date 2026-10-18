@@ -106,19 +106,30 @@ def build_offline_calibration_manifest() -> Dict[str, Any]:
 
 
 def try_download_hf_snapshots() -> bool:
+    """Качаем снапшоты в локальный кэш. Модель критична для офлайн-демо; калибровочный
+    ДАТАСЕТ может отсутствовать публично (Kintsugi закрылась в 2026: модель оставили
+    открытой, репозиторий датасета убрали — 401) — его недоступность не фейлит загрузку.
+    Возвращает True, если модель закэширована."""
+    results = {}
     try:
         from huggingface_hub import snapshot_download
         HF_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        for repo_id in ("KintsugiHealth/dam-dataset", "KintsugiHealth/dam"):
+        for repo_id, critical in (("KintsugiHealth/dam", True),
+                                  ("KintsugiHealth/dam-dataset", False)):
             print(f"[HF] Скачивание {repo_id} в {HF_CACHE_DIR}...")
-            snapshot_download(
-                repo_id=repo_id,
-                local_dir=str(HF_CACHE_DIR / repo_id.replace("/", "__")),
-                ignore_patterns=["*.msgpack", "*.h5"],
-            )
-        return True
-    except Exception as e:
-        print(f"[INFO] Пропуск загрузки тяжелых весов из сети ({e}). Используется автономный калибровочный кэш.")
+            try:
+                snapshot_download(
+                    repo_id=repo_id,
+                    local_dir=str(HF_CACHE_DIR / repo_id.replace("/", "__")),
+                    ignore_patterns=["*.msgpack", "*.h5"],
+                )
+                results[repo_id] = True
+            except Exception as e:  # noqa: BLE001 — один репозиторий не должен ронять второй
+                results[repo_id] = False
+                print(f"[{'ERROR' if critical else 'WARN'}] {repo_id}: {e}")
+        return results.get("KintsugiHealth/dam", False)
+    except ImportError as e:
+        print(f"[INFO] huggingface_hub не установлен ({e}) — офлайн-кэш только метаданными.")
         return False
 
 

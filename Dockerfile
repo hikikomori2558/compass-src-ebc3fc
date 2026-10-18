@@ -37,4 +37,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
 
 WORKDIR /app
 EXPOSE 8000
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 4 воркера на 12-ядерной Debian-ноде демо-стенда. Мультиворкер безопасен по архитектуре:
+# outbox-релей у каждого процесса, FOR UPDATE SKIP LOCKED не даёт двойной публикации;
+# kick() будит релей своего воркера, чужие забирают запись страховочным sweep'ом (<=200 мс).
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

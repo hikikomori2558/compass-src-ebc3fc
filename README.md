@@ -81,6 +81,16 @@ python3 benchmarks/test_ws_latency.py           # 17 проверок: чек-и
 # POST /api/v1/patient/checkin (идемпотентно), WS /ws/alerts/{doctor_id}?token=...,
 # POST /api/v1/alerts/{id}/confirm (метрика «время до подтверждения человеком»),
 # GET  /api/v1/alerts/unconfirmed (красный баннер). Релей: backend/alerts.py (outbox -> Redis Streams).
+
+# 8. Лексер ЭМК (Ахо—Корасик, C): предразметка сущностей для парсера
+python3 benchmarks/test_lexer.py                # оракул vs наивный поиск на 100 виньетках
+
+# 9. Нагрузочный зонд (честные RPS и p50/p95 на слайд Метрики №6)
+python3 scripts/load_probe.py --scenario analyze --concurrency 32 --seconds 15
+
+# 10. Полный демо-стенд на Debian-ноде (Tailscale): сборка x86_64, docker, БД,
+#     все suite, веса Kintsugi DAM, нагрузка — одной командой
+./scripts/demo_debian.sh
 ```
 
 Все скрипты можно запускать из корня репозитория — пути к `.so`, JSON и графикам резолвит `backend/bio_paths.py`.

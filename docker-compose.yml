@@ -38,7 +38,12 @@ services:
       retries: 30
 
   api:
-    build: .
+    build:
+      context: .
+      # DNS домашней Debian-ноды — Tailscale MagicDNS (100.100.100.100), недоступный
+      # из дефолтной bridge-сети сборки: apt-get внутри builder не резолвит deb.debian.org.
+      # host-сеть сборки использует resolv.conf хоста — сборка проходит.
+      network: host
     container_name: compass_api
     environment:
       DATABASE_URL: postgresql://compass_api:compass_api_demo@db:5432/compass
