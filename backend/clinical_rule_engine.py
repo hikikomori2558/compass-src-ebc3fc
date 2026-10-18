@@ -308,8 +308,13 @@ class ClinicalCompassRuleEngine:
         # 4. Статус назначения препарата Авиандр® (In-Label vs Off-Label vs Blocked)
         aviandr_meta = self.kb["therapy_options_grls_catalog"]["AVIANDR"]
         if c_res["is_aviandr_blocked"]:
-            aviandr_status = "BLOCKED_BY_CONTRAINDICATION"
-            aviandr_badge = "НАЗНАЧЕНИЕ ЗАБЛОКИРОВАНО (Выявлены абсолютные противопоказания по ОХЛП ГРЛС)"
+            # Условие 3: система не блокирует врача — она выдаёт жёсткое предупреждение
+            # с обоснованием; назначение вне инструкции возможно только как решение
+            # врача/ВК с фиксацией причины (override попадает в аудит и therapy_plans).
+            aviandr_status = "HARD_STOP_CONTRAINDICATION"
+            aviandr_badge = ("ЖЁСТКОЕ ПРЕДУПРЕЖДЕНИЕ БЕЗОПАСНОСТИ: выявлены абсолютные противопоказания "
+                             "по ОХЛП ГРЛС. Назначение не рекомендуется; решение — только врача/ВК "
+                             "с обязательной фиксацией причины (override, Приказ Минздрава № 1094н).")
         elif routing_res["critical_alert_triggered"]:
             aviandr_status = "HOLD_EMERGENCY_PSYCHIATRY"
             aviandr_badge = "ТРЕБУЕТСЯ ЭКСТРЕННАЯ КОНСУЛЬТАЦИЯ ПСИХИАТРА (Монотерапия анксиолитиком не показана)"

@@ -4,7 +4,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Depends, FastAPI
 from pydantic import BaseModel, Field
 
 # Плоские импорты биоконтура (trajectory_clustering / clinical_rule_engine / ehr_nlp_benchmark)
@@ -20,10 +20,16 @@ from ehr_nlp_benchmark import (  # noqa: E402
     run_validation_benchmark_100_vignettes,
     run_time_motion_ergonomics_study,
 )
+from api_auth import get_principal, require_roles  # noqa: E402
+from auth import Principal  # noqa: E402
 
 bio_router = APIRouter(
     prefix="/api/v1/compass-bio",
     tags=["Rapira COMPASS-HYBRID v2.6: C-Core PK/PD, 24D Clusters & NLP (Dev #2)"],
+    # Безопасность (долг репо, 152-ФЗ): клинические эндпоинты не бывают анонимными —
+    # любой вызов требует валидного Bearer (врач/пациент/админ). Горячая загрузка
+    # шкал — дополнительно только методисту (см. ниже).
+    dependencies=[Depends(get_principal)],
 )
 
 c_bridge = RapiraCCoreBridge()
@@ -151,8 +157,11 @@ def get_scales_and_trials_registry() -> Dict[str, Any]:
     }
 
 
-@bio_router.post("/admin/hot-reload-scale-plugin", summary="[Метрика №10] Горячее добавление новой шкалы без перезапуска ядра")
-def register_new_scale_plugin(req: CustomScalePluginRequest) -> Dict[str, Any]:
+@bio_router.post("/admin/hot-reload-scale-plugin", summary="[Метрика №10] Горячее добавление новой шкалы (только ADMIN_METHODOLOGIST)")
+def register_new_scale_plugin(req: CustomScalePluginRequest,
+                              principal: Principal = Depends(require_roles("ADMIN_METHODOLOGIST"))) -> Dict[str, Any]:
+    # Метрика №10 без дыры: менять клинический реестр имеет право только врач-методист,
+    # и его личность фиксируется в ответе (в боевой версии — ещё и в audit_log).
     manifest = {
         "code": req.scale_code,
         "title_ru": req.title_ru,
@@ -167,7 +176,10 @@ def register_new_scale_plugin(req: CustomScalePluginRequest) -> Dict[str, Any]:
         },
         "cutoffs": req.cutoffs,
     }
-    return rule_engine.register_custom_scale_plugin(req.scale_code, manifest)
+    result = rule_engine.register_custom_scale_plugin(req.scale_code, manifest)
+    result["registered_by"] = principal.sub
+    result["registered_by_role"] = principal.role
+    return result
 
 
 @bio_router.get("/telemetry/full-benchmark-report", summary="[Телеметрия Жюри] Прогон 100 синтетических ЭМК (Метрики №1, 2, 3, 4)")

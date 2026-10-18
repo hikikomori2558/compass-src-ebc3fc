@@ -13,7 +13,10 @@ RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY backend/requirements.txt /app/backend/requirements.txt
-RUN pip install --no-cache-dir -r /app/backend/requirements.txt
+# Воспроизводимость (модель угроз, п.8): образ собирается из ЗАМОРОЖЕННЫХ версий,
+# а не «последних на момент сборки». requirements.txt — только для ручных venv.
+COPY backend/requirements.lock.txt /app/backend/requirements.lock.txt
+RUN pip install --no-cache-dir -r /app/backend/requirements.lock.txt
 
 # Копируем код и собираем libcompass_core.so внутри образа
 COPY c_core/ /app/c_core/

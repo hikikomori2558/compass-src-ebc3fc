@@ -62,6 +62,9 @@ python3 benchmarks/generate_scientific_plots.py # графики -> benchmarks/p
 
 # 4. Web-API (Swagger UI)
 python3 backend/api_router_bio.py               # http://127.0.0.1:8000/docs
+# ВНИМАНИЕ: клинические эндпоинты требуют Bearer-токен (152-ФЗ):
+# POST /api/v1/auth/login {"login":"neuro.ivlanov","password":"compass-demo-2026"}
+# -> access_token -> кнопка Authorize в Swagger. Горячая загрузка шкал — только ADMIN_METHODOLOGIST.
 
 # 5. Инфраструктура и БД (Метрика №12, RLS, Zero-PII)
 docker compose up -d --build                    # PostgreSQL 16 + Redis 7 (AOF) + API
