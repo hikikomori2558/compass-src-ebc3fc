@@ -25,6 +25,52 @@ def same(got, want):
     return abs(float(got) - float(want)) < 0.5
 
 
+# Два формата кейсов, auto-detect:
+#  A) {id, text, expected:{field:value}}      — полевой формат (field-level, автор парсера отделён)
+#  B) {case_id, raw_text, expected_blocked, expected_routing, expected_missing_labs}
+#     — pipeline-формат (ground truth уровня маршрутизации; safe_pipeline, не парсер)
+pipeline_cases = [c for c in cases if "expected_routing" in c]
+field_cases = [c for c in cases if "expected" in c]
+if pipeline_cases and not field_cases:
+    sys.path.insert(0, str(ROOT / "backend"))
+    from safe_pipeline import SafeCompassPipeline  # noqa: E402
+    from clinical_rule_engine import ClinicalCompassRuleEngine  # noqa: E402
+
+    pipeline = SafeCompassPipeline(ClinicalCompassRuleEngine())
+    dangerous, false_alarm, missed = [], [], []
+    ok = total = 0
+    for c in pipeline_cases:
+        res = pipeline.analyze_text(c["raw_text"])
+        pred_blocked = res["rules_engine"]["status"] == "RED_HARD_STOP"
+        pred_routing = res["routing_and_alerting"]["routing_category"]
+        pred_missing = any("МЕТРИКА №3" in w for w in
+                           res["c_core_pk_and_safety"]["endocrine_and_somatic_masks"])
+
+        for label, pred, want in (
+            ("blocked", pred_blocked, c["expected_blocked"]),
+            ("routing", pred_routing, c["expected_routing"]),
+            ("missing_labs", pred_missing, c["expected_missing_labs"]),
+        ):
+            total += 1
+            if pred == want:
+                ok += 1
+            elif label == "blocked" and want and not pred:
+                dangerous.append((c["case_id"], label, want, pred))  # противопоказание прошло зелёным
+            elif label == "blocked" and pred and not want:
+                false_alarm.append((c["case_id"], label, want, pred))
+            else:
+                missed.append((c["case_id"], label, want, pred))
+    print(f"Режим: pipeline-level (формат Михаила). Случаев: {len(pipeline_cases)}, проверок: {total}")
+    print(f"Совпало: {ok}/{total}")
+    print(f"ОПАСНЫХ ошибок (противопоказание прошло без красного): {len(dangerous)}")
+    for d in dangerous:
+        print("   ", d)
+    print(f"Прочих расхождений: ложная тревога {len(false_alarm)}, пропуск {len(missed)}")
+    for d in false_alarm + missed:
+        print("   ", d)
+    sys.exit(1 if dangerous else 0)
+
+
 dangerous, false_alarm, missed, ok, total = [], [], [], 0, 0
 for c in cases:
     e = extract(c["text"], as_of=as_of)

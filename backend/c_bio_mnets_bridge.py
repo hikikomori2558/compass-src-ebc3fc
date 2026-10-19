@@ -16,6 +16,15 @@ from pathlib import Path
 from typing import Dict, Optional
 
 
+import sys as _sys
+from pathlib import Path as _P
+_DIR = str(_P(__file__).resolve().parent)
+if _DIR not in _sys.path:
+    _sys.path.insert(0, _DIR)  # плоский импорт c_lib работает и из пакета backend.*
+
+from c_lib import resolve_bridge_lib  # noqa: E402  (единая загрузка C без компилятора в рантайме)
+
+
 class CAcousticMetrics(ctypes.Structure):
     _fields_ = [
         ("f0_mean_hz", ctypes.c_double),
@@ -165,7 +174,9 @@ class NativeBioMnetsLib:
     _instance: Optional["NativeBioMnetsLib"] = None
 
     def __init__(self) -> None:
-        lib_path = ensure_c11_bio_mnets_compiled()
+# Приоритет: общий libcompass_core.so (build_c_core собирает все c_core/*.c разом);
+# компилятор в рантайме не нужен — multi-stage-образ собирается без gcc.
+        lib_path = str(resolve_bridge_lib("libcompass_bio_mnets", ('compass_micronet_forward_raps', 'compass_raps_evaluate_logits3', 'compass_w8a8_gemv', 'compass_dempster_shafer_bio_fuse', 'compass_fit_weibull_russian_pauses', 'compass_analyze_pcm_russian_invariant')))
         self.lib = ctypes.CDLL(str(lib_path))
         self._bind_signatures()
 

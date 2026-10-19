@@ -70,6 +70,15 @@ DEFAULT_HEALTHY_BASELINE_24D = np.array([
 ], dtype=np.float64)
 
 
+import sys as _sys
+from pathlib import Path as _P
+_DIR = str(_P(__file__).resolve().parent)
+if _DIR not in _sys.path:
+    _sys.path.insert(0, _DIR)  # плоский импорт c_lib работает и из пакета backend.*
+
+from c_lib import resolve_bridge_lib  # noqa: E402  (единая загрузка C без компилятора в рантайме)
+
+
 class CSinkhornTrajectoryResult(ctypes.Structure):
     _fields_ = [
         ("ot_epsilon_ab", ctypes.c_double),
@@ -168,7 +177,9 @@ class NativeOTXAILib:
     _instance: Optional["NativeOTXAILib"] = None
 
     def __init__(self) -> None:
-        lib_path = ensure_c11_ot_xai_compiled()
+# Приоритет: общий libcompass_core.so (build_c_core собирает все c_core/*.c разом);
+# компилятор в рантайме не нужен — multi-stage-образ собирается без gcc.
+        lib_path = str(resolve_bridge_lib("libcompass_ot_xai", ('compass_sinkhorn_trajectory_divergence', 'compass_fit_ledoit_wolf_cluster_24d', 'compass_evaluate_mahalanobis_ood_24d', 'compass_compute_exact_owen_and_counterfactual')))
         self.lib = ctypes.CDLL(str(lib_path))
         self._bind_signatures()
 

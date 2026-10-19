@@ -14,7 +14,7 @@ _DIR = str(Path(__file__).resolve().parent)
 if _DIR not in sys.path:
     sys.path.insert(0, _DIR)
 
-from bio_paths import CORE_LIB, REPO_ROOT  # noqa: E402
+from bio_paths import C_CORE_DIR, CORE_LIB, REPO_ROOT  # noqa: E402
 
 _LOCK = threading.Lock()
 _LIB: Optional[ctypes.CDLL] = None
@@ -46,3 +46,28 @@ def load_core_lib() -> ctypes.CDLL:
             lib = _load()
         _LIB = lib
         return _LIB
+
+
+def resolve_bridge_lib(own_lib_prefix: str, symbols: tuple) -> Path:
+    """Путь к библиотеке с символами моста — БЕЗ вызова компилятора там, где его нет.
+
+    Порядок (единая философия: один .so на всё ядро):
+      1. libcompass_core.so уже экспортирует символы моста (build_c_core собирает
+         ВСЕ c_core/*.c разом — так живёт multi-stage-образ без gcc в рантайме);
+      2. собственная отдельная .so моста (dev-режим, собранная ранее cc/gcc).
+    Компиляцию в рантайме не делаем принципиально: образ собирается без gcc.
+    """
+    core = load_core_lib()
+    if all(hasattr(core, sym) for sym in symbols):
+        return CORE_LIB
+
+    ext = "dylib" if sys.platform == "darwin" else "so"
+    own = C_CORE_DIR / f"{own_lib_prefix}.{ext}"
+    if own.exists():
+        lib = ctypes.CDLL(str(own))
+        if all(hasattr(lib, sym) for sym in symbols):
+            return own
+    raise RuntimeError(
+        f"Символы {symbols[0]}... не найдены ни в libcompass_core.so, ни в {own.name}. "
+        f"Запусти: python3 scripts/build_c_core.py"
+    )

@@ -1,0 +1,218 @@
+[
+  {
+    "case_id": "HO-01",
+    "cohort": "IN_LABEL_POST_COVID",
+    "raw_text": "Амбулаторный прием невролога. Мужчина, 34 года. Диагноз: F43.2. Жалобы на внутреннюю дрожь, тревожность и трудности с засыпанием через 6 недель после COVID-19. Работает курьером на авто. Креатинин сыворотки: 84 мкмоль/л. Печеночные пробы в норме. Шкалы: GAD-7 = 13, PHQ-9 = 6 (п.9 = 0), C-SSRS = 0.",
+    "expected_icd10": "F43.2",
+    "expected_blocked": false,
+    "expected_routing": "PRIMARY_CARE_MANAGEMENT",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-02",
+    "cohort": "IN_LABEL_GAD",
+    "raw_text": "Осмотр (ф. 025/у). Женщина, 41 год. МКБ-10: F41.1. Беспокоит постоянное чувство неопределенной тревоги, мышечное напряжение в плечах, плохой сон около 7 мес. Лаб: креат. 71 мкмоль/л, Чайлд-Пью: норма. Опросники: ГТР-7 14б, PHQ9 8б (п9=0), CSSRS=0.",
+    "expected_icd10": "F41.1",
+    "expected_blocked": false,
+    "expected_routing": "PRIMARY_CARE_MANAGEMENT",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-03",
+    "cohort": "IN_LABEL_METOPROLOL_SAFE",
+    "raw_text": "Выписка. Мужчина, 58 лет. Диагноз по МКБ-10: F41.1. Тревога, сердцебиение. Сопутствующий: АГ, постоянно принимает метопролол 50 мг/сут. Креатинин сыворотки: 90 мкмоль/л, печеночные пробы в норме. PHQ-9 = 5 (п.9 = 0), GAD-7 = 12, C-SSRS = 0.",
+    "expected_icd10": "F41.1",
+    "expected_blocked": false,
+    "expected_routing": "PRIMARY_CARE_MANAGEMENT",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-04",
+    "cohort": "IN_LABEL_MISSING_LABS",
+    "raw_text": "Первичный осмотр психотерапевта. Женщина, 29 лет. Шифр F43.2 (стрессовая реакция после перенесенного ковида). Жалобы на тревогу, утомляемость. Биохимический анализ крови на момент осмотра не сдавала. Шкалы: GAD-7 = 11, PHQ-9 = 7 (п.9 = 0), C-SSRS = 0.",
+    "expected_icd10": "F43.2",
+    "expected_blocked": false,
+    "expected_routing": "PRIMARY_CARE_MANAGEMENT",
+    "expected_missing_labs": true
+  },
+  {
+    "case_id": "HO-05",
+    "cohort": "IN_LABEL_FHIR_JSON",
+    "raw_text": "{\"resourceType\": \"ClinicalImpression\", \"subject\": {\"age\": 45, \"gender\": \"male\"}, \"diagnosis_icd10\": \"F41.1\", \"clinical_notes\": \"Генерализованная тревога, водит авто. Принимает дулоксетин. Эпилепсии нет.\", \"labs\": {\"creatinine_umol_l\": 82.0, \"child_pugh_class\": \"Чайлд-Пью: норма\", \"cyp2d6\": \"норма\"}, \"scales\": {\"PHQ9\": 6, \"PHQ9_item9\": 0, \"GAD7\": 13, \"CSSRS\": 0, \"MDQ\": 1}}",
+    "expected_icd10": "F41.1",
+    "expected_blocked": false,
+    "expected_routing": "PRIMARY_CARE_MANAGEMENT",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-06",
+    "cohort": "IN_LABEL_CYP2D6_HYDROXYCHLOROQUINE",
+    "raw_text": "Осмотр невролога. Женщина, 52 года. МКБ-10: F41.1. Жалобы на тревогу и поверхностный сон. По поводу ревматологического профиля получает гидроксихлорохин (умеренный ингибитор CYP2D6). Креатинин сыворотки: 68 мкмоль/л, печеночные пробы в норме. PHQ-9 = 8 (п.9 = 0), GAD-7 = 14, C-SSRS = 0.",
+    "expected_icd10": "F41.1",
+    "expected_blocked": false,
+    "expected_routing": "PRIMARY_CARE_MANAGEMENT",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-07",
+    "cohort": "CONTRA_RENAL_CKD",
+    "raw_text": "Пациент: Мужчина, 64 года. МКБ-10: F41.1. Жалобы на постоянную тревогу. В анамнезе ХБП С3б, креатинин сыворотки: 158 мкмоль/л (СКФ ниже 45 мл/мин). Печеночные пробы в норме. PHQ-9 = 7 (п.9 = 0), GAD-7 = 15, C-SSRS = 0.",
+    "expected_icd10": "F41.1",
+    "expected_blocked": true,
+    "expected_routing": "PRIMARY_CARE_MANAGEMENT",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-08",
+    "cohort": "CONTRA_HEPATIC_CHILD_PUGH",
+    "raw_text": "Выписной эпикриз. Мужчина, 55 лет. Диагноз: F41.1. Сопутствующий: цирроз печени, класс B по Чайлд-Пью (8 баллов). Креатинин сыворотки: 79 мкмоль/л. PHQ-9 = 6 (п.9 = 0), GAD-7 = 13, C-SSRS = 0.",
+    "expected_icd10": "F41.1",
+    "expected_blocked": true,
+    "expected_routing": "PRIMARY_CARE_MANAGEMENT",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-09",
+    "cohort": "CONTRA_EPILEPSY",
+    "raw_text": "Осмотр невролога. Женщина, 31 год. Код МКБ: F43.2. Жалобы на тревогу после стресса. Анамнез: посттравматическая эпилепсия с редкими приступами. Креатинин сыворотки: 65 мкмоль/л, печеночные пробы в норме. PHQ-9 = 5 (п.9 = 0), GAD-7 = 12.",
+    "expected_icd10": "F43.2",
+    "expected_blocked": true,
+    "expected_routing": "PRIMARY_CARE_MANAGEMENT",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-10",
+    "cohort": "CONTRA_MAOI_WASH_OUT",
+    "raw_text": "Консультация. Мужчина, 39 лет. МКБ-10: F41.1. Принимал ингибитор МАО (фенелзин), препарат отменен 6 дней назад. Креатинин сыворотки: 81 мкмоль/л, печеночные пробы в норме. PHQ-9 = 8 (п.9 = 0), GAD-7 = 14.",
+    "expected_icd10": "F41.1",
+    "expected_blocked": true,
+    "expected_routing": "PRIMARY_CARE_MANAGEMENT",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-11",
+    "cohort": "CONTRA_LACTOSE_LCT",
+    "raw_text": "Амбулаторная карта. Женщина, 26 лет. МКБ-10: F43.2. Тревожность, нарушение адаптации. В анамнезе подтвержденный дефицит лактазы (гомозигота LCT-13910 C/C, непереносимость лактозы). Креатинин сыворотки: 62 мкмоль/л, печеночные пробы в норме. PHQ-9 = 6, GAD-7 = 12.",
+    "expected_icd10": "F43.2",
+    "expected_blocked": true,
+    "expected_routing": "PRIMARY_CARE_MANAGEMENT",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-12",
+    "cohort": "CONTRA_PREGNANCY",
+    "raw_text": "Осмотр терапевта. Женщина, 28 лет. МКБ-10: F41.1. Выраженная тревога, нарушение сна. Беременность 16 недель. Креатинин сыворотки: 58 мкмоль/л, печеночные пробы в норме. PHQ-9 = 7 (п.9 = 0), GAD-7 = 13.",
+    "expected_icd10": "F41.1",
+    "expected_blocked": true,
+    "expected_routing": "PRIMARY_CARE_MANAGEMENT",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-13",
+    "cohort": "CONTRA_MINOR_AGE",
+    "raw_text": "Подростковый кабинет. Юноша, 16 лет. МКБ-10: F43.2. Тревога перед экзаменами. Креатинин сыворотки: 70 мкмоль/л, печеночные пробы в норме. PHQ-9 = 5 (п.9 = 0), GAD-7 = 11.",
+    "expected_icd10": "F43.2",
+    "expected_blocked": true,
+    "expected_routing": "PRIMARY_CARE_MANAGEMENT",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-14",
+    "cohort": "RECOMMENDED_MODERATE_DEP",
+    "raw_text": "Осмотр невролога. Женщина, 66 лет. МКБ-10: F41.1. Хроническая тревога, снижение настроения и энергии. Ранее отмечалась непереносимость пароксетина. По генетике: CYP2D6*4/*4 (медленный метаболизатор). Принимает метопролол и кетоконазол местно. Креатинин сыворотки: 74 мкмоль/л, печеночные пробы в норме. PHQ-9 = 14 (п.9 = 0), GAD-7 = 16, C-SSRS = 0.",
+    "expected_icd10": "F41.1",
+    "expected_blocked": false,
+    "expected_routing": "RECOMMENDED_PSYCHIATRIST",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-15",
+    "cohort": "RECOMMENDED_COMORBID_PHQ16",
+    "raw_text": "Амбулаторная карта. Мужчина, 49 лет. МКБ-10: F41.1. Жалобы на тревогу, ангедонию, ранние пробуждения. Креатинин сыворотки: 86 мкмоль/л, Чайлд-Пью: норма. Шкалы: PHQ-9 = 16 (п.9 = 0), GAD-7 = 15, C-SSRS = 0, MDQ = 2.",
+    "expected_icd10": "F41.1",
+    "expected_blocked": false,
+    "expected_routing": "RECOMMENDED_PSYCHIATRIST",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-16",
+    "cohort": "RECOMMENDED_SSRI_FAILURE",
+    "raw_text": "Выписка. Женщина, 38 лет. МКБ-10: F41.1. Длительное ГТР, в анамнезе непереносимость пароксетина (тошнота, апатия). Лаб: креат. 69 мкмоль/л, печеночные пробы в норме. Шкалы: PHQ-9 = 12 (п.9 = 0), GAD-7 = 14, C-SSRS = 0.",
+    "expected_icd10": "F41.1",
+    "expected_blocked": false,
+    "expected_routing": "RECOMMENDED_PSYCHIATRIST",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-17",
+    "cohort": "RECOMMENDED_MISSING_LABS",
+    "raw_text": "Телемедицинский пред-визит. Мужчина, 44 года. МКБ-10: F41.1. Жалобы на тревогу и подавленность. Биохимия крови: не сдавал. Опросники: PHQ-9 = 13 (п.9 = 0), GAD-7 = 16, C-SSRS = 0.",
+    "expected_icd10": "F41.1",
+    "expected_blocked": false,
+    "expected_routing": "RECOMMENDED_PSYCHIATRIST",
+    "expected_missing_labs": true
+  },
+  {
+    "case_id": "HO-18",
+    "cohort": "RECOMMENDED_BORDERLINE_AMBIGUOUS",
+    "raw_text": "Осмотр терапевта. Женщина, 57 лет. Код F41.1. Жалобы на тревожность, утомляемость, снижение интереса к хобби. Креатинин сыворотки: 77 мкмоль/л, печеночные пробы в норме. В тексте осмотра: субдепрессивный фон без суицидальных мыслей (PHQ-9: одиннадцать баллов, п.9=0, GAD-7=15, C-SSRS=0).",
+    "expected_icd10": "F41.1",
+    "expected_blocked": false,
+    "expected_routing": "RECOMMENDED_PSYCHIATRIST",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-19",
+    "cohort": "RECOMMENDED_PANIC_OFF_LABEL",
+    "raw_text": "Осмотр невролога. Мужчина, 33 года. МКБ-10: F41.0 (Паническое расстройство). Приступы паники 3 раза в неделю, коморбидная подавленность. Креатинин сыворотки: 83 мкмоль/л, печеночные пробы в норме. PHQ-9 = 15 (п.9 = 0), GAD-7 = 17, C-SSRS = 0.",
+    "expected_icd10": "F41.0",
+    "expected_blocked": false,
+    "expected_routing": "RECOMMENDED_PSYCHIATRIST",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-20",
+    "cohort": "MANDATORY_SUICIDAL_CSSRS4",
+    "raw_text": "Экстренный осмотр. Женщина, 25 лет. МКБ-10: F32.2. Выраженная тоска, идеи самообвинения, высказывает суицидальные намерения. Креатинин сыворотки: 64 мкмоль/л, печеночные пробы в норме. Шкалы: PHQ-9 = 23 (п.9 = 3), GAD-7 = 18, C-SSRS = 4.",
+    "expected_icd10": "F32.2",
+    "expected_blocked": false,
+    "expected_routing": "MANDATORY_PSYCHIATRIST",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-21",
+    "cohort": "MANDATORY_PSYCHOSIS_SERBSKY",
+    "raw_text": "Психиатрический статус. Мужчина, 30 лет. МКБ-10: F41.1. Тревожен, подозрителен, высказывает идеи преследования, слышит оклики по имени. Креатинин сыворотки: 78 мкмоль/л, печеночные пробы в норме. PHQ-9 = 18 (п.9 = 1), GAD-7 = 19, C-SSRS = 2.",
+    "expected_icd10": "F41.1",
+    "expected_blocked": false,
+    "expected_routing": "MANDATORY_PSYCHIATRIST",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-22",
+    "cohort": "MANDATORY_BIPOLAR_MDQ",
+    "raw_text": "Консультация. Женщина, 27 лет. МКБ-10: F41.1. Обратилась с тревогой и депрессией, однако в анамнезе эпизоды подъема настроения со снижением потребности во сне до 3 часов. Креатинин сыворотки: 66 мкмоль/л, печеночные пробы в норме. PHQ-9 = 15 (п.9 = 0), GAD-7 = 14, C-SSRS = 0, MDQ = 9.",
+    "expected_icd10": "F41.1",
+    "expected_blocked": false,
+    "expected_routing": "MANDATORY_PSYCHIATRIST",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-23",
+    "cohort": "MANDATORY_SEVERE_DEPRESSION_PHQ22",
+    "raw_text": "Осмотр невролога. Мужчина, 51 год. МКБ-10: F32.2. Тяжелая апатия, психомоторная заторможенность, отказ от еды. Креатинин сыворотки: 88 мкмоль/л, печеночные пробы в норме. PHQ-9 = 22 (п.9 = 1), GAD-7 = 16, C-SSRS = 1.",
+    "expected_icd10": "F32.2",
+    "expected_blocked": false,
+    "expected_routing": "MANDATORY_PSYCHIATRIST",
+    "expected_missing_labs": false
+  },
+  {
+    "case_id": "HO-24",
+    "cohort": "MANDATORY_PASSIVE_SUICIDAL_ITEM9",
+    "raw_text": "Телемедицинский чек-ин между визитами. Женщина, 23 года. МКБ-10: F43.2. Пропустила 3 приема препарата подряд. Креатинин сыворотки: 61 мкмоль/л, печеночные пробы в норме. В анкете PHQ-9 = 17 (вопрос №9 = 2), GAD-7 = 17, C-SSRS = 2.",
+    "expected_icd10": "F43.2",
+    "expected_blocked": false,
+    "expected_routing": "MANDATORY_PSYCHIATRIST",
+    "expected_missing_labs": false
+  }
+]

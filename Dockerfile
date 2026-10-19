@@ -18,12 +18,15 @@ COPY backend/requirements.txt /app/backend/requirements.txt
 COPY backend/requirements.lock.txt /app/backend/requirements.lock.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.lock.txt
 
-# Копируем код и собираем libcompass_core.so внутри образа
-COPY c_core/ /app/c_core/
-COPY clinical_data/ /app/clinical_data/
-COPY backend/ /app/backend/
-COPY benchmarks/ /app/benchmarks/
-COPY scripts/ /app/scripts/
+COPY backend/requirements.txt /app/backend/requirements.txt
+# Воспроизводимость (модель угроз, п.8): образ собирается из ЗАМОРОЖЕННЫХ версий,
+# а не «последних на момент сборки». requirements.txt — только для ручных venv.
+COPY backend/requirements.lock.txt /app/backend/requirements.lock.txt
+RUN pip install --no-cache-dir -r /app/backend/requirements.lock.txt
+
+# Весь репозиторий одним слоем: новые модули (micro_nets/, frontend_doctor/, ...)
+# больше не «забываются» в образе — исключения ведёт .dockerignore.
+COPY . /app/
 RUN python3 scripts/build_c_core.py
 
 # ----------------------------------------------------------------------------

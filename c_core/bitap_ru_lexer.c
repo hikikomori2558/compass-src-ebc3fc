@@ -286,11 +286,15 @@ int32_t compass_bitap_scan_utf8_ehr(
     for (int32_t p_idx = 0; p_idx < dict->num_patterns; ++p_idx) {
         const CompassBitapPattern *pat = &dict->patterns[p_idx];
         int32_t m = pat->pattern_len;
-        int32_t k_max = pat->max_allowed_errors;
         uint64_t accept_bit = 1ULL << (m - 1);
 
-        /* Инициализация регистров состояния Wu-Manber R[0..k_max] */
+        /* Инициализация регистров состояния Wu-Manber R[0..k_max].
+         * memset(0xFF) — тождество алгоритма («все единицы») И защита от gcc
+         * -Wmaybe-uninitialized: кламп k_max гарантирует отсутствие выхода за R. */
         uint64_t R[BITAP_MAX_ERRORS + 1];
+        memset(R, 0xFF, sizeof(R));
+        int32_t k_max = pat->max_allowed_errors;
+        if (k_max > BITAP_MAX_ERRORS) k_max = BITAP_MAX_ERRORS;
         for (int32_t d = 0; d <= k_max; ++d) {
             R[d] = (~0ULL) << d;
         }
