@@ -43,9 +43,9 @@ echo "=============================================================="
 run "cd ${REMOTE_DIR} && .venv/bin/python3 scripts/build_c_core.py && .venv/bin/python3 scripts/smoke_test_c_core.py | tail -3"
 
 echo "=============================================================="
-echo "[4/9] Автономные suite (правила / pii / лексер)"
+echo "[4/9] Автономные suite (правила / pii / лексер / безопасный разбор)"
 echo "=============================================================="
-run "cd ${REMOTE_DIR} && .venv/bin/python3 benchmarks/test_rules_engine.py | tail -1 && .venv/bin/python3 benchmarks/test_pii_scrubber.py | tail -1 && .venv/bin/python3 benchmarks/test_lexer.py | tail -1"
+run "cd ${REMOTE_DIR} && .venv/bin/python3 benchmarks/test_rules_engine.py | tail -1 && .venv/bin/python3 benchmarks/test_pii_scrubber.py | tail -1 && .venv/bin/python3 benchmarks/test_lexer.py | tail -1 && .venv/bin/python3 benchmarks/test_safe_ehr.py 2>&1 | tail -1"
 
 echo "=============================================================="
 echo "[5/9] Docker-стек: PostgreSQL 16 + Redis 7 + API (сборка образа на Linux)"

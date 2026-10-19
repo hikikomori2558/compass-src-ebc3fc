@@ -33,7 +33,7 @@ def check(name, cond, detail=""):
 
 BASE = {
     "age": 45, "sex": 1, "egfr_ckd_epi": 95.0, "child_pugh_class": "N",
-    "days_since_maoi": None, "is_pregnant_or_lactating": False,
+    "days_since_maoi": None, "maoi_ever": False, "is_pregnant_or_lactating": False,
     "has_epilepsy_or_organic_cns": False, "has_lactase_deficiency": False,
     "hypersensitivity": False, "comedication_bitmask": 0, "drives_vehicle": False,
 }

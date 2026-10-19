@@ -135,7 +135,25 @@ class RapiraCCoreBridge:
         ]
         self.lib.extract_voice_dsp_v26.restype = None
 
-    def run_c_core(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    # Значения «поле не передано» для безопасного пути: никаких «нормальных» подстановок.
+    # Нули/отрицательные значения ядро трактует как «нет данных» (СКФ < 0, Чайлд-Пью '?').
+    UNKNOWN_DEFAULTS = {
+        "age": 0, "sex": 0, "is_pregnant_or_lactating": 0, "has_epilepsy_or_organic_cns": 0,
+        "has_lactase_deficiency": 0, "days_since_maoi": 255, "serum_creatinine_umol_l": -1.0,
+        "alt_u_l": 0.0, "ast_u_l": 0.0, "bilirubin_umol_l": -1.0, "albumin_g_l": -1.0, "inr": -1.0,
+        "cyp2d6_phenotype": 0, "comedication_bitmask": 0, "cyp2c19_phenotype": 0,
+        "cyp1a2_inducer_status": 0, "slc6a4_htr2a_ssri_intolerance": 0, "tsh_mIU_l": 0.0,
+        "free_t4_pmol_l": 0.0, "cortisol_morning_nmol_l": 0.0, "ferritin_ug_l": 0.0,
+        "hemoglobin_g_l": 0.0, "cpk_u_l": 0.0, "ecg_qtc_ms": 0.0,
+    }
+
+    def run_c_core(self, params: Dict[str, Any], fill_defaults: bool = True) -> Dict[str, Any]:
+        """fill_defaults=True — прежнее поведение (демо-сценарии: недостающее = «норма»).
+        fill_defaults=False — безопасный путь: недостающее = «нет данных» (см. safe_pipeline.py)."""
+        if not fill_defaults:
+            defaults = dict(self.UNKNOWN_DEFAULTS)
+            defaults.update(params)
+            return self._run_c_core_impl(defaults)
         defaults = {
             "age": 36, "sex": 1, "is_pregnant_or_lactating": 0,
             "has_epilepsy_or_organic_cns": 0, "has_lactase_deficiency": 0,
@@ -149,6 +167,9 @@ class RapiraCCoreBridge:
             "ecg_qtc_ms": 415.0,
         }
         defaults.update(params)
+        return self._run_c_core_impl(defaults)
+
+    def _run_c_core_impl(self, defaults: Dict[str, Any]) -> Dict[str, Any]:
         c_in = CPatientClinicalInput(**defaults)
         c_out = CCompassCoreOutput()
 

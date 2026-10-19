@@ -443,6 +443,7 @@ def generate_markdown_protocol_for_jury() -> str:
 * **Выявление экстренных показаний «ОБЯЗАТЕЛЬНО к психиатру» (ст. 23 / ст. 29 Закона № 3185-1):** Recall = `{nlp_bench['mandatory_psychiatrist_alert_metrics']['recall'] * 100:.1f}%`, F1 = `{nlp_bench['mandatory_psychiatrist_alert_metrics']['f1_score']:.4f}`.
 * **Точность 3-уровневой маршрутизации:** `{nlp_bench['overall_routing_accuracy_pct']}%`.
 * **Устойчивость к неполным данным (Метрика №3):** `{nlp_bench['missing_data_resilience_accuracy_pct']}%` (0 сбоев).
+* **Безопасный tri-state путь (docs/SAFE_PARSER.md):** без подтверждений врача случаи с неполным анамнезом получают `AMBER_DATA_REQUIRED` — это ожидаемое поведение, а не ошибка (корпус не содержит фраз-отрицаний вроде «эпилепсии нет»). Метрики F1 ниже — регрессионный эталон старого парсера на собственном корпусе; независимый hold-out (`benchmarks/holdout/`) — в работе.
 * **Эргономика (Метрика №4, сравнительный хронометраж):** целевой ориентир — с **{ergo_bench['baseline_mean_time_formatted']}** (24 клика) до **{ergo_bench['compass_mean_time_formatted']}** (3 клика). **Статус: {ergo_bench['measurement_status']}** — фактические значения, N участников и описательная статистика будут вписаны по результатам хронометража с врачами 24.10.2026 (без p-value при малом N).
 """
     with open(PROTOCOL_PATH, "w", encoding="utf-8") as f:

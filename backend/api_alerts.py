@@ -72,15 +72,19 @@ def _relay(request: Request) -> AlertRelay:
 class CheckinRequest(BaseModel):
     event_uuid: uuid.UUID = Field(description="Идемпотентный ключ (офлайн-буфер PWA)")
     phq9_total: int = Field(default=0, ge=0, le=27)
-    phq9_item9: int = Field(default=0, ge=0, le=3)
+    # None = вопрос не задан/пропущен. Раньше пропуск превращался в 0 («мыслей нет») и не давал алерта.
+    phq9_item9: Optional[int] = Field(default=None, ge=0, le=3)
     gad7_total: int = Field(default=0, ge=0, le=21)
-    cssrs: int = Field(default=0, ge=0, le=5)
+    cssrs: Optional[int] = Field(default=None, ge=0, le=5)
     took_medication: bool = Field(default=True, description="Отметка приёма (для вовлечённости)")
 
 
 class CheckinResponse(BaseModel):
     status: str                      # OK | DUPLICATE
     critical: bool
+    # True, если пациент не ответил на п.9 PHQ-9 и C-SSRS: PWA обязана задать вопрос повторно,
+    # а врач видит «суицидальный риск не оценён», а не «0».
+    suicide_item_missing: bool = False
     alert_id: Optional[int] = None
 
 
@@ -92,7 +96,11 @@ class ConfirmRequest(BaseModel):
 def _is_critical(c: CheckinRequest) -> bool:
     """Пороги — те же, что у ClinicalCompassRuleEngine.evaluate_routing_and_alerts:
     два независимых места с разными порогами — это баг, который жюри найдёт раньше нас."""
-    return c.cssrs >= 1 or c.phq9_item9 >= 1 or c.phq9_total >= 20
+    return (c.cssrs or 0) >= 1 or (c.phq9_item9 or 0) >= 1 or c.phq9_total >= 20
+
+
+def _suicide_item_missing(c: CheckinRequest) -> bool:
+    return c.phq9_item9 is None and c.cssrs is None
 
 
 # ------------------------------------------------------------------ чек-ин пациента
@@ -112,7 +120,8 @@ async def patient_checkin(req: CheckinRequest, request: Request,
         # (упрощение: дублем считаем только критический, у него цена повтора — ложный алерт)
         if dup is not None:
             # Дубль — это успех идемпотентности, а не новое событие: 200, не 201
-            return JSONResponse({"status": "DUPLICATE", "critical": critical}, status_code=200)
+            return JSONResponse({"status": "DUPLICATE", "critical": critical,
+                                 "suicide_item_missing": _suicide_item_missing(req)}, status_code=200)
 
         if req.phq9_total > 0:
             await conn.execute(
@@ -131,9 +140,9 @@ async def patient_checkin(req: CheckinRequest, request: Request,
         alert_id: Optional[int] = None
         if critical:
             reasons = []
-            if req.cssrs >= 1:
+            if (req.cssrs or 0) >= 1:
                 reasons.append(f"C-SSRS = {req.cssrs}")
-            if req.phq9_item9 >= 1:
+            if (req.phq9_item9 or 0) >= 1:
                 reasons.append(f"PHQ-9 п.9 = {req.phq9_item9}")
             if req.phq9_total >= 20:
                 reasons.append(f"PHQ-9 = {req.phq9_total}")
@@ -163,7 +172,8 @@ async def patient_checkin(req: CheckinRequest, request: Request,
 
     if critical and alert_id is not None:
         relay.kick()  # коммит прошёл — будим релей немедленно
-    return CheckinResponse(status="OK", critical=critical, alert_id=alert_id)
+    return CheckinResponse(status="OK", critical=critical, alert_id=alert_id,
+                           suicide_item_missing=_suicide_item_missing(req))
 
 
 # ------------------------------------------------------------------ подтверждение человеком

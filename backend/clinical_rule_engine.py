@@ -102,15 +102,24 @@ class ClinicalCompassRuleEngine:
         }
 
     def evaluate_routing_and_alerts(self, clinical_state: Dict[str, Any]) -> Dict[str, Any]:
-        phq9_total = clinical_state.get("phq9_total", 0)
-        phq9_item9 = clinical_state.get("phq9_item9_suicidal", 0)
-        cssrs_score = clinical_state.get("cssrs_score", 0)
-        mdq_score = clinical_state.get("mdq_bipolar_score", 0)
-        has_psychosis = clinical_state.get("has_psychotic_symptoms", False)
+        # Tri-state: отсутствие ключа или None = «НЕ ОЦЕНЕНО», а не 0. Раньше .get(key, 0) превращал
+        # пропущенный п.9 PHQ-9 в «суицидальных мыслей нет» и выдавал зелёный маршрут.
+        raw_total = clinical_state.get("phq9_total")
+        raw_item9 = clinical_state.get("phq9_item9_suicidal")
+        raw_cssrs = clinical_state.get("cssrs_score")
+        suicidal_doc = clinical_state.get("suicidal_ideation_documented")  # True / False / None
+        phq9_total = raw_total or 0
+        phq9_item9 = raw_item9 or 0
+        cssrs_score = raw_cssrs or 0
+        mdq_score = clinical_state.get("mdq_bipolar_score") or 0
+        has_psychosis = bool(clinical_state.get("has_psychotic_symptoms"))
         severe_ae = clinical_state.get("severe_adverse_event", False)
         week_of_therapy = clinical_state.get("week_of_therapy", 0)
         symptom_reduction_pct = clinical_state.get("symptom_reduction_pct", 100.0)
-        failed_ssri = clinical_state.get("failed_first_line_ssri", False)
+        failed_ssri = bool(clinical_state.get("failed_first_line_ssri", False))
+        suicidal_marker = suicidal_doc is True
+        risk_assessed = (raw_item9 is not None) or (raw_cssrs is not None) or (suicidal_doc is not None)
+        data_gaps: List[Dict[str, str]] = []
 
         mandatory_reasons: List[str] = []
         recommended_reasons: List[str] = []
@@ -132,15 +141,16 @@ class ClinicalCompassRuleEngine:
             mandatory_reasons.append(
                 f"Маркеры критического риска (C-SSRS={cssrs_score}, психотика={has_psychosis}) — экстренная консультация психиатра."
             )
-        elif phq9_item9 >= 1 or cssrs_score >= 1 or phq9_total >= 20 or mdq_score >= 7:
-            critical_alert = (phq9_item9 >= 1 or cssrs_score >= 1 or phq9_total >= 20)
+        elif phq9_item9 >= 1 or cssrs_score >= 1 or phq9_total >= 20 or mdq_score >= 7 or suicidal_marker:
+            critical_alert = (phq9_item9 >= 1 or cssrs_score >= 1 or phq9_total >= 20 or suicidal_marker)
             law_3185_article = (
                 "Правовой контекст для врача (справочно): Ст. 23 Закона РФ № 3185-1 — психиатрическое "
                 "освидетельствование проводится с информированным добровольным согласием. "
                 "Система подготовила черновик направления; решение и оформление — за врачом."
             )
             mandatory_reasons.append(
-                f"Маркеры высокого риска: PHQ-9={phq9_total} (п.9={phq9_item9}), C-SSRS={cssrs_score}, MDQ(БАР)={mdq_score}."
+                f"Маркеры высокого риска: PHQ-9={phq9_total} (п.9={phq9_item9}), C-SSRS={cssrs_score}, MDQ(БАР)={mdq_score}"
+                + (", в ЭМК документированы суицидальные мысли." if suicidal_marker else ".")
             )
 
         if severe_ae:
@@ -163,6 +173,14 @@ class ClinicalCompassRuleEngine:
             # П1: голосовые классы DAM в маршрутизацию не попадают (англоязычная модель,
             # experimental) — скрытая диссимуляция ловится правилами К4 по C-DSP-паузам.
 
+        if not risk_assessed:
+            data_gaps.append({
+                "field": "suicide_risk_assessment",
+                "why_needed": "Суицидальный риск не оценён: нет п.9 PHQ-9, C-SSRS и записи о суицидальных мыслях. "
+                              "Отсутствие данных не равно отсутствию риска.",
+                "source_id": "KR_DEPRESSION_MZ",
+            })
+
         if mandatory_reasons:
             routing_category = "MANDATORY_PSYCHIATRIST"
             ui_badge = {
@@ -182,6 +200,15 @@ class ClinicalCompassRuleEngine:
                 "is_emergency_alert": False,
                 "patient_crisis_screen_activated": False,
             }
+        elif data_gaps:
+            routing_category = "DATA_REQUIRED"
+            ui_badge = {
+                "color": "AMBER_WARNING",
+                "icon": "[?]",
+                "title": "ТРЕБУЕТСЯ ОЦЕНКА СУИЦИДАЛЬНОГО РИСКА (п.9 PHQ-9 / C-SSRS): данные не внесены",
+                "is_emergency_alert": False,
+                "patient_crisis_screen_activated": False,
+            }
         else:
             routing_category = "PRIMARY_CARE_MANAGEMENT"
             ui_badge = {
@@ -198,6 +225,7 @@ class ClinicalCompassRuleEngine:
             "ui_visual_block": ui_badge,
             "law_3185_1_classification": law_3185_article,
             "pharmacovigilance_1071_draft": pharmacovigilance_1071,
+            "data_gaps": data_gaps,
             "reasons": mandatory_reasons if mandatory_reasons else recommended_reasons,
         }
 

@@ -31,6 +31,8 @@ _OPS = {
     "==": lambda a, b: a == b,
     "!=": lambda a, b: a != b,
     "in": lambda a, b: a in b,
+    # битовая маска: хотя бы один из битов b выставлен в a (например, comedication_bitmask)
+    "has_bits": lambda a, b: (int(a) & int(b)) != 0,
 }
 
 
@@ -104,6 +106,15 @@ class RulesEngine:
         gaps: List[DataQualityGap] = []
 
         for req in self.required_fields:
+            # required_when: поле обязательно только при условии (например, срок после отмены ИМАО,
+            # если ИМАО был). Условие с НЕИЗВЕСТНЫМ полем считаем выполненным (консервативно).
+            cond = req.get("required_when")
+            if cond is not None:
+                applies, _ = self._eval_condition(cond, profile)
+                if applies is False:
+                    continue
+                if applies is None and req.get("required_when_unknown", True) is False:
+                    continue   # условие само неизвестно и уже учтено как пробел (например, maoi_ever)
             if self._field_value(profile, req["field"]) is None:
                 gaps.append(DataQualityGap(req["field"], req["why_needed"], req.get("source_id", "")))
 
