@@ -12,6 +12,10 @@ from pathlib import Path
 _DIR = str(Path(__file__).resolve().parent)
 if _DIR not in sys.path:
     sys.path.insert(0, _DIR)
+# Корень репо — для package-импортов нового слоя (backend.api_cdss_workstation и др.)
+_ROOT = str(Path(__file__).resolve().parents[1])
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
 
 from fastapi import FastAPI, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
@@ -19,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from api_alerts import alerts_router, ws_router  # noqa: E402
 from api_auth import auth_router  # noqa: E402
 from api_router_bio import bio_router  # noqa: E402
+from api_cdss_workstation import router as cdss_router  # noqa: E402
 
 TELEMETRY_RING = deque(maxlen=500)
 START_TS = time.time()
@@ -148,6 +153,7 @@ app.include_router(bio_router)
 app.include_router(auth_router)
 app.include_router(alerts_router)
 app.include_router(ws_router)
+app.include_router(cdss_router)
 
 
 if __name__ == "__main__":

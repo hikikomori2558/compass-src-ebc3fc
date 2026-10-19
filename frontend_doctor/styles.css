@@ -1,0 +1,971 @@
+/*
+ * frontend_doctor/styles.css
+ * ==========================
+ * Стили клинического рабочего места поверх официального пакета @carbon/styles (IBM Carbon v11).
+ * Архитектурные доноры:
+ * 1. openmrs/openmrs-esm-patient-chart (Patient Header Banner, Left Chart SideNav, Summary Tiles)
+ * 2. medplum/medplum-provider (SOAP Encounter Editor, CPOE Order Table)
+ * 3. HL7 CDS Hooks / Winning Health WiNEX (Правая колонка клинических карточек и подписи решений)
+ */
+
+:root {
+  --omrs-teal: #005d5d;
+  --omrs-teal-dark: #004144;
+  --omrs-bg-canvas: #f4f4f4;
+  --omrs-surface: #ffffff;
+  --omrs-border: #e0e0e0;
+  --omrs-border-strong: #8d8d8d;
+  --omrs-text: #161616;
+  --omrs-text-subtle: #525252;
+
+  --cds-crit-red: #da1e28;
+  --cds-crit-bg: #fff1f1;
+  --cds-warn-amber: #f1c21b;
+  --cds-warn-bg: #fcf4d6;
+  --cds-ok-green: #198038;
+  --cds-ok-bg: #defbe6;
+}
+
+html, body {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  color: var(--omrs-text);
+  background-color: var(--omrs-bg-canvas);
+}
+
+.mono {
+  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+/* 1. ВЕРХНИЙ БАР МИС (OpenMRS 3 Shell Header) */
+.cds--header {
+  position: static !important;
+  height: 44px;
+  background-color: #161616;
+  border-bottom: 1px solid #393939;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+}
+
+.omrs-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.omrs-logo-mark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.omrs-org-name {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.omrs-header-sep {
+  width: 1px;
+  height: 18px;
+  background-color: #525252;
+}
+
+.omrs-app-subtitle {
+  color: #c6c6c6;
+  font-size: 12px;
+}
+
+.omrs-header-center {
+  display: flex;
+  align-items: center;
+}
+
+.queue-selector-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #262626;
+  border: 1px solid #525252;
+  padding: 3px 8px;
+}
+
+.queue-label, .role-caption {
+  color: #a8a8a8;
+  font-size: 11.5px;
+}
+
+.omrs-top-select {
+  background-color: transparent;
+  color: #ffffff;
+  border: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+}
+
+.omrs-top-select option {
+  background-color: #161616;
+  color: #ffffff;
+}
+
+.omrs-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.doctor-role-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #262626;
+  border: 1px solid #393939;
+  padding: 3px 8px;
+}
+
+.omrs-rd-trigger {
+  background-color: #262626;
+  color: #e0e0e0;
+  border: 1px solid #525252;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-family: 'IBM Plex Mono', monospace;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.omrs-rd-trigger:hover {
+  background-color: #393939;
+}
+
+.status-dot-green {
+  width: 7px;
+  height: 7px;
+  background-color: #42be65;
+  display: inline-block;
+}
+
+/* 2. ШАПКА ПАЦИЕНТА (OpenMRS O3 Patient Banner) */
+.omrs-patient-banner {
+  background-color: var(--omrs-surface);
+  border-bottom: 1px solid var(--omrs-border-strong);
+  padding: 8px 14px;
+  display: grid;
+  grid-template-columns: 44px 1fr 430px;
+  gap: 12px;
+  align-items: center;
+}
+
+.banner-avatar {
+  width: 44px;
+  height: 44px;
+  background-color: var(--omrs-teal);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.banner-demographics {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.banner-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.banner-patient-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #161616;
+  margin: 0;
+}
+
+.banner-sex-age {
+  font-size: 12.5px;
+  color: var(--omrs-text-subtle);
+}
+
+.banner-clinical-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.clinical-chip {
+  font-size: 11.5px;
+  padding: 1px 7px;
+  background-color: #f4f4f4;
+  border: 1px solid #c6c6c6;
+  color: #161616;
+  font-weight: 500;
+}
+
+.clinical-chip.chip-alert {
+  background-color: var(--cds-crit-bg);
+  border-color: #fa4d56;
+  color: #a2191f;
+  font-weight: 600;
+}
+
+/* Плашка маршрутизации к психиатру ("ОБЯЗАТЕЛЬНО" vs "ЖЕЛАТЕЛЬНО") */
+.banner-routing-widget {
+  padding: 6px 10px;
+  border-left: 4px solid var(--cds-crit-red);
+  background-color: var(--cds-crit-bg);
+}
+
+.banner-routing-widget.mode-recommended {
+  border-left-color: var(--cds-warn-amber);
+  background-color: var(--cds-warn-bg);
+}
+
+.banner-routing-widget.mode-stable {
+  border-left-color: var(--cds-ok-green);
+  background-color: var(--cds-ok-bg);
+}
+
+.routing-widget-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.routing-widget-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #161616;
+}
+
+.routing-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  background-color: var(--cds-crit-red);
+  color: #ffffff;
+}
+
+.mode-recommended .routing-badge {
+  background-color: #f1c21b;
+  color: #161616;
+}
+
+.mode-stable .routing-badge {
+  background-color: var(--cds-ok-green);
+  color: #ffffff;
+}
+
+.routing-widget-desc {
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: #161616;
+  margin: 0;
+}
+
+/* 3. ТРЕХКОЛОНОЧНЫЙ МАКЕТ МЕДКАРТЫ (220px | 1fr | 365px) */
+.omrs-chart-layout {
+  display: grid;
+  grid-template-columns: 225px 1fr 370px;
+  height: calc(100vh - 108px);
+}
+
+/* Левое меню разделов карты (OpenMRS SideNav) */
+.omrs-chart-sidenav {
+  background-color: var(--omrs-surface);
+  border-right: 1px solid var(--omrs-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidenav-group-title {
+  padding: 10px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--omrs-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sidenav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidenav-link {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-left: 4px solid transparent;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--omrs-text-subtle);
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidenav-link:hover {
+  background-color: #f4f4f4;
+  color: #161616;
+}
+
+.sidenav-link.active {
+  background-color: #e5f6ff;
+  border-left-color: var(--omrs-teal);
+  color: #161616;
+  font-weight: 600;
+}
+
+.sidenav-counter {
+  margin-left: auto;
+  background-color: #e0e0e0;
+  color: #161616;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  padding: 0 6px;
+  font-weight: 600;
+}
+
+.sidenav-alert-dot {
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  background-color: var(--cds-crit-red);
+}
+
+.sidenav-adherence-widget {
+  margin: 12px;
+  padding: 10px;
+  background-color: #f8f8f8;
+  border: 1px solid var(--omrs-border);
+}
+
+.adherence-widget-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.adherence-bar-track {
+  height: 6px;
+  background-color: #e0e0e0;
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.adherence-bar-fill {
+  height: 100%;
+  background-color: var(--cds-crit-red);
+}
+
+.adherence-widget-sub {
+  font-size: 11px;
+  color: var(--omrs-text-subtle);
+  line-height: 1.3;
+}
+
+.sidenav-reference-box {
+  margin: auto 12px 12px;
+  padding: 8px 10px;
+  background-color: #f4f4f4;
+  border-left: 3px solid var(--omrs-teal);
+  font-size: 11px;
+}
+
+.ref-box-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.ref-links-list {
+  list-style: none;
+  padding: 0;
+  color: var(--omrs-text-subtle);
+  line-height: 1.45;
+}
+
+/* ЦЕНТРАЛЬНАЯ РАБОЧАЯ ОБЛАСТЬ */
+.omrs-chart-main {
+  padding: 12px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.chart-view {
+  display: none;
+}
+
+.chart-view.active {
+  display: block;
+}
+
+.summary-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.clinical-tile {
+  background-color: var(--omrs-surface);
+  border: 1px solid var(--omrs-border);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tile-label {
+  font-size: 11px;
+  color: var(--omrs-text-subtle);
+  font-weight: 600;
+}
+
+.tile-main-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: #161616;
+}
+
+.tile-sub-text {
+  font-size: 11px;
+  color: var(--omrs-text-subtle);
+}
+
+.ehr-card {
+  background-color: var(--omrs-surface);
+  border: 1px solid var(--omrs-border);
+  padding: 10px 12px;
+}
+
+.ehr-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--omrs-border);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.ehr-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #161616;
+  margin: 0;
+}
+
+.ehr-card-subtitle {
+  font-size: 11.5px;
+  color: var(--omrs-text-subtle);
+  margin-top: 2px;
+}
+
+/* КАЛЕНДАРЬ ПРИЁМА ПРЕПАРАТА ЗА 14 ДНЕЙ */
+.adherence-legend {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--omrs-text-subtle);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dot-taken, .dot-late, .dot-missed {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+}
+
+.dot-taken { background-color: #198038; }
+.dot-late { background-color: #f1c21b; }
+.dot-missed { background-color: #da1e28; }
+
+.dose-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  gap: 4px;
+}
+
+.dose-day-col {
+  border: 1px solid var(--omrs-border);
+  padding: 4px;
+  text-align: center;
+  background-color: #fafafa;
+}
+
+.dose-day-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--omrs-text-subtle);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.dose-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dose-slot {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  padding: 2px 0;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.dose-slot.slot-ok { background-color: #198038; }
+.dose-slot.slot-warn { background-color: #f1c21b; color: #161616; }
+.dose-slot.slot-miss { background-color: #da1e28; }
+
+.summary-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.chart-canvas-box {
+  width: 100%;
+  background-color: #ffffff;
+}
+
+canvas {
+  width: 100%;
+  display: block;
+}
+
+/* РАЗДЕЛ SOAP И ПАРСЕР */
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-label, .field-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--omrs-text-subtle);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.omrs-select, .omrs-input {
+  height: 30px;
+  border: 1px solid var(--omrs-border-strong);
+  padding: 0 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  background-color: #ffffff;
+}
+
+.soap-split-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 12px;
+}
+
+.omrs-textarea {
+  width: 100%;
+  border: 1px solid var(--omrs-border-strong);
+  padding: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.soap-annotated-box {
+  border: 1px solid var(--omrs-border);
+  background-color: #fafafa;
+  padding: 8px;
+  font-size: 13px;
+  line-height: 1.55;
+  min-height: 96px;
+}
+
+.ner-mark {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+  padding: 1px 5px;
+  border: 1px solid;
+  font-weight: 600;
+}
+
+.ner-drug { background-color: #e5f6ff; border-color: #0072c3; color: #003a6d; }
+.ner-ddi { background-color: var(--cds-crit-bg); border-color: var(--cds-crit-red); color: #a2191f; }
+.ner-negated { background-color: #e8e8e8; border-color: #8d8d8d; color: #525252; text-decoration: line-through; }
+
+/* РАЗДЕЛ CPOE И ШКАЛЫ */
+.pk-kpi-ribbon {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border: 1px solid var(--omrs-border);
+  background-color: #fafafa;
+}
+
+.pk-ribbon-item {
+  padding: 6px 10px;
+  border-right: 1px solid var(--omrs-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.ribbon-label {
+  font-size: 10.5px;
+  color: var(--omrs-text-subtle);
+}
+
+.ribbon-val {
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+.scales-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.interactive-scales-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scale-slider-row {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--omrs-border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scale-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.omrs-range {
+  width: 100%;
+  accent-color: var(--omrs-teal);
+}
+
+.scale-citation {
+  font-size: 11px;
+  color: var(--omrs-text-subtle);
+}
+
+.dst-kpi-box {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background-color: #f4f4f4;
+  border: 1px solid var(--omrs-border);
+  font-size: 12px;
+}
+
+/* РАЗДЕЛ ЧАТА И ТАЙМЛАЙНА */
+.timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timeline-card {
+  border: 1px solid var(--omrs-border);
+  border-left: 3px solid var(--omrs-teal);
+  padding: 8px 10px;
+  background-color: #fafafa;
+}
+
+.timeline-card.tl-alert {
+  border-left-color: var(--cds-crit-red);
+  background-color: var(--cds-crit-bg);
+}
+
+.chat-messages-box {
+  height: 210px;
+  overflow-y: auto;
+  border: 1px solid var(--omrs-border);
+  background-color: #fafafa;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chat-bubble {
+  padding: 6px 8px;
+  background-color: #ffffff;
+  border: 1px solid var(--omrs-border);
+  font-size: 12px;
+}
+
+.chat-bubble.from-doctor {
+  border-left: 3px solid #0f62fe;
+}
+
+.chat-bubble.from-patient {
+  border-left: 3px solid var(--omrs-teal);
+}
+
+.chat-quick-templates {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+
+.quick-tpl-btn {
+  background-color: #e8e8e8;
+  border: 1px solid #c6c6c6;
+  padding: 3px 7px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.quick-tpl-btn:hover {
+  background-color: #dcdcdc;
+}
+
+.chat-input-bar {
+  display: flex;
+  gap: 6px;
+}
+
+.chat-input-bar .omrs-input {
+  flex: 1;
+}
+
+/* 4. ПРАВАЯ КОЛОНКА СППВР (HL7 CDS Hooks / Winning Health WiNEX) */
+.omrs-cdss-rail {
+  background-color: var(--omrs-surface);
+  border-left: 1px solid var(--omrs-border);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.cdss-rail-header {
+  padding: 10px 12px;
+  background-color: #f4f4f4;
+  border-bottom: 1px solid var(--omrs-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cdss-rail-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.cdss-rail-sub {
+  font-size: 11px;
+  color: var(--omrs-text-subtle);
+}
+
+.cds-hooks-stream {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cds-hook-card {
+  border: 1px solid var(--omrs-border);
+  border-left: 4px solid #0f62fe;
+  padding: 8px 10px;
+  background-color: #ffffff;
+}
+
+.cds-hook-card.ind-critical {
+  border-left-color: var(--cds-crit-red);
+  background-color: #fff8f8;
+}
+
+.cds-hook-card.ind-warning {
+  border-left-color: var(--cds-warn-amber);
+  background-color: #fffdf5;
+}
+
+.hook-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.hook-card-title {
+  font-weight: 700;
+  font-size: 12px;
+  color: #161616;
+}
+
+.hook-card-detail {
+  font-size: 11.5px;
+  color: #262626;
+  line-height: 1.35;
+  margin-bottom: 4px;
+}
+
+.hook-card-source {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--omrs-text-subtle);
+}
+
+.cdss-xai-box {
+  padding: 8px 10px;
+  border-top: 1px solid var(--omrs-border);
+  border-bottom: 1px solid var(--omrs-border);
+}
+
+.xai-box-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.doctor-signoff-footer {
+  padding: 10px;
+  background-color: #f8f8f8;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.signoff-rule-banner {
+  font-size: 11px;
+  background-color: #e5f6ff;
+  border-left: 3px solid #0072c3;
+  padding: 6px 8px;
+  color: #002d9c;
+}
+
+.staged-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.staged-item {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  background-color: #ffffff;
+  border: 1px solid var(--omrs-border);
+  padding: 6px 8px;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.sign-full-btn {
+  width: 100%;
+  justify-content: center;
+  max-width: none !important;
+}
+
+.signoff-audit-log {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  padding: 5px 8px;
+  border: 1px solid var(--omrs-border);
+  background-color: #ffffff;
+}
+
+/* 5. ВЫДВИЖНОЙ ИНСПЕКТОР ДЛЯ ЖЮРИ */
+.rd-inspector-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #161616;
+  color: #f4f4f4;
+  border-top: 2px solid #007d79;
+  padding: 12px 16px;
+  transform: translateY(105%);
+  transition: transform 0.2s ease-in-out;
+  z-index: 999;
+}
+
+.rd-inspector-drawer.open {
+  transform: translateY(0);
+}
+
+.rd-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #393939;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.rd-drawer-header h3 {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rd-drawer-header p {
+  font-size: 11.5px;
+  color: #a8a8a8;
+}
+
+.rd-drawer-body {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+}
+
+.rd-col h4 {
+  font-size: 12px;
+  color: #42be65;
+}

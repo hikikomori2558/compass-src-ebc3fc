@@ -1,0 +1,98 @@
+{
+  "router_net": {
+    "network_name": "RouterNet-1.1M",
+    "class_labels": [
+      "FAST_SAFE_PATH",
+      "CLINICAL_CBR_CLUSTER_PATH",
+      "HARD_STOP_DEEP_VERIFICATION"
+    ],
+    "default_alpha": 0.02,
+    "lambda_reg": 0.05,
+    "k_reg": 1,
+    "critical_class_indices": [
+      2
+    ],
+    "class_alphas": {
+      "0": 0.02,
+      "1": 0.02,
+      "2": 0.005
+    },
+    "class_quantiles": {
+      "0": 0.9999999999989995,
+      "1": 1.0000999999989995,
+      "2": 1.0000999999989997
+    },
+    "global_quantile": 0.999999999998999,
+    "temperature": 0.19952623149688797,
+    "is_calibrated": true,
+    "calibration_sample_sizes": {
+      "0": 102,
+      "1": 92,
+      "2": 106
+    }
+  },
+  "dissimulation_net": {
+    "network_name": "DissimulationDropoutNet-1.6M",
+    "class_labels": [
+      "ADHERENT_CONCORDANT",
+      "MODERATE_DROPOUT_RISK",
+      "HIGH_RISK_MASKED_DISSIMULATION"
+    ],
+    "default_alpha": 0.02,
+    "lambda_reg": 0.05,
+    "k_reg": 1,
+    "critical_class_indices": [
+      2
+    ],
+    "class_alphas": {
+      "0": 0.02,
+      "1": 0.02,
+      "2": 0.005
+    },
+    "class_quantiles": {
+      "0": 0.9999999999989997,
+      "1": 1.000099999999,
+      "2": 1.000099999999
+    },
+    "global_quantile": 0.9999999999989999,
+    "temperature": 0.19952623149688797,
+    "is_calibrated": true,
+    "calibration_sample_sizes": {
+      "0": 102,
+      "1": 92,
+      "2": 106
+    }
+  },
+  "cluster_verify_net": {
+    "network_name": "ClusterVerifyNet-0.7M",
+    "class_labels": [
+      "IN_CLUSTER_HIGH_CONFIDENCE",
+      "BOUNDARY_TRANSITION_PHENOTYPE",
+      "OUT_OF_DISTRIBUTION_ANOMALY"
+    ],
+    "default_alpha": 0.02,
+    "lambda_reg": 0.05,
+    "k_reg": 1,
+    "critical_class_indices": [
+      2
+    ],
+    "class_alphas": {
+      "0": 0.02,
+      "1": 0.02,
+      "2": 0.005
+    },
+    "class_quantiles": {
+      "0": 0.9999999999989881,
+      "1": 1.000099999999,
+      "2": 1.000099999999
+    },
+    "global_quantile": 0.9999999999989997,
+    "temperature": 0.19952623149688797,
+    "is_calibrated": true,
+    "calibration_sample_sizes": {
+      "0": 102,
+      "1": 92,
+      "2": 106
+    }
+  }
+}

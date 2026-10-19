@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>УКБ №3 Сеченовского Университета — ЭМК и СППВР «Клинический компас»</title>
+  <!-- Официальный пакет стилей IBM Carbon v11 (используется в OpenMRS 3 esm-patient-chart) -->
+  <link rel="stylesheet" href="https://unpkg.com/@carbon/styles@1.55.0/css/styles.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="cds-theme-g10">
+
+  <!-- 1. ВЕРХНИЙ БАР МИС (OpenMRS 3 / Carbon UI Shell Header) -->
+  <header class="cds--header" role="banner" aria-label="МИС Сеченовского Университета">
+    <div class="omrs-header-left">
+      <div class="omrs-logo-mark">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 2L4 8v16l12 6 12-6V8L16 2zm0 4.2l8 4v11.6l-8 4-8-4V10.2l8-4z" fill="#007d79"/>
+          <path d="M15 10h2v5h5v2h-5v5h-2v-5h-5v-2h5v-5z" fill="#ffffff"/>
+        </svg>
+        <span class="omrs-org-name">ЕГИСЗ / УКБ №3 им. С.С. Корсакова</span>
+      </div>
+      <span class="omrs-header-sep"></span>
+      <span class="omrs-app-subtitle">Клинический компас (Авинейро / ГК ХимРар)</span>
+    </div>
+
+    <!-- Переключатель активного пациента (как в рабочей очереди врача) -->
+    <div class="omrs-header-center">
+      <label for="patient-queue-select" class="sr-only">Очередь приёма</label>
+      <div class="queue-selector-wrap">
+        <span class="queue-label">Активная карта:</span>
+        <select id="patient-queue-select" class="omrs-top-select">
+          <option value="pt_sokolova">Соколова Е. В., 38 л. — F41.1 ГТР + F32.1 (Нед. 6 • Критический алерт)</option>
+          <option value="pt_morozov">Морозов И. А., 44 г. — F43.2 ПТСР / Пост-COVID тревога (Первичный приём)</option>
+          <option value="pt_kravtsova">Кравцова А. С., 31 г. — F41.1 ГТР (Нед. 12 • Контроль ремиссии)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Профиль врача и ненавязчивый переключатель R&D-инспектора для жюри -->
+    <div class="omrs-header-right">
+      <div class="doctor-role-pill">
+        <span class="role-caption">Профиль врача:</span>
+        <select id="doctor-role-select" class="omrs-top-select">
+          <option value="therapist">Врач-терапевт участковый (ВОП)</option>
+          <option value="neurologist">Врач-невролог амбулаторный</option>
+          <option value="psychiatrist" selected>Врач-психиатр / Психотерапевт</option>
+        </select>
+      </div>
+      <button type="button" id="btn-toggle-rd-drawer" class="omrs-rd-trigger" title="Открыть технический инспектор C11-ядра для жюри">
+        <span class="status-dot-green"></span>
+        <span>СППВР: <strong id="top-latency-val">0.38 мс</strong></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. ШАПКА ПАЦИЕНТА (OpenMRS O3 esm-patient-banner) -->
+  <section class="omrs-patient-banner" aria-label="Сведения о пациенте">
+    <div class="banner-avatar" id="pt-avatar">ЕС</div>
+    <div class="banner-demographics">
+      <div class="banner-name-row">
+        <h1 class="banner-patient-name" id="pt-full-name">Соколова Елена Викторовна</h1>
+        <span class="banner-sex-age" id="pt-sex-age">Женский • 38 лет (14.05.1988)</span>
+        <span class="cds--tag cds--tag--teal" id="pt-ehr-id">ИБ № 4092/26</span>
+        <span class="cds--tag cds--tag--cool-gray" id="pt-oms">ОМС: 7700 4910 8821 0492</span>
+      </div>
+      <div class="banner-clinical-tags" id="pt-clinical-tags">
+        <!-- Заполняется динамически: диагнозы МКБ-10, фармакогенетика CYP2D6, функция почек/печени -->
+      </div>
+    </div>
+
+    <!-- Визуально выделенный индикатор маршрутизации к психиатру (п. 8 ТЗ: ОБЯЗАТЕЛЬНО vs ЖЕЛАТЕЛЬНО) -->
+    <div class="banner-routing-widget" id="banner-routing-widget">
+      <div class="routing-widget-top">
+        <span class="routing-widget-label">Маршрутизация к психиатру:</span>
+        <span class="routing-badge" id="routing-category-badge">КАТЕГОРИЯ: ОБЯЗАТЕЛЬНО</span>
+      </div>
+      <p class="routing-widget-desc" id="routing-category-desc"></p>
+    </div>
+  </section>
+
+  <!-- 3. РАБОЧАЯ ОБЛАСТЬ КАРТЫ ПАЦИЕНТА (OpenMRS Left Nav + Medplum Workspace + WiNEX CDS Hooks Rail) -->
+  <div class="omrs-chart-layout">
+
+    <!-- ЛЕВАЯ НАВИГАЦИЯ ПО МЕДКАРТЕ (OpenMRS 3 Patient Chart SideNav) -->
+    <aside class="omrs-chart-sidenav" aria-label="Разделы медицинской карты">
+      <div class="sidenav-group-title">Медицинская карта</div>
+      <ul class="sidenav-list" role="tablist">
+        <li>
+          <button type="button" class="sidenav-link active" data-view="view-summary">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2V2zm7 0h5v5H9V2zM2 9h5v5H2V9zm7 0h5v5H9V9z"/></svg>
+            <span>Сводка карты (360°)</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sidenav-link" data-view="view-soap">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h10a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V2a1 1 0 011-1zm1 3v1h8V4H4zm0 3v1h8V7H4zm0 3v1h5v-1H4z"/></svg>
+            <span>Амбулаторный приём (ЭМК)</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sidenav-link" data-view="view-cpoe">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 2a3.5 3.5 0 012.47 5.97l-4.5 4.5a3.5 3.5 0 01-4.95-4.95l4.5-4.5A3.48 3.48 0 0110.5 2zm-1.41 2.12L5.5 7.71l2.79 2.79 3.59-3.59a1.98 1.98 0 00-2.79-2.79z"/></svg>
+            <span>Лист назначений и ФК</span>
+            <span class="sidenav-counter" id="nav-cpoe-badge">3</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sidenav-link" data-view="view-scales">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1 14V2h1v11h13v1H1zm3-3V6h2v5H4zm4 0V3h2v8H8zm4 0V8h2v3h-2z"/></svg>
+            <span>Психометрия и Речь</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sidenav-link" data-view="view-intervisit">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2a5 5 0 110 10A5 5 0 018 3zm-.5 2v3.5l3 1.5.5-.87-2.5-1.25V5h-1z"/></svg>
+            <span>Мониторинг и Связь</span>
+            <span class="sidenav-alert-dot" id="nav-feed-dot"></span>
+          </button>
+        </li>
+      </ul>
+
+      <!-- Сводка приверженности терапии между визитами (слайд 8 Авинейро) -->
+      <div class="sidenav-adherence-widget">
+        <div class="adherence-widget-header">
+          <span>Комплаенс (14 дней)</span>
+          <strong class="mono" id="sidenav-adherence-pct">64%</strong>
+        </div>
+        <div class="adherence-bar-track">
+          <div class="adherence-bar-fill" id="sidenav-adherence-fill" style="width: 64%;"></div>
+        </div>
+        <p class="adherence-widget-sub" id="sidenav-adherence-note">
+          Пропущено 5 приёмов «Авиандр®» 20 мг за последние 7 суток
+        </p>
+      </div>
+
+      <!-- Справочник ОХЛП ГРЛС и КР Минздрава РФ -->
+      <div class="sidenav-reference-box">
+        <div class="ref-box-title">Нормативная база СППВР</div>
+        <ul class="ref-links-list">
+          <li>• ОХЛП ГРЛС: Авиандр® (Маритупирдин, таб. 20 мг, ГК ХимРар)</li>
+          <li>• КР МЗ РФ: ГТР (F41.1, ID 457)</li>
+          <li>• КР МЗ РФ: Депрессивный эпизод (F32, ID 301)</li>
+          <li>• КР МЗ РФ: ПТСР / СР (F43, ID 454)</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- ЦЕНТРАЛЬНАЯ РАБОЧАЯ ПАНЕЛЬ ЭМК -->
+    <main class="omrs-chart-main">
+
+      <!-- =================================================================
+           РАЗДЕЛ 1: СВОДКА КАРТЫ 360° (OpenMRS O3 Patient Summary)
+           ================================================================= -->
+      <section class="chart-view active" id="view-summary">
+        <div class="summary-kpi-grid">
+          <div class="clinical-tile">
+            <span class="tile-label">Ведущий препарат ЦНС</span>
+            <div class="tile-main-val" id="sum-drug-title">Авиандр® 20 мг × 2 р/сут</div>
+            <span class="tile-sub-text" id="sum-drug-target">Маритупирдин • 5-HT7 / 5-HT2A / α2 (Неделя 6)</span>
+          </div>
+          <div class="clinical-tile">
+            <span class="tile-label">Психометрия (HAM-A / MADRS)</span>
+            <div class="tile-main-val mono" id="sum-scales-val">HAM-A: 6 б. | MADRS: 7 б.</div>
+            <span class="tile-sub-text" id="sum-scales-sub">Диссонанс с голосовым маркером (K = 0.71)</span>
+          </div>
+          <div class="clinical-tile">
+            <span class="tile-label">Фармакокинетика плазмы (Cmax)</span>
+            <div class="tile-main-val mono" id="sum-cmax-val">374.2 нг/мл</div>
+            <span class="tile-sub-text" id="sum-cmax-sub">Порог безопасности ОХЛП: ≤ 240 нг/мл</span>
+          </div>
+          <div class="clinical-tile">
+            <span class="tile-label">Телеметрия сна и ВРС (7 сут)</span>
+            <div class="tile-main-val mono" id="sum-wearable-val">Сон 4.1 ч | RMSSD 16 мс</div>
+            <span class="tile-sub-text" id="sum-wearable-sub">Данные часов пациента (ночная симпатикотония)</span>
+          </div>
+        </div>
+
+        <!-- КАЛЕНДАРЬ ПРИЁМА ПРЕПАРАТА МЕЖДУ ВИЗИТАМИ (Прямое решение боли со слайда 8 Авинейро) -->
+        <div class="ehr-card mt-12">
+          <div class="ehr-card-header">
+            <div>
+              <h2 class="ehr-card-title">Мониторинг приёма препарата «Авиандр®» 20 мг между визитами (14 суток)</h2>
+              <p class="ehr-card-subtitle">Сведения поступают напрямую из мобильного дневника пациента в карточку лечащего врача</p>
+            </div>
+            <div class="adherence-legend">
+              <span class="legend-item"><i class="dot-taken"></i> Принято вовремя</span>
+              <span class="legend-item"><i class="dot-late"></i> Задержка &gt; 3 ч</span>
+              <span class="legend-item"><i class="dot-missed"></i> Пропуск дозы</span>
+            </div>
+          </div>
+          <div class="dose-calendar-grid" id="dose-calendar-grid">
+            <!-- Заполняется из app.js: 14 дней (Утро 20 мг / Вечер 20 мг) -->
+          </div>
+        </div>
+
+        <!-- ДВА ГЛАВНЫХ КЛИНИЧЕСКИХ ГРАФИКА РЯДОМ: 36-НЕДЕЛЬНАЯ ДИНАМИКА И 168-ЧАСОВАЯ ФАРМАКОКИНЕТИКА -->
+        <div class="summary-charts-row mt-12">
+          <div class="ehr-card">
+            <div class="ehr-card-header">
+              <div>
+                <h2 class="ehr-card-title">Динамика состояния (36 недель) против когорты РКИ</h2>
+                <p class="ehr-card-subtitle" id="sum-sinkhorn-caption">Сравнение субъективной шкалы HAM-A и объективного речевого индекса</p>
+              </div>
+            </div>
+            <div class="chart-canvas-box">
+              <canvas id="canvas-summary-traj" width="520" height="215"></canvas>
+            </div>
+          </div>
+
+          <div class="ehr-card">
+            <div class="ehr-card-header">
+              <div>
+                <h2 class="ehr-card-title">Профиль концентрации в плазме (168 часов / 7 суток)</h2>
+                <p class="ehr-card-subtitle">Двухкомпартментная модель с учетом генотипа CYP2D6 и сопутствующей терапии</p>
+              </div>
+            </div>
+            <div class="chart-canvas-box">
+              <canvas id="canvas-summary-pk" width="520" height="215"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           РАЗДЕЛ 2: АМБУЛАТОРНЫЙ ПРИЁМ (SOAP) И ПАРСЕР ИСТОРИЙ БОЛЕЗНИ (Medplum / Eleos)
+           ================================================================= -->
+      <section class="chart-view" id="view-soap">
+        <div class="ehr-card">
+          <div class="ehr-card-header">
+            <div>
+              <h2 class="ehr-card-title">Протокол клинического осмотра и извлечение сущностей из текста ЭМК</h2>
+              <p class="ehr-card-subtitle">Устойчивость к различным шаблонам записи, порядку разделов и орфографическим опечаткам (Тех. метрика №2)</p>
+            </div>
+            <div class="header-controls">
+              <label for="soap-template-select" class="control-label">Шаблон документа:</label>
+              <select id="soap-template-select" class="omrs-select">
+                <option value="structured">Амбулаторный осмотр психиатра (структурированный)</option>
+                <option value="epicrisis">Выписной эпикриз стационара (сплошной текст с опечатками)</option>
+                <option value="primary_care">Первичный приём терапевта / невролога (поликлиника)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="soap-split-grid">
+            <div class="soap-editor-col">
+              <label for="soap-note-textarea" class="field-label">Текст записи в электронной медкарте (редактируемый):</label>
+              <textarea id="soap-note-textarea" class="omrs-textarea" rows="8" spellcheck="false"></textarea>
+
+              <div class="field-label mt-8">Инлайн-разметка распознанных клинических сущностей и отрицаний (Eleos-контур):</div>
+              <div id="soap-annotated-preview" class="soap-annotated-box"></div>
+            </div>
+
+            <div class="soap-extracted-col">
+              <div class="field-label">Структурированные сведения, извлеченные из текста:</div>
+              <table class="cds--data-table cds--data-table--compact">
+                <thead>
+                  <tr>
+                    <th>Сущность (ГРЛС / МКБ)</th>
+                    <th>В тексте</th>
+                    <th>Опечатка</th>
+                    <th>Клинический статус</th>
+                  </tr>
+                </thead>
+                <tbody id="soap-entities-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           РАЗДЕЛ 3: ЛИСТ НАЗНАЧЕНИЙ (CPOE) И ФАРМАКОКИНЕТИЧЕСКОЕ МОДЕЛИРОВАНИЕ
+           ================================================================= -->
+      <section class="chart-view" id="view-cpoe">
+        <div class="ehr-card">
+          <div class="ehr-card-header">
+            <div>
+              <h2 class="ehr-card-title">Лист лекарственных назначений (CPOE) и контроль взаимодействий</h2>
+              <p class="ehr-card-subtitle">Включите или отключите сопутствующие препараты, чтобы проверить пересчет взаимодействий и концентрации «Авиандр®»</p>
+            </div>
+            <div class="header-controls">
+              <label for="cpoe-aviandr-regimen" class="control-label">Режим дозирования «Авиандр®»:</label>
+              <select id="cpoe-aviandr-regimen" class="omrs-select">
+                <option value="20_12">Таблетки 20 мг × 2 раза/сут (каждые 12 ч — стандарт ОХЛП)</option>
+                <option value="20_24">Таблетки 20 мг × 1 раз/сут (каждые 24 ч — снижение дозы на 50%)</option>
+                <option value="10_12">Таблетки 10 мг × 2 раза/сут (титрование при дефиците CYP2D6)</option>
+              </select>
+            </div>
+          </div>
+
+          <table class="cds--data-table cds--data-table--compact">
+            <thead>
+              <tr>
+                <th>Активно</th>
+                <th>Торговое наименование / МНН (ГРЛС РФ)</th>
+                <th>Режим дозирования</th>
+                <th>Фармакологическая мишень / Метаболизм</th>
+                <th>Межлекарственное взаимодействие (DDI)</th>
+              </tr>
+            </thead>
+            <tbody id="cpoe-meds-tbody">
+              <!-- Интерактивные чекбоксы препаратов -->
+            </tbody>
+          </table>
+
+          <div class="pk-kpi-ribbon mt-12">
+            <div class="pk-ribbon-item">
+              <span class="ribbon-label">Пиковая концентрация Cmax</span>
+              <strong class="ribbon-val mono" id="cpoe-cmax">-- нг/мл</strong>
+            </div>
+            <div class="pk-ribbon-item">
+              <span class="ribbon-label">Остаточная концентрация Ctrough,ss</span>
+              <strong class="ribbon-val mono" id="cpoe-ctrough">-- нг/мл</strong>
+            </div>
+            <div class="pk-ribbon-item">
+              <span class="ribbon-label">Площадь под кривой AUC(0-168ч)</span>
+              <strong class="ribbon-val mono" id="cpoe-auc">-- нг·ч/мл</strong>
+            </div>
+            <div class="pk-ribbon-item">
+              <span class="ribbon-label">Период полувыведения T1/2</span>
+              <strong class="ribbon-val mono" id="cpoe-t12">-- ч</strong>
+            </div>
+            <div class="pk-ribbon-item">
+              <span class="ribbon-label">Рекомендуемая коррекция дозы</span>
+              <strong class="ribbon-val mono" id="cpoe-dose-factor">--</strong>
+            </div>
+          </div>
+
+          <div class="chart-canvas-box mt-8">
+            <canvas id="canvas-cpoe-pk" width="880" height="240"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           РАЗДЕЛ 4: ИНТЕРАКТИВНЫЕ ШКАЛЫ РФ И ГОЛОСОВОЙ БИОМАРКЕР
+           ================================================================= -->
+      <section class="chart-view" id="view-scales">
+        <div class="scales-two-col">
+          <!-- Левая половина: интерактивный калькулятор шкал -->
+          <div class="ehr-card">
+            <div class="ehr-card-header">
+              <div>
+                <h2 class="ehr-card-title">Калькулятор валидированных психометрических шкал</h2>
+                <p class="ehr-card-subtitle">Измените баллы для живого пересчета тяжести и индекса диссимуляции</p>
+              </div>
+            </div>
+
+            <div class="interactive-scales-form">
+              <div class="scale-slider-row">
+                <div class="scale-row-top">
+                  <strong>Шкала тревоги Гамильтона (HAM-A)</strong>
+                  <span class="mono" id="lbl-hama-val">6 / 56 баллов</span>
+                </div>
+                <input type="range" id="input-hama-range" min="0" max="42" step="1" value="6" class="omrs-range" />
+                <span class="scale-citation">Валидация РФ: КР Минздрава РФ «ГТР» (ID 457), НМИЦ ПН им. В.П. Сербского (Public Domain)</span>
+              </div>
+
+              <div class="scale-slider-row">
+                <div class="scale-row-top">
+                  <strong>Шкала депрессии Монтгомери–Асберг (MADRS)</strong>
+                  <span class="mono" id="lbl-madrs-val">7 / 60 баллов</span>
+                </div>
+                <input type="range" id="input-madrs-range" min="0" max="48" step="1" value="7" class="omrs-range" />
+                <span class="scale-citation">Валидация РФ: КР Минздрава РФ «Депрессивный эпизод» (ID 301), Смулевич А.Б.</span>
+              </div>
+
+              <div class="scale-slider-row">
+                <div class="scale-row-top">
+                  <strong>Опросник GAD-7 / PHQ-9 (самоотчет пациента)</strong>
+                  <span class="mono" id="lbl-gad-val">GAD-7: 3 б. | Субъект. благополучие: 92%</span>
+                </div>
+                <input type="range" id="input-wellbeing-range" min="10" max="100" step="2" value="92" class="omrs-range" />
+                <span class="scale-citation">Spitzer et al. / Kroenke et al. • Открытая клиническая лицензия Pfizer (русская валидация)</span>
+              </div>
+
+              <div class="scale-slider-row">
+                <div class="scale-row-top">
+                  <strong>Пункт 9 PHQ-9 (Суицидальные мысли / аутоагрессия)</strong>
+                  <select id="input-suicidal-select" class="omrs-select">
+                    <option value="0">0 — Ни разу (отсутствуют)</option>
+                    <option value="1">1 — Несколько дней (пассивные мысли)</option>
+                    <option value="2">2 — Более половины дней (требует экстренного осмотра психиатра)</option>
+                    <option value="3">3 — Почти каждый день (ургентная госпитализация)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Правая половина: объективный голосовой биомаркер (Ellipsis / Kintsugi модель) -->
+          <div class="ehr-card">
+            <div class="ehr-card-header">
+              <div>
+                <h2 class="ehr-card-title">Объективизация по голосу и слияние Демпстера–Шефера</h2>
+                <p class="ehr-card-subtitle">Сравнение субъективного самоотчета с акустикой русской речи (25 сек)</p>
+              </div>
+            </div>
+
+            <table class="cds--data-table cds--data-table--compact">
+              <thead>
+                <tr>
+                  <th>Показатель голосовой просодики</th>
+                  <th>Пациент</th>
+                  <th>Норма (RU)</th>
+                  <th>Оценка</th>
+                </tr>
+              </thead>
+              <tbody id="scales-bio-tbody"></tbody>
+            </table>
+
+            <div class="dst-kpi-box mt-8">
+              <div>Коэффициент межмодального конфликта <strong>K = <span id="scales-dst-k">0.71</span></strong></div>
+              <div>Индекс скрытой диссимуляции: <strong><span id="scales-dst-dissim">0.64</span></strong></div>
+            </div>
+
+            <div class="chart-canvas-box mt-8">
+              <canvas id="canvas-scales-dst" width="440" height="185"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           РАЗДЕЛ 5: МЕЖВИЗИТНЫЙ МОНИТОРИНГ И КАНАЛ КОММУНИКАЦИИ С ПАЦИЕНТОМ
+           ================================================================= -->
+      <section class="chart-view" id="view-intervisit">
+        <div class="scales-two-col">
+          <div class="ehr-card">
+            <div class="ehr-card-header">
+              <div>
+                <h2 class="ehr-card-title">События между визитами (Прямой поток Пациент → ЭМК врача)</h2>
+                <p class="ehr-card-subtitle">Без участия третьих лиц (соответствие 152-ФЗ и п. 5–7 ТЗ)</p>
+              </div>
+            </div>
+            <div id="intervisit-timeline-list" class="timeline-list"></div>
+          </div>
+
+          <div class="ehr-card">
+            <div class="ehr-card-header">
+              <div>
+                <h2 class="ehr-card-title">Защищенный канал связи с пациентом</h2>
+                <p class="ehr-card-subtitle">Сопровождение лечебного процесса и назначение дистанционных тестов</p>
+              </div>
+            </div>
+            <div id="doctor-patient-chat" class="chat-messages-box"></div>
+            <div class="chat-quick-templates">
+              <button type="button" class="quick-tpl-btn" data-msg="Пожалуйста, запишите 25-секундный голосовой дневник самочувствия в приложении.">+ Запросить голосовой чек-ин</button>
+              <button type="button" class="quick-tpl-btn" data-msg="Напоминаю: не отменяйте Авиандр® 20 мг самостоятельно до нашей консультации.">+ Напоминание о приверженности</button>
+              <button type="button" class="quick-tpl-btn" data-msg="Назначен внеплановый опросник GAD-7 и контроль ЭКГ.">+ Назначить GAD-7</button>
+            </div>
+            <div class="chat-input-bar">
+              <input type="text" id="chat-text-input" class="omrs-input" placeholder="Введите клиническую рекомендацию пациенту..." />
+              <button type="button" id="chat-send-button" class="cds--btn cds--btn--primary cds--btn--sm">Отправить</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 4. ПРАВАЯ КОЛОНКА СППВР (HL7 CDS Hooks + Winning Health WiNEX Smart Assistant) -->
+    <aside class="omrs-cdss-rail" aria-label="Система поддержки принятия врачебных решений">
+      <div class="cdss-rail-header">
+        <div>
+          <h2 class="cdss-rail-title">Клинический компас (CDS Hooks)</h2>
+          <span class="cdss-rail-sub">Рекомендации на базе ОХЛП ГРЛС и КР МЗ РФ</span>
+        </div>
+        <span class="cds--tag cds--tag--blue" id="cds-cards-count">4 сигнала</span>
+      </div>
+
+      <!-- Лента карточек клинических предупреждений и рекомендаций (Critical / Warning / Info) -->
+      <div class="cds-hooks-stream" id="cds-hooks-stream">
+        <!-- Заполняется динамически из app.js -->
+      </div>
+
+      <!-- Декомпозиция факторов риска Оуэна-Шепли -->
+      <div class="cdss-xai-box">
+        <div class="xai-box-header">
+          <span>Вклад факторов в клинический риск (Оуэн-Шепли)</span>
+          <span class="mono" id="xai-total-risk-label">Риск: 81.6</span>
+        </div>
+        <canvas id="canvas-rail-owen" width="330" height="145"></canvas>
+      </div>
+
+      <!-- БУФЕР ПОДТВЕРЖДЕНИЯ ВРАЧОМ (Doctor-in-the-Loop Gate: система НЕ действует сама!) -->
+      <div class="doctor-signoff-footer">
+        <div class="signoff-rule-banner">
+          <strong>Принцип «Врач в контуре»:</strong> Назначение, титрация и отмена терапии, а также направление к психиатру вступают в силу <u>только после подтверждения врачом</u>.
+        </div>
+
+        <div class="staged-orders-list" id="staged-orders-list">
+          <!-- Чекбоксы решений, ожидающих подписи врача -->
+        </div>
+
+        <button type="button" id="btn-sign-orders" class="cds--btn cds--btn--primary sign-full-btn">
+          Подписать и провести выбранные действия в ЭМК
+        </button>
+        <div class="signoff-audit-log" id="signoff-audit-log">
+          Статус: Черновик сформирован СППВР. Ожидает подписи лечащего врача.
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- 5. ВЫДВИЖНОЙ ТЕХНИЧЕСКИЙ ИНСПЕКТОР C11-ЯДРА И КОНСТРУКТОР ПРАВИЛ (ДЛЯ ЖЮРИ) -->
+  <div class="rd-inspector-drawer" id="rd-inspector-drawer" aria-hidden="true">
+    <div class="rd-drawer-header">
+      <div>
+        <h3>Инженерный инспектор C11-ядра и горячего обновления правил (Тех. метрики №1–13)</h3>
+        <p>Демонстрация внутренней телеметрии микросетей W8A8, конформных множеств RAPS и JSON-конструктора правил без перекомпиляции</p>
+      </div>
+      <button type="button" id="btn-close-rd-drawer" class="cds--btn cds--btn--secondary cds--btn--sm">Закрыть инспектор</button>
+    </div>
+    <div class="rd-drawer-body">
+      <div class="rd-col">
+        <h4>Конформные множества Mondrian RAPS (гарантия покрытия 1 - α ≥ 99.5%)</h4>
+        <table class="cds--data-table cds--data-table--compact mt-8">
+          <thead>
+            <tr>
+              <th>Управляющая микросеть / Модуль C11</th>
+              <th>Выходное множество C(x) / Метрика</th>
+              <th>Латентность</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>RouterNet-1.1M (C11 W8A8 GEMV)</td>
+              <td class="mono" id="rd-router-set">[HARD_STOP_DEEP_VERIFICATION]</td>
+              <td class="mono">0.014 мс</td>
+            </tr>
+            <tr>
+              <td>DissimulationDropoutNet-1.6M (C11 W8A8)</td>
+              <td class="mono" id="rd-dissim-set">[HIGH_RISK_MASKED_DISSIMULATION]</td>
+              <td class="mono">0.016 мс</td>
+            </tr>
+            <tr>
+              <td>ClusterVerifyNet-0.7M + Ledoit-Wolf 24D OOD</td>
+              <td class="mono" id="rd-ood-val">D² = 54.8 (&gt; χ²=42.98)</td>
+              <td class="mono">0.011 мс</td>
+            </tr>
+            <tr>
+              <td>Dormand-Prince RK45 PopPK ОДУ (168 ч)</td>
+              <td class="mono" id="rd-rk45-err">Баланс массы: 2.1e-12 мг</td>
+              <td class="mono">0.032 мс</td>
+            </tr>
+            <tr>
+              <td>Точные коалиционные значения Оуэна (4096 коалиций)</td>
+              <td class="mono">Невязка аксиомы эффективности: 0.0e+00</td>
+              <td class="mono">0.088 мс</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rd-col">
+        <h4>Горячее добавление правил алертинга и шкал (Тех. метрика №10 — без изменения ядра)</h4>
+        <textarea id="rd-rules-json" class="omrs-textarea mono mt-8" rows="7" spellcheck="false"></textarea>
+        <button type="button" id="btn-hot-reload-rules" class="cds--btn cds--btn--primary cds--btn--sm mt-8">
+          Применить JSON-конфигурацию правил на лету
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="clinical_engines_client.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

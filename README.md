@@ -29,8 +29,11 @@ rapira-clinical-compass/
 │   ├── generate_scientific_plots.py       # 3 научных графика
 │   ├── PROTOCOL_APROBATION_2026.md        # протокол апробации (генерируется)
 │   └── plots/                             # PNG/SVG 300 DPI (генерируются)
-├── micro_nets/                  # 3 микросети управления (RouterNet / DissimulationDropoutNet / ClusterVerifyNet) — Всеволод
-├── frontend_doctor/             # ЭМК-сайдбар 420px + дашборд врача — Всеволод
+├── micro_nets/                  # Контур II: микросети управления (INT8 C-рантайм + дистилляция + conformal RAPS)
+│   ├── train_distill_manifold.py #    обучение/дистилляция на manifold-синтетике
+│   ├── conformal_calibration.py  #    Mondrian RAPS: честные интервалы неопределённости
+│   └── inference_engine.py       #    CompassControlPlaneEngine (через C INT8-мост)
+├── frontend_doctor/             # АРМ врача: OpenMRS 3 / Carbon / CDS Hooks + CPOE (index.html + app.js)
 ├── frontend_patient/            # PWA / Telegram Mini App пациента — Всеволод
 ├── docs/                        # документация проекта + GIT_WORKFLOW.md
 └── scripts/                     # build_c_core.py, smoke_test_c_core.py, sync_git.py
