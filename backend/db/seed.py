@@ -2,21 +2,18 @@
 # -*- coding: utf-8 -*-
 """
 seed.py — демо-данные COMPASS-HYBRID v2.6 (Метрика №12 + живые графики в UI).
-Запуск: python3 backend/db/seed.py
+Запуск из корня репо: python3 -m backend.db.seed
 DSN владельца (суперпользователь кластера — обходит RLS для заливки):
   OWNER_DATABASE_URL=postgresql://compass_app:compass_demo@localhost:5433/compass
 """
 import asyncio
 import json
 import os
-import sys
 from datetime import date
-from pathlib import Path
 
 import asyncpg
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # backend/
-from bio_paths import KB_PATH  # noqa: E402
+from backend.paths import KB_PATH
 
 OWNER_DSN = os.getenv(
     "OWNER_DATABASE_URL",

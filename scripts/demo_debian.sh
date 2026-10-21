@@ -1,7 +1,7 @@
 #!/bin/bash
 # demo_debian.sh — поднять ПОЛНЫЙ демонстрационный стенд COMPASS-HYBRID на домашнем
-# Debian-сервере (Tailscale-кластер) и прогнать ВСЕ проверки: от C-ядра до WS-шины,
-# весов Kintsugi DAM и нагрузочного зонда. Одна команда = рабочая площадка для демо.
+# Debian-сервере (Tailscale-кластер) и прогнать ВСЕ проверки: от C-ядра до WS-шины
+# и нагрузочного зонда. Одна команда = рабочая площадка для демо.
 #
 # Отличие от deploy_debian.sh: там — быстрая smoke-проверка Linux-сборки; здесь —
 # полный стенд с docker-инфраструктурой, БД, тестами и весами моделей.
@@ -23,7 +23,7 @@ run() { ssh "${SSH_OPTS[@]}" "root@${HOST}" "$@"; }
 RSYNC_RSH="ssh -o BatchMode=yes -o ConnectTimeout=10 -o ProxyCommand='nc -X 5 -x ${SOCKS} %h %p'"
 
 echo "=============================================================="
-echo "[1/9] Синхронизация кода -> ${HOST}:${REMOTE_DIR}"
+echo "[1/8] Синхронизация кода -> ${HOST}:${REMOTE_DIR}"
 echo "=============================================================="
 rsync -az --delete \
   -e "$RSYNC_RSH" \
@@ -33,22 +33,22 @@ rsync -az --delete \
   "$(dirname "$0")/../" "root@${HOST}:${REMOTE_DIR}/"
 
 echo "=============================================================="
-echo "[2/9] Python-окружение на Debian"
+echo "[2/8] Python-окружение на Debian"
 echo "=============================================================="
 run "cd ${REMOTE_DIR} && (python3 -m venv .venv 2>/dev/null || (apt-get update -qq && apt-get install -y -qq python3-venv && python3 -m venv .venv)) && .venv/bin/pip -q install --upgrade pip && .venv/bin/pip -q install -r backend/requirements.txt huggingface_hub && .venv/bin/python3 -V"
 
 echo "=============================================================="
-echo "[3/9] Сборка C-ядра на Linux/x86_64 (ветка -mavx2) + смоук"
+echo "[3/8] Сборка C-ядра на Linux/x86_64 (ветка -mavx2) + смоук"
 echo "=============================================================="
-run "cd ${REMOTE_DIR} && .venv/bin/python3 scripts/build_c_core.py && .venv/bin/python3 scripts/smoke_test_c_core.py | tail -3"
+run "cd ${REMOTE_DIR} && .venv/bin/python3 scripts/build_c_core.py && .venv/bin/python3 -m tests.test_c_core_smoke | tail -3"
 
 echo "=============================================================="
-echo "[4/9] Автономные suite (правила / pii / лексер / безопасный разбор)"
+echo "[4/8] Автономные suite (правила / pii / лексер / безопасный разбор)"
 echo "=============================================================="
-run "cd ${REMOTE_DIR} && .venv/bin/python3 benchmarks/test_rules_engine.py | tail -1 && .venv/bin/python3 benchmarks/test_pii_scrubber.py | tail -1 && .venv/bin/python3 benchmarks/test_lexer.py | tail -1 && .venv/bin/python3 benchmarks/test_safe_ehr.py 2>&1 | tail -1"
+run "cd ${REMOTE_DIR} && .venv/bin/python3 -m tests.test_domain_rules | tail -1 && .venv/bin/python3 -m tests.test_c_pii_scrubber | tail -1 && .venv/bin/python3 -m tests.test_c_lexer_ahocorasik | tail -1 && .venv/bin/python3 -m tests.test_safe_pipeline 2>&1 | tail -1"
 
 echo "=============================================================="
-echo "[5/9] Docker-стек: PostgreSQL 16 + Redis 7 + API (сборка образа на Linux)"
+echo "[5/8] Docker-стек: PostgreSQL 16 + Redis 7 + API (сборка образа на Linux)"
 echo "=============================================================="
 run "cd ${REMOTE_DIR} && docker compose up -d --build 2>&1 | tail -2"
 
@@ -56,27 +56,21 @@ echo "[*] Ждём /healthz (pg+redis+api)..."
 run "for i in \$(seq 1 60); do curl -sf http://127.0.0.1:8000/healthz && break || sleep 2; done | tail -1"
 
 echo "=============================================================="
-echo "[6/9] БД: seed + RLS + аутентификация + WS-шина"
+echo "[6/8] БД: seed + RLS + аутентификация + WS-шина"
 echo "=============================================================="
-run "cd ${REMOTE_DIR} && .venv/bin/python3 backend/db/seed.py && .venv/bin/python3 scripts/test_rls.py | tail -1 && .venv/bin/python3 benchmarks/test_auth.py 2>&1 | tail -1 && .venv/bin/python3 benchmarks/test_ws_latency.py 2>&1 | tail -1"
+run "cd ${REMOTE_DIR} && .venv/bin/python3 -m backend.db.seed && .venv/bin/python3 -m tests.test_db_rls | tail -1 && .venv/bin/python3 -m tests.test_api_auth 2>&1 | tail -1 && .venv/bin/python3 -m tests.test_api_alerts_ws 2>&1 | tail -1"
 
 echo "=============================================================="
-echo "[7/9] Биоконтур: 100 виньеток + научные графики (headless)"
+echo "[7/8] Биоконтур: 100 виньеток + научные графики (headless)"
 echo "=============================================================="
-run "cd ${REMOTE_DIR} && MPLBACKEND=Agg .venv/bin/python3 benchmarks/ehr_nlp_benchmark.py | tail -6 && MPLBACKEND=Agg .venv/bin/python3 benchmarks/generate_scientific_plots.py | tail -1"
+run "cd ${REMOTE_DIR} && MPLBACKEND=Agg .venv/bin/python3 -m benchmarks.ehr_nlp_benchmark | tail -6 && MPLBACKEND=Agg .venv/bin/python3 -m benchmarks.generate_scientific_plots | tail -1"
 
 echo "=============================================================="
-echo "[8/9] Веса Kintsugi DAM -> локальный кэш (демо без интернета в Сколково)"
-echo "=============================================================="
-run "cd ${REMOTE_DIR} && .venv/bin/python3 scripts/cache_kintsugi_offline.py --download-hf 2>&1 | tail -2 || echo '[!] Загрузка весов не удалась (сеть/доступ) — не блокирует стенд'"
-
-echo "=============================================================="
-echo "[9/9] Нагрузочный зонд на 12 ядрах Debian"
+echo "[8/8] Нагрузочный зонд на 12 ядрах Debian"
 echo "=============================================================="
 run "cd ${REMOTE_DIR} && .venv/bin/python3 scripts/load_probe.py --scenario health --concurrency 128 --seconds 12 && .venv/bin/python3 scripts/load_probe.py --scenario analyze --concurrency 48 --seconds 12"
 
 echo "=============================================================="
 echo "[OK] Демо-стенд на ${HOST} поднят и полностью проверен:"
 echo "     Swagger:  http://${HOST}:8000/docs   (из сети Tailscale)"
-echo "     Веса DAM: ${REMOTE_DIR}/clinical_data/hf_cache"
 echo "=============================================================="

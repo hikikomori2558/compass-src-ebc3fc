@@ -26,9 +26,9 @@ echo "[*] Сборка C-ядра на Linux/x86_64 (ветка -mavx2):"
 eval "${SSH_CMD} 'cd ${REMOTE_DIR} && python3 scripts/build_c_core.py'"
 
 echo "[*] Smoke-тест нативного ядра (Метрика №1):"
-eval "${SSH_CMD} 'cd ${REMOTE_DIR} && python3 scripts/smoke_test_c_core.py'"
+eval "${SSH_CMD} 'cd ${REMOTE_DIR} && python3 -m tests.test_c_core_smoke'"
 
 echo "[*] Тест 3 эталонных сценариев:"
-eval "${SSH_CMD} 'cd ${REMOTE_DIR} && python3 backend/clinical_rule_engine.py'"
+eval "${SSH_CMD} 'cd ${REMOTE_DIR} && python3 -m backend.services.pipeline'"
 
 echo "[OK] Debian-проверка прошла: Linux/x86_64 собирается и считает."

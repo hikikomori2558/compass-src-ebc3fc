@@ -12,16 +12,10 @@ RUN apt-get update \
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-COPY backend/requirements.txt /app/backend/requirements.txt
-# Воспроизводимость (модель угроз, п.8): образ собирается из ЗАМОРОЖЕННЫХ версий,
-# а не «последних на момент сборки». requirements.txt — только для ручных venv.
-COPY backend/requirements.lock.txt /app/backend/requirements.lock.txt
-RUN pip install --no-cache-dir -r /app/backend/requirements.lock.txt
-
-COPY backend/requirements.txt /app/backend/requirements.txt
-# Воспроизводимость (модель угроз, п.8): образ собирается из ЗАМОРОЖЕННЫХ версий,
-# а не «последних на момент сборки». requirements.txt — только для ручных venv.
-COPY backend/requirements.lock.txt /app/backend/requirements.lock.txt
+COPY backend/requirements.txt backend/requirements.lock.txt /app/backend/
+# Воспроизводимость (модель угроз, п.8): образ собирается из ЗАМОРОЖЕННЫХ версий
+# (requirements.lock.txt), а не «последних на момент сборки». requirements.txt —
+# только для ручных venv вне Docker.
 RUN pip install --no-cache-dir -r /app/backend/requirements.lock.txt
 
 # Весь репозиторий одним слоем: новые модули (micro_nets/, frontend_doctor/, ...)

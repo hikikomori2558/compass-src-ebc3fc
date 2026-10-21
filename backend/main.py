@@ -1,29 +1,18 @@
-# backend/main.py — Главный FastAPI-сервер COMPASS-HYBRID v2.6 (Разработчик №1)
-# Запуск из корня репо:  python3 backend/main.py   (или: uvicorn backend.main:app)
+# backend/main.py — главный FastAPI-сервер COMPASS-HYBRID v2.6.
+# Запуск из корня репо:  python3 -m backend.main   (или: uvicorn backend.main:app)
 # Инфраструктура: docker compose up -d  (PostgreSQL 16 + Redis 7 AOF)
 import os
-import sys
 import time
 from collections import deque
 from contextlib import asynccontextmanager
-from pathlib import Path
 
-# Плоские импорты биоконтура (api_router_bio -> trajectory_clustering -> bio_paths)
-_DIR = str(Path(__file__).resolve().parent)
-if _DIR not in sys.path:
-    sys.path.insert(0, _DIR)
-# Корень репо — для package-импортов нового слоя (backend.api_cdss_workstation и др.)
-_ROOT = str(Path(__file__).resolve().parents[1])
-if _ROOT not in sys.path:
-    sys.path.insert(0, _ROOT)
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 
-from fastapi import FastAPI, Request  # noqa: E402
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-
-from api_alerts import alerts_router, ws_router  # noqa: E402
-from api_auth import auth_router  # noqa: E402
-from api_router_bio import bio_router  # noqa: E402
-from api_cdss_workstation import router as cdss_router  # noqa: E402
+from backend.api.alerts import alerts_router, ws_router
+from backend.api.auth import auth_router
+from backend.api.bio import bio_router
+from backend.api.cdss_workstation import router as cdss_router
 
 TELEMETRY_RING = deque(maxlen=500)
 START_TS = time.time()
@@ -63,7 +52,7 @@ async def lifespan(app: FastAPI):
 
     # Релей критических алертов (Postgres outbox -> Redis Streams). Живёт, пока жив
     # процесс: упал — стартанёт заново вместе с приложением, ничего не теряя (outbox).
-    from alerts import AlertRelay
+    from backend.services.alerts import AlertRelay
 
     app.state.alert_relay = AlertRelay()
     if app.state.pg_pool is not None and app.state.redis is not None:

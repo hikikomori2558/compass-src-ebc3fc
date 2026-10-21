@@ -16,27 +16,27 @@
             }
         },
         {
-            "label": "2. Синхронизировать с GitHub (git pull --rebase)",
+            "label": "2. Синхронизироваться с GitHub (git pull --rebase)",
             "type": "shell",
-            "command": "python3 scripts/sync_git.py",
+            "command": "git pull --rebase origin main",
             "presentation": {
                 "reveal": "always",
                 "panel": "shared"
             }
         },
         {
-            "label": "3. Проверить C-Core (Smoke Test + бенчмарк отклика)",
+            "label": "3. Смоук C-Core (бенчмарк отклика, Метрика №1)",
             "type": "shell",
-            "command": "python3 scripts/smoke_test_c_core.py",
+            "command": "python3 -m tests.test_c_core_smoke",
             "presentation": {
                 "reveal": "always",
                 "panel": "shared"
             }
         },
         {
-            "label": "4. Тест 3 эталонных сценариев (rule engine)",
+            "label": "4. Тест 3 эталонных сценариев (safe pipeline)",
             "type": "shell",
-            "command": "python3 backend/clinical_rule_engine.py",
+            "command": "python3 -m backend.services.pipeline",
             "presentation": {
                 "reveal": "always",
                 "panel": "shared"
@@ -45,7 +45,7 @@
         {
             "label": "5. Бенчмарк 100 синтетических ЭМК (протокол апробации)",
             "type": "shell",
-            "command": "python3 benchmarks/ehr_nlp_benchmark.py",
+            "command": "python3 -m benchmarks.ehr_nlp_benchmark",
             "presentation": {
                 "reveal": "always",
                 "panel": "shared"
@@ -54,7 +54,7 @@
         {
             "label": "6. Научные графики -> benchmarks/plots/",
             "type": "shell",
-            "command": "python3 benchmarks/generate_scientific_plots.py",
+            "command": "python3 -m benchmarks.generate_scientific_plots",
             "presentation": {
                 "reveal": "always",
                 "panel": "shared"
@@ -63,7 +63,7 @@
         {
             "label": "7. Запустить bio API сервер (Swagger :8000)",
             "type": "shell",
-            "command": "python3 backend/api_router_bio.py",
+            "command": "python3 -m backend.api.bio",
             "isBackground": true,
             "problemMatcher": []
         },
@@ -76,37 +76,37 @@
         {
             "label": "9. Seed БД (демо-данные)",
             "type": "shell",
-            "command": "python3 backend/db/seed.py",
+            "command": "python3 -m backend.db.seed",
             "problemMatcher": []
         },
         {
             "label": "10. RLS-тест изоляции данных",
             "type": "shell",
-            "command": "python3 scripts/test_rls.py",
+            "command": "python3 -m tests.test_db_rls",
             "problemMatcher": []
         },
         {
             "label": "11. Тест pii_scrubber (152-ФЗ)",
             "type": "shell",
-            "command": "python3 benchmarks/test_pii_scrubber.py",
+            "command": "python3 -m tests.test_c_pii_scrubber",
             "problemMatcher": []
         },
         {
             "label": "12. Тест аутентификации и QR-привязки",
             "type": "shell",
-            "command": "python3 benchmarks/test_auth.py",
+            "command": "python3 -m tests.test_api_auth",
             "problemMatcher": []
         },
         {
             "label": "13. Тест WS-шины алертов (<50 мс, пустой пинг)",
             "type": "shell",
-            "command": "python3 benchmarks/test_ws_latency.py",
+            "command": "python3 -m tests.test_api_alerts_ws",
             "problemMatcher": []
         },
         {
             "label": "14. Тест лексера ЭМК (Ахо—Корасик vs наивный)",
             "type": "shell",
-            "command": "python3 benchmarks/test_lexer.py",
+            "command": "python3 -m tests.test_c_lexer_ahocorasik",
             "problemMatcher": []
         }
     ]

@@ -74,8 +74,8 @@
 | `c_core/libcompass_core.so` | Скомпилированная библиотека — **в git не входит**, собирается `scripts/build_c_core.py` |
 | `backend/bio_paths.py` | Единая карта путей биоконтура (работа из любого каталога) |
 | `backend/trajectory_clustering.py` | Мост ctypes к C-ядру, сборщик 24-мерного вектора, кластеризатор К1–К5 |
-| `backend/clinical_rule_engine.py` | Движок маршрутизации, правовой триаж, голосовые биомаркеры, удержание, hot-reload шкал |
-| `backend/api_router_bio.py` | FastAPI-роутер из 6 эндпоинтов + Swagger UI |
+| `backend/domain/routing.py` | Маршрутизация, правовой триаж, голосовые биомаркеры, удержание, hot-reload шкал |
+| `backend/api/bio.py` | FastAPI-роутер из 6 эндпоинтов + Swagger UI |
 | `clinical_data/clinical_knowledge_base.json` | Декларативный реестр 8 шкал, правил ОХЛП и коридоров КИ |
 | `clinical_data/synthetic_100_ehr_vignettes.json` | Корпус 100 синтетических историй болезни (seed=2026) |
 | `benchmarks/ehr_nlp_benchmark.py` | Генератор корпуса, NLP-парсер, метрики, генератор протокола апробации |
@@ -109,14 +109,14 @@ nm -D c_core/libcompass_core.so | grep -E "evaluate_compass_core_v26|extract_voi
 ```bash
 # 1. Прогон 3 эталонных клинических сценариев (Пост-COVID у водителя, ГТР у пожилой
 #    пациентки с CYP2D6 PM на метопрололе, Блокировка по СКФ/лактозе + суицидальный алерт)
-python3 backend/clinical_rule_engine.py
+python3 -m backend.services.pipeline   # 3 эталонных сценария (safe-путь)
 
 # 2. Генерация 100 синтетических историй болезни (clinical_data/synthetic_100_ehr_vignettes.json)
 #    и протокола апробации (benchmarks/PROTOCOL_APROBATION_2026.md)
-python3 benchmarks/ehr_nlp_benchmark.py
+python3 -m benchmarks.ehr_nlp_benchmark
 
 # 3. 3 научных графика -> benchmarks/plots/ (168ч PK CYP2D6, 36-недельный коридор, UMAP кластеров)
-python3 benchmarks/generate_scientific_plots.py
+python3 -m benchmarks.generate_scientific_plots
 ```
 
 ### 6.4. Веб-сервер FastAPI и Swagger UI
@@ -124,8 +124,8 @@ python3 benchmarks/generate_scientific_plots.py
 **Вариант А — по локальному IP виртуальной машины (например, 192.168.64.28):**
 
 ```bash
-python3 backend/api_router_bio.py --host 0.0.0.0 --port 8000
-# или: cd backend && uvicorn api_router_bio:app --host 0.0.0.0 --port 8000
+python3 -m backend.api.bio --host 0.0.0.0 --port 8000
+# или: uvicorn backend.api.bio:app --host 0.0.0.0 --port 8000
 ```
 
 Затем на основном компьютере: `http://192.168.64.28:8000/docs`
@@ -136,7 +136,7 @@ python3 backend/api_router_bio.py --host 0.0.0.0 --port 8000
 # на основном компьютере:
 ssh -L 8000:127.0.0.1:8000 user@192.168.64.28
 # внутри ВМ:
-python3 backend/api_router_bio.py
+python3 -m backend.api.bio
 # затем на основном компьютере: http://127.0.0.1:8000/docs
 ```
 
@@ -149,6 +149,6 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / "backend"))
 
-from api_router_bio import bio_router
+from backend.api.bio import bio_router
 app.include_router(bio_router)
 ```

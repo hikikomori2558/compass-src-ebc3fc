@@ -1,27 +1,23 @@
-# ehr_nlp_benchmark.py — Генератор 100 синтетических ЭМК (5 шаблонов) + NLP-парсер + Протокол апробации по ФЗ-152/323
+# benchmarks/ehr_nlp_benchmark.py — генератор 100 синтетических ЭМК (5 шаблонов) +
+# NLP-парсер + протокол апробации по ФЗ-152/323. Запуск: python3 -m benchmarks.ehr_nlp_benchmark
 import json
 import re
 import random
 import time
 from dataclasses import dataclass, asdict
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
-# Плоские импорты биоконтура из backend/ при запуске из любого каталога
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
-
-from trajectory_clustering import (
-    COMED_METOPROLOL,
-    COMED_DULOXETINE,
+from backend.bridges.core import (
     COMED_CIPROFLOXACIN,
+    COMED_DULOXETINE,
     COMED_FLUCONAZOLE,
-    COMED_STRONG_CYP2D6_INHIB,
-    COMED_SEROTONERGIC,
+    COMED_METOPROLOL,
     COMED_SEDATIVES_ETHANOL,
-)  # noqa: E402
-from clinical_rule_engine import ClinicalCompassRuleEngine  # noqa: E402
-from bio_paths import VIGNETTES_PATH, PROTOCOL_PATH  # noqa: E402
+    COMED_SEROTONERGIC,
+    COMED_STRONG_CYP2D6_INHIB,
+)
+from backend.domain.routing import ClinicalCompassRuleEngine
+from backend.paths import PROTOCOL_PATH, VIGNETTES_PATH
 
 
 @dataclass
@@ -347,6 +343,88 @@ class HybridEHRParser:
         }
 
 
+def run_legacy_full_compass_pipeline(
+    compass: ClinicalCompassRuleEngine,
+    patient_c_profile: Dict[str, Any],
+    clinical_state: Dict[str, Any],
+    icd10_code: str,
+) -> Dict[str, Any]:
+    """ЗАМОРОЖЕННАЯ реплика legacy-пути run_full_clinical_compass_pipeline
+    (удалён из backend/domain/routing.py как split-brain: он принимал решение о
+    препарате по хард-стопам, зашитым в C, мимо декларативного RulesEngine).
+    Оставлена здесь ТОЛЬКО для регрессионного эталона этого бенчмарка: цифры
+    протокола 2026 посчитаны именно этим путём и не должны молча меняться.
+    Продакшн-путь (API, hold-out) — backend/services/pipeline.py.
+    """
+    t0 = time.perf_counter()
+
+    c_res = compass.c_bridge.run_c_core(patient_c_profile)
+    routing_res = compass.evaluate_routing_and_alerts(clinical_state)
+    z_24 = compass.cluster_engine.build_24d_state_vector(
+        psychometrics={
+            "hads_a": clinical_state.get("hads_a", 13.0),
+            "hads_d": clinical_state.get("hads_d", 6.0),
+            "gad7": clinical_state.get("gad7_total", 12.0),
+            "phq9": clinical_state.get("phq9_total", 7.0),
+            "suicidal_composite": clinical_state.get("phq9_item9_suicidal", 0) + clinical_state.get("cssrs_score", 0),
+            "moca": clinical_state.get("moca", 27.4),
+        },
+        dynamics={"therapy_day": clinical_state.get("therapy_day", 3.0)},
+        pk_adherence={"m1_ctrough_pg_ml": c_res["pk_summary_168h"]["m1_ctrough_ss_pg_ml"]},
+        biomarkers={
+            # experimental: оси наблюдения, в решениях не участвуют (П1 реестра)
+            "experimental_voice_anx_class": clinical_state.get("experimental_voice_anxiety_class", 1.0),
+            "experimental_voice_dep_class": clinical_state.get("experimental_voice_depression_class", 0.0),
+            "voice_pause_ratio": clinical_state.get("voice_pause_ratio", 0.18),
+            "questionnaire_response_sec_per_item": clinical_state.get("resp_sec", 4.2),
+        },
+        biometrics_endocrine={
+            "hrv_rmssd_ms": c_res["rppg_autonomic_metrics"]["hrv_rmssd_ms"] or 34.0,
+            "baevsky_stress_index": c_res["rppg_autonomic_metrics"]["baevsky_stress_index"] or 145.0,
+            "endocrine_somatic_mask_flag": 1.0 if c_res["endocrine_and_somatic_masks"] else 0.0,
+        },
+    )
+    cluster_res = compass.cluster_engine.assign_cluster(
+        z_24=z_24,
+        patient_sigh_a_history=[22.0, 19.0],
+        reported_transient_drowsiness=False,
+        icd10_code=icd10_code,
+    )
+
+    aviandr_meta = compass.kb["therapy_options_grls_catalog"]["AVIANDR"]
+    if c_res["is_aviandr_blocked"]:
+        aviandr_status = "HARD_STOP_CONTRAINDICATION"
+        aviandr_badge = ("ЖЁСТКОЕ ПРЕДУПРЕЖДЕНИЕ БЕЗОПАСНОСТИ: выявлены абсолютные противопоказания "
+                         "по ОХЛП ГРЛС. Назначение не рекомендуется; решение — только врача/ВК "
+                         "с обязательной фиксацией причины (override, Приказ Минздрава № 1094н).")
+    elif routing_res["critical_alert_triggered"]:
+        aviandr_status = "HOLD_EMERGENCY_PSYCHIATRY"
+        aviandr_badge = "ТРЕБУЕТСЯ ЭКСТРЕННАЯ КОНСУЛЬТАЦИЯ ПСИХИАТРА (Монотерапия анксиолитиком не показана)"
+    elif icd10_code in aviandr_meta["in_label_icd10"]:
+        aviandr_status = "RECOMMENDED_IN_LABEL"
+        aviandr_badge = f"Показание входит в ОХЛП ГРЛС ({icd10_code}): Авиандр® 20 мг 2 раза/сут за 30 мин до еды"
+    elif icd10_code in aviandr_meta["completed_phase3_off_label_icd10"]:
+        aviandr_status = "OFF_LABEL_PHASE3_COMPLETED"
+        aviandr_badge = aviandr_meta["completed_phase3_off_label_icd10"][icd10_code]
+    else:
+        aviandr_status = "REQUIRES_CLINICIAN_REVIEW"
+        aviandr_badge = "Назначение вне зарегистрированных показаний ОХЛП — решение принимает только врач / ВК."
+
+    total_ms = (time.perf_counter() - t0) * 1000.0
+    return {
+        "total_pipeline_latency_ms": round(total_ms, 3),
+        "human_in_the_loop_notice": compass.kb["human_in_the_loop_disclaimer"],
+        "aviandr_decision_support": {
+            "status": aviandr_status,
+            "headline": aviandr_badge,
+            "dosing_regimen": aviandr_meta["dosing_regimen"],
+            "receptor_mechanism": aviandr_meta["receptor_profile"],
+        },
+        "routing_and_alerting": routing_res,
+        "cluster_24d_analysis": cluster_res,
+        "c_core_pk_and_safety": c_res,
+    }
+
 def run_validation_benchmark_100_vignettes() -> Dict[str, Any]:
     generator = SyntheticClinicalVignettesGenerator(seed=2026)
     parser = HybridEHRParser()
@@ -365,7 +443,8 @@ def run_validation_benchmark_100_vignettes() -> Dict[str, Any]:
     for case in dataset:
         t0 = time.perf_counter()
         parsed = parser.parse_ehr_record(case.raw_text)
-        res = compass.run_full_clinical_compass_pipeline(
+        res = run_legacy_full_compass_pipeline(
+            compass,
             patient_c_profile=parsed["c_profile"],
             clinical_state=parsed["clinical_state"],
             icd10_code=parsed["icd10_code"],

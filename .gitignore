@@ -7,6 +7,9 @@ venv/
 env/
 .pytest_cache/
 
+# Сгенерированные графики апробации (строит benchmarks/generate_scientific_plots.py)
+benchmarks/plots/*
+
 # Скомпилированные бинарники C-Core (собираются локально через scripts/build_c_core.py)
 *.o
 *.obj

@@ -6,13 +6,13 @@ import sys
 from datetime import date
 from pathlib import Path
 
+from backend.services.ehr_extract import extract
+
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "backend"))
-from ehr_extract import extract  # noqa: E402
 
 path = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "benchmarks" / "holdout" / "cases.json"
 if not path.exists():
-    sys.exit(f"Нет {path}. Образец формата: benchmarks/holdout/cases.example.json (случаи пишет НЕ автор парсера).")
+    sys.exit(f"Нет {path}. Формат кейсов описан в benchmarks/holdout/README.md.")
 cases = json.loads(path.read_text(encoding="utf-8"))
 as_of = date(2026, 10, 18)
 
@@ -32,9 +32,8 @@ def same(got, want):
 pipeline_cases = [c for c in cases if "expected_routing" in c]
 field_cases = [c for c in cases if "expected" in c]
 if pipeline_cases and not field_cases:
-    sys.path.insert(0, str(ROOT / "backend"))
-    from safe_pipeline import SafeCompassPipeline  # noqa: E402
-    from clinical_rule_engine import ClinicalCompassRuleEngine  # noqa: E402
+    from backend.domain.routing import ClinicalCompassRuleEngine
+    from backend.services.pipeline import SafeCompassPipeline
 
     pipeline = SafeCompassPipeline(ClinicalCompassRuleEngine())
     dangerous, false_alarm, missed = [], [], []

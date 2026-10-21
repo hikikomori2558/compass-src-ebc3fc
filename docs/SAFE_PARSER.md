@@ -1,7 +1,7 @@
 # Безопасный разбор ЭМК и tri-state движок
 
-Файлы: `backend/ehr_extract.py` (разбор), `backend/safe_pipeline.py` (сквозной путь),
-`backend/rules_engine.py` + `backend/rules/aviandr_hard_stops.json` v1.1.0 (правила),
+Файлы: `backend/services/ehr_extract.py` (разбор), `backend/services/pipeline.py` (сквозной путь),
+`backend/domain/rules.py` + `backend/rules/aviandr_hard_stops.json` v1.1.0 (правила),
 `benchmarks/test_safe_ehr.py` (153+ проверок), `benchmarks/run_holdout.py` (независимая проверка).
 
 ## Контракт

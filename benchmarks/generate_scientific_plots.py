@@ -1,15 +1,12 @@
-# generate_scientific_plots.py — Генерация 3 научных графиков (PNG 300 DPI + SVG)
+# benchmarks/generate_scientific_plots.py — генерация 3 научных графиков (PNG 300 DPI + SVG).
+# Запуск из корня репо: python3 -m benchmarks.generate_scientific_plots
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 
-# Плоские импорты биоконтура из backend/ при запуске из любого каталога
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
-
-from trajectory_clustering import RapiraCCoreBridge  # noqa: E402
-from bio_paths import BIO_PLOTS_DIR  # noqa: E402
+from backend.bridges.core import RapiraCCoreBridge
+from backend.paths import BIO_PLOTS_DIR
 
 plt.rcParams["font.sans-serif"] = ["DejaVu Sans", "Arial", "Helvetica"]
 plt.rcParams["axes.edgecolor"] = "#334155"

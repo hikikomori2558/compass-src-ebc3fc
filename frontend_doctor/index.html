@@ -53,7 +53,9 @@
       <button type="button" id="btn-toggle-rd-drawer" class="omrs-rd-trigger" title="Открыть технический инспектор C11-ядра для жюри">
         <span class="status-dot-green"></span>
         <span>СППВР: <strong id="top-latency-val">0.38 мс</strong></span>
+        <span id="engine-source-badge" class="engine-badge engine-badge--local" title="Источник значений: локальная офлайн-аппроксимация">ЛОКАЛЬНЫЙ ФОЛЛБЭК</span>
       </button>
+      <span id="session-user-chip" class="session-user-chip" style="display:none;"></span>
     </div>
   </header>
 
@@ -446,6 +448,9 @@
                 <h2 class="ehr-card-title">Защищенный канал связи с пациентом</h2>
                 <p class="ehr-card-subtitle">Сопровождение лечебного процесса и назначение дистанционных тестов</p>
               </div>
+              <button type="button" id="btn-invite-patient" class="cds--btn cds--btn--tertiary cds--btn--sm">
+                Привязать пациента по QR
+              </button>
             </div>
             <div id="doctor-patient-chat" class="chat-messages-box"></div>
             <div class="chat-quick-templates">
@@ -566,6 +571,55 @@
       </div>
     </div>
   </div>
+
+  <!-- 6. ЭКРАН ВХОДА ВРАЧА (JWT, 152-ФЗ: клинические эндпоинты не бывают анонимными) -->
+  <div class="compass-login-overlay" id="login-overlay" style="display:none;">
+    <div class="compass-login-card">
+      <div class="login-logo-row">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M16 2L4 8v16l12 6 12-6V8L16 2zm0 4.2l8 4v11.6l-8 4-8-4V10.2l8-4z" fill="#007d79"/><path d="M15 10h2v5h5v2h-5v5h-2v-5h-5v-2h5v-5z" fill="#007d79"/></svg>
+        <div>
+          <h2>Вход в АРМ врача</h2>
+          <p>ЕГИСЗ / УКБ №3 им. С.С. Корсакова • СППВР «Клинический компас»</p>
+        </div>
+      </div>
+      <label class="login-field-label" for="login-api-base">Адрес сервера COMPASS</label>
+      <input type="text" id="login-api-base" class="omrs-input" value="http://127.0.0.1:8000" spellcheck="false" />
+      <label class="login-field-label" for="login-user">Логин врача</label>
+      <input type="text" id="login-user" class="omrs-input" value="neuro.ivlanov" spellcheck="false" autocomplete="username" />
+      <label class="login-field-label" for="login-pass">Пароль</label>
+      <input type="password" id="login-pass" class="omrs-input" placeholder="compass-demo-2026" autocomplete="current-password" />
+      <div class="login-error" id="login-error"></div>
+      <button type="button" id="btn-login-submit" class="cds--btn cds--btn--primary">Войти и подключить C11-ядро</button>
+      <button type="button" id="btn-login-offline" class="cds--btn cds--btn--tertiary login-offline-btn">
+        Продолжить без сервера (локальная офлайн-аппроксимация)
+      </button>
+      <p class="login-hint">После входа движки АРМ считают на C11-бэкенде (RK45, Bitap, Демпстер—Шефер, микросети W8A8)
+        и открывается живой канал критических алертов (WebSocket). Демо-доступы создаёт
+        <code>python3 -m backend.db.seed</code>; сервер требует поднятой БД (<code>docker compose up -d</code>).</p>
+    </div>
+  </div>
+
+  <!-- 7. КРАСНЫЙ БАННЕР НЕПОДТВЕРЖДЁННЫХ АЛЕРТОВ (Условия 5–6: человек в контуре) -->
+  <div class="alerts-red-banner" id="alerts-red-banner" style="display:none;">
+    <span id="alerts-banner-text"></span>
+    <button type="button" id="btn-confirm-alerts" class="cds--btn cds--btn--danger cds--btn--sm">Подтвердить (я ознакомлен)</button>
+  </div>
+
+  <!-- 8. QR-ПРИГЛАШЕНИЕ ПАЦИЕНТА (Условие 2: привязка без третьих лиц) -->
+  <div class="qr-modal-backdrop" id="qr-modal" style="display:none;">
+    <div class="qr-modal-card">
+      <h3>Приглашение пациента в защищённый контур</h3>
+      <p class="qr-modal-sub">Одноразовый QR на 24 часа. Пациент сканирует и привязывается к вам;
+        ИДС-согласия создаются автоматически. В ссылке нет клинических данных.</p>
+      <img id="qr-modal-img" alt="QR-код приглашения пациента" />
+      <div class="qr-modal-link mono" id="qr-modal-link"></div>
+      <div class="qr-modal-exp" id="qr-modal-exp"></div>
+      <button type="button" id="btn-close-qr" class="cds--btn cds--btn--secondary cds--btn--sm">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- 9. ТОСТЫ (WS-пинги, подтверждения, ошибки канала) -->
+  <div id="compass-toast-root" class="compass-toast-root"></div>
 
   <script src="clinical_engines_client.js"></script>
   <script src="app.js"></script>

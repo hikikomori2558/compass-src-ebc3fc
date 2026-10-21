@@ -3,9 +3,11 @@
  * ======================
  * Контроллер медицинской карты врача (OpenMRS O3 + Medplum + HL7 CDS Hooks):
  * - Реальное интерактивное управление листом назначений (CPOE), шкалами (HAM-A, MADRS, GAD-7, PHQ-9)
- *   и текстом осмотра с автоматическим вызовом C11/FastAPI бэкенда (и локальным фоллбэком).
+ *   и текстом осмотра. Значения считают движки из clinical_engines_client.js: приоритет —
+ *   C11/FastAPI-бэкенд (после входа врача), офлайн-фоллбэк — локальная аппроксимация.
  * - Строгое визуальное разделение маршрутизации к психиатру: «ОБЯЗАТЕЛЬНО» vs «ЖЕЛАТЕЛЬНО».
  * - Принцип «Врач в контуре»: двухфазное подписание клинических решений.
+ * - Живой канал алертов: WebSocket /ws/alerts/{doctor_id} + красный баннер неподтверждённых.
  */
 
 (function () {
@@ -204,6 +206,159 @@
 
   let activePtKey = "pt_sokolova";
 
+  /* --------------------------------------------------------------- интеграция */
+  const Engines = window.CompassClinicalEngines;
+  const Auth = window.CompassAuth;
+  const AlertsBus = window.CompassAlerts;
+  const ROLE_TO_SPECIALTY = { therapist: "therapist", neurologist: "neurologist", psychiatrist: "psychiatrist" };
+
+  function serverEvalFor(noteText) {
+    const srv = Engines.serverFull;
+    if (srv && srv.ctx && srv.ctx.noteText === noteText &&
+        srv.resp && Date.now() - srv.ts < 120000) return srv.resp;
+    return null;
+  }
+
+  function updateEngineBadge() {
+    const el = document.getElementById("engine-source-badge");
+    if (!el) return;
+    const st = Engines.state;
+    el.textContent = st.source === "server" ? "C11-СЕРВЕР" : "ЛОКАЛЬНЫЙ ФОЛЛБЭК";
+    el.className = "engine-badge " + (st.source === "server" ? "engine-badge--server" : "engine-badge--local");
+    el.title = st.note + (st.serverLatencyMs != null ? " (" + st.serverLatencyMs.toFixed(1) + " мс round-trip)" : "");
+  }
+
+  function toast(text, critical) {
+    const root = document.getElementById("compass-toast-root");
+    if (!root) return;
+    const d = document.createElement("div");
+    d.className = "compass-toast" + (critical ? " compass-toast--critical" : "");
+    d.textContent = text;
+    root.appendChild(d);
+    setTimeout(function () { d.classList.add("compass-toast--out"); }, 6000);
+    setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 6600);
+  }
+
+  function refreshAlertsBanner() {
+    const banner = document.getElementById("alerts-red-banner");
+    if (!banner) return;
+    AlertsBus.unconfirmed().then(function (d) {
+      if (d.count > 0) {
+        banner.style.display = "flex";
+        document.getElementById("alerts-banner-text").textContent =
+          "НЕПОДТВЕРЖДЁННЫХ КРИТИЧЕСКИХ АЛЕРТОВ: " + d.count +
+          ". Пациент → ваша карточка, без третьих лиц (Условия 5–6).";
+        const btn = document.getElementById("btn-confirm-alerts");
+        btn.onclick = function () {
+          const action = "Просмотр карточки пациента и подтверждение критического алерта из АРМ врача";
+          const chain = d.alerts.reduce(function (acc, a) {
+            return acc.then(function () { return AlertsBus.confirm(a.alert_id, action); });
+          }, Promise.resolve());
+          chain.then(function () {
+            toast("Алерты подтверждены. Метрика «время до подтверждения человеком» зафиксирована.");
+            refreshAlertsBanner();
+          }).catch(function (e) { toast("Не удалось подтвердить: " + e.message, true); });
+        };
+      } else {
+        banner.style.display = "none";
+      }
+      const dot = document.getElementById("nav-feed-dot");
+      if (dot) dot.style.display = d.count > 0 ? "block" : "none";
+    }).catch(function () { /* без БД баннер не показываем */ });
+  }
+
+  function startLiveChannels() {
+    AlertsBus.connect(
+      function onHello(m) {
+        if (m.unconfirmed && m.unconfirmed.length) refreshAlertsBanner();
+      },
+      function onPing(m) {
+        toast("КРИТИЧЕСКИЙ АЛЕРТ #" + m.alert_id + " — откройте карточку пациента (канал несёт пустой пинг)", true);
+        refreshAlertsBanner();
+        const tl = document.getElementById("intervisit-timeline-list");
+        if (tl) {
+          const card = document.createElement("div");
+          card.className = "timeline-card tl-alert";
+          const t = new Date().toLocaleTimeString("ru-RU");
+          card.innerHTML = "<div style='display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;'>" +
+            "<strong class='mono'>" + t + "</strong>" +
+            "<span class='cds--tag cds--tag--red'>КРИТИЧЕСКИЙ АЛЕРТ (WS)</span></div>" +
+            "<div>Пустой пинг по WebSocket: критическое событие у пациента. Детали — по REST после авторизации.</div>";
+          tl.insertBefore(card, tl.firstChild);
+        }
+      },
+      function onState() { /* состояние сокета молча переживаем: ресторы внутри */ }
+    );
+    refreshAlertsBanner();
+  }
+
+  function showQrModal(invite) {
+    const modal = document.getElementById("qr-modal");
+    document.getElementById("qr-modal-img").src = "data:image/png;base64," + invite.qr_png_base64;
+    document.getElementById("qr-modal-link").textContent = invite.invite_url;
+    document.getElementById("qr-modal-exp").textContent =
+      "Одноразовый токен, действует до " + new Date(invite.expires_at).toLocaleString("ru-RU");
+    modal.style.display = "flex";
+  }
+
+  function initAuthUi() {
+    const overlay = document.getElementById("login-overlay");
+    const sessionUser = document.getElementById("session-user-chip");
+
+    function enterWorkstation() {
+      overlay.style.display = "none";
+      if (sessionUser) {
+        sessionUser.textContent = (Auth.login || "врач") + " • " + String(Auth.role || "").replace("DOCTOR_", "").toLowerCase();
+        sessionUser.style.display = "inline-flex";
+      }
+      startLiveChannels();
+      recalculateClinicalState();
+    }
+
+    document.getElementById("btn-login-submit").addEventListener("click", function () {
+      const err = document.getElementById("login-error");
+      err.textContent = "";
+      const api = document.getElementById("login-api-base").value.trim();
+      if (api) localStorage.setItem("compass_api_base", api.replace(/\/+$/, ""));
+      else localStorage.removeItem("compass_api_base");
+      const login = document.getElementById("login-user").value.trim();
+      const pass = document.getElementById("login-pass").value;
+      if (!login || !pass) { err.textContent = "Введите логин и пароль."; return; }
+      Auth.signIn(login, pass).then(function () {
+        if (!Auth.isDoctor) { err.textContent = "Этот вход доступен только врачам (роли DOCTOR_*)."; Auth.clear(); return; }
+        enterWorkstation();
+        toast("Вход выполнен. Движки переключены на C11-бэкенд.");
+      }).catch(function (e) {
+        err.textContent = "Ошибка входа: " + (e.message || e) + " (БД должна быть поднята: docker compose up -d)";
+      });
+    });
+
+    document.getElementById("btn-login-offline").addEventListener("click", function () {
+      overlay.style.display = "none";
+      toast("Демо-режим без сервера: локальная офлайн-аппроксимация (честно помечена в бейдже).");
+    });
+
+    document.getElementById("btn-invite-patient").addEventListener("click", function () {
+      Auth.createInvite().then(showQrModal).catch(function (e) {
+        toast("QR недоступен: " + (e.message || e), true);
+      });
+    });
+    document.getElementById("btn-close-qr").addEventListener("click", function () {
+      document.getElementById("qr-modal").style.display = "none";
+    });
+
+    // Уже есть живая сессия — не мучаем врача формой
+    const savedBase = localStorage.getItem("compass_api_base");
+    if (savedBase) document.getElementById("login-api-base").value = savedBase;
+    if (Auth.restore() && Auth.access) {
+      Auth.fetchWithAuth("/api/v1/auth/me").then(function (r) {
+        if (r.ok) { enterWorkstation(); } else { overlay.style.display = "flex"; }
+      }).catch(function () { overlay.style.display = "flex"; });
+    } else {
+      overlay.style.display = "flex";
+    }
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
@@ -262,8 +417,10 @@
       }
     });
 
-    // Решаем систему ОДУ RK45 на 168 часов
-    const pkSol = window.CompassClinicalEngines.solvePopPK168h({
+    // Решаем систему ОДУ RK45 на 168 часов. pkParams — один и тот же объект уходит
+    // и в серверный /evaluate-encounter, и в локальный вызов: клиент кладёт ответ
+    // сервера в кэш по этому объекту, поэтому при повторном вызове вернётся C11-RK45.
+    const pkParams = {
       doseMg: doseMg,
       intervalH: intervalH,
       cyp2d6AS: pt.cyp2d6AS,
@@ -271,7 +428,8 @@
       cyp2d6Mbi: ddi2d6 > 2.0 ? 0.35 : 1.0,
       cyp3a4Inh: ddi3a4,
       egfr: pt.egfr
-    });
+    };
+    const pkSol = window.CompassClinicalEngines.solvePopPK168h(pkParams);
 
     const pkRef = window.CompassClinicalEngines.solvePopPK168h({
       doseMg: 20.0,
@@ -283,6 +441,25 @@
       egfr: 90.0
     });
 
+    // Асинхронный прогон полного контекста на C11-бэкенде (дебаунс внутри клиента).
+    // Ответ приедет в onServerResponse -> повторный recalculate подставит значения сервера.
+    window.CompassClinicalEngines.requestEvaluation({
+      patientId: pt.id,
+      noteText: noteText,
+      role: ROLE_TO_SPECIALTY[role] || "psychiatrist",
+      hama: pt.scalesState.hama,
+      madrs: pt.scalesState.madrs,
+      suicidal: pt.scalesState.suicidalItem9,
+      wellbeing: pt.scalesState.wellbeingPct / 100.0,
+      pkParams: pkParams,
+      activeComedicationNames: pt.cpoeMeds
+        .filter(function (m) { return m.active && m.id !== "m_aviandr"; })
+        .map(function (m) { return m.name; }),
+      kintsugiDep: Math.min(0.95, pt.bioSeverityEquiv / 30.0),
+      kintsugiAnx: Math.min(0.95, pt.bioSeverityEquiv / 32.0)
+    });
+    const srv = serverEvalFor(noteText);
+
     // Обновляем KPI фармакокинетики на Сводке и в CPOE
     document.getElementById("sum-cmax-val").textContent = `${pkSol.cMax.toFixed(1)} нг/мл`;
     document.getElementById("sum-cmax-val").style.color = pkSol.cMax >= 320 ? "#da1e28" : (pkSol.cMax > 240 ? "#b28600" : "#198038");
@@ -291,7 +468,7 @@
     document.getElementById("cpoe-ctrough").textContent = `${pkSol.cTrough.toFixed(1)} нг/мл`;
     document.getElementById("cpoe-auc").textContent = `${pkSol.auc.toFixed(0)} нг·ч/мл`;
     document.getElementById("cpoe-t12").textContent = `${pkSol.halfLife.toFixed(1)} ч`;
-    const recFactor = Math.min(1.0, 160.0 / Math.max(pkSol.cMax, 1.0));
+    const recFactor = pkSol.doseFactor != null ? pkSol.doseFactor : Math.min(1.0, 160.0 / Math.max(pkSol.cMax, 1.0));
     document.getElementById("cpoe-dose-factor").textContent =
       pkSol.cMax > 250 ? `Снизить до ${(recFactor * 100).toFixed(0)}%` : "Коррекция не треб.";
 
@@ -303,11 +480,19 @@
 
     document.getElementById("sum-scales-val").textContent = `HAM-A: ${hama} б. | MADRS: ${madrs} б.`;
 
-    // Оценка конфликта Демпстера K между самоотчетом и объективным био-индексом
+    // Оценка конфликта Демпстера K между самоотчетом и объективным био-индексом.
+    // Свежий ответ C11-бэкенда приоритетен; локальная формула — только офлайн-фоллбэк.
     const bioPathologyProb = Math.min(0.92, pt.bioSeverityEquiv / 30.0);
     const ehrRemissionProb = wellbeing * Math.max(0.05, 1.0 - (hama + madrs) / 65.0);
-    const conflictK = Math.min(0.95, Math.abs(bioPathologyProb - (1.0 - ehrRemissionProb)) * 0.95);
-    const dissimIdx = Math.min(0.95, ehrRemissionProb * bioPathologyProb * (1.0 + 0.5 * conflictK));
+    let conflictK, dissimIdx;
+    const srvDst = srv && srv.bio_and_micronets && srv.bio_and_micronets.evidential_dempster_shafer;
+    if (srvDst) {
+      conflictK = srvDst.dempster_conflict_k;
+      dissimIdx = srvDst.dissimulation_index;
+    } else {
+      conflictK = Math.min(0.95, Math.abs(bioPathologyProb - (1.0 - ehrRemissionProb)) * 0.95);
+      dissimIdx = Math.min(0.95, ehrRemissionProb * bioPathologyProb * (1.0 + 0.5 * conflictK));
+    }
 
     document.getElementById("scales-dst-k").textContent = conflictK.toFixed(2);
     document.getElementById("scales-dst-dissim").textContent = dissimIdx.toFixed(2);
@@ -321,15 +506,22 @@
       pt.trajPoints[pt.trajPoints.length - 1].hama = hama;
     }
 
-    // 4. Формирование сигнала маршрутизации к психиатру ("ОБЯЗАТЕЛЬНО" vs "ЖЕЛАТЕЛЬНО")
-    const isMandatory = (
-      suicidal >= 1 ||
-      hasMAOI ||
-      pkSol.cMax >= 320.0 ||
-      dissimIdx >= 0.35 ||
-      madrs >= 30
-    );
-    const isRecommended = !isMandatory && (hama >= 16 || madrs >= 18 || pkSol.cMax > 240.0);
+    // 4. Формирование сигнала маршрутизации к психиатру ("ОБЯЗАТЕЛЬНО" vs "ЖЕЛАТЕЛЬНО").
+    // Категорию подтверждает сервер (те же пороги, что в backend/api/cdss_workstation.py);
+    // локальные пороги — офлайн-фоллбэк с идентичными условиями.
+    const srvHardStops = srv ? (srv.active_contraindications || []) : [];
+    const isMandatory = srv
+      ? srv.routing_category === "ОБЯЗАТЕЛЬНО"
+      : (
+        suicidal >= 1 ||
+        hasMAOI ||
+        pkSol.cMax >= 320.0 ||
+        dissimIdx >= 0.35 ||
+        madrs >= 30
+      );
+    const isRecommended = !isMandatory && (srv
+      ? srv.routing_category === "ЖЕЛАТЕЛЬНО"
+      : (hama >= 16 || madrs >= 18 || pkSol.cMax > 240.0));
 
     const bannerBox = document.getElementById("banner-routing-widget");
     const badgeEl = document.getElementById("routing-category-badge");
@@ -341,6 +533,7 @@
       const reasons = [];
       if (suicidal >= 1) reasons.push(`суицидальный риск по п.9 PHQ-9 (${suicidal} б.)`);
       if (hasMAOI) reasons.push("абсолютное противопоказание ОХЛП (совместный приём с ИМАО)");
+      if (srvHardStops.length > 0) reasons.push("хард-стопы ОХЛП из текста ЭМК: " + srvHardStops.join(", "));
       if (pkSol.cMax >= 320.0) reasons.push(`опасная кумуляция Авиандра (Cmax ${pkSol.cMax.toFixed(0)} нг/мл из-за DDI CYP2D6/3A4)`);
       if (dissimIdx >= 0.35) reasons.push(`маскированная диссимуляция тяжелой тревоги (индекс ${dissimIdx.toFixed(2)})`);
       if (madrs >= 30) reasons.push(`тяжелый депрессивный эпизод (MADRS ${madrs} б.)`);
@@ -402,6 +595,8 @@
       document.getElementById("canvas-rail-owen"),
       owenUnions
     );
+
+    updateEngineBadge();
   }
 
   function renderCDSHooksAndStagedOrders(pt, pkSol, dissimIdx, conflictK, hasMAOI, suicidal, isMandatory, isRecommended) {
@@ -498,7 +693,7 @@
         source: "Источник: Модуль межвизитного сопровождения «Авинейро»"
       });
       stagedOrders.push({
-        id: "ord_push_ adherence",
+        id: "ord_push_adherence",
         text: "Активировать смарт-напоминания о приёме дозы в мобильном приложении пациента"
       });
     }
@@ -796,6 +991,10 @@
 
   window.addEventListener("DOMContentLoaded", () => {
     bindEvents();
+    // Значения сервера приходят асинхронно: подписка дергает пересчет, и цифры
+    // сменяются с локальных на C11 (RK45/DST/Bitap) без перезагрузки страницы.
+    window.CompassClinicalEngines.onServerResponse = () => recalculateClinicalState();
     loadPatientIntoChart("pt_sokolova");
+    initAuthUi();
   });
 })();

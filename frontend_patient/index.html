@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#007d79" />
+  <title>Клинический компас — дневник пациента</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ЭКРАН 1: ПРИВЯЗКА К ВРАЧУ ПО ОДНОРАЗОВОМУ QR (Условие 2: без третьих лиц) -->
+  <section id="view-bind" class="screen">
+    <div class="brand-row">
+      <svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <path d="M16 2L4 8v16l12 6 12-6V8L16 2zm0 4.2l8 4v11.6l-8 4-8-4V10.2l8-4z" fill="#007d79"/>
+        <path d="M15 10h2v5h5v2h-5v5h-2v-5h-5v-2h5v-5z" fill="#007d79"/>
+      </svg>
+      <div>
+        <h1>Клинический компас</h1>
+        <p>Дневник терапии пациента</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Привязка к вашему лечащему врачу</h2>
+      <ol class="steps">
+        <li>Врач в карточке пациента нажал «Привязать пациента по QR» и показал вам QR-код.</li>
+        <li>Отсканируйте его камерой — откроется эта страница с заполненным кодом связи.</li>
+        <li>Нажмите «Привязаться» — канал «пациент → врач» появится <strong>без участия третьих лиц</strong>
+          (152-ФЗ, согласия ИДС фиксируются автоматически).</li>
+      </ol>
+      <label class="field-label" for="bind-token">Код связи из QR</label>
+      <input type="text" id="bind-token" class="input" placeholder="вставьте код, если открыли вручную" spellcheck="false" />
+      <div class="error" id="bind-error"></div>
+      <button type="button" id="btn-bind" class="btn btn--primary">Привязаться к врачу</button>
+      <p class="hint">Код одноразовый и живёт 24 часа. Клинические данные передаются только
+        между вами и вашей медицинской организацией.</p>
+    </div>
+  </section>
+
+  <!-- ЭКРАН 2: ДНЕВНИК (ежедневный чек-ин -> врачу; при критичности — экстренный алерт) -->
+  <section id="view-diary" class="screen" style="display:none;">
+    <header class="diary-header">
+      <div>
+        <h1>Дневник терапии</h1>
+        <p id="diary-subtitle">Связь с лечащим врачом установлена</p>
+      </div>
+      <button type="button" id="btn-logout" class="btn btn--ghost btn--sm">Выйти</button>
+    </header>
+
+    <div class="card">
+      <h2>Как вы себя чувствуете сегодня?</h2>
+      <p class="card-sub">Заполняется один раз в день. Врач видит динамику в своей карточке;
+        при критичных ответах врач получает экстренное уведомление.</p>
+
+      <div class="field-block">
+        <div class="field-title">Сегодняшнюю дозу препарата принял(а)?</div>
+        <div class="segmented">
+          <button type="button" id="btn-dose-yes" class="seg seg--active">Да, принял(а)</button>
+          <button type="button" id="btn-dose-no" class="seg">Нет</button>
+        </div>
+      </div>
+
+      <div class="field-block">
+        <div class="field-title">Тревога за последние 2 недели (GAD-7: 0–21)</div>
+        <input type="range" id="input-gad7" class="range" min="0" max="21" step="1" value="5" />
+        <div class="range-caption"><span id="lbl-gad7">5 баллов</span><span class="range-hint">0 — нет тревоги, 21 — максимально</span></div>
+      </div>
+
+      <div class="field-block">
+        <div class="field-title">PHQ-9, пункт 9: мысли о причинении себе вреда?</div>
+        <select id="select-item9" class="input">
+          <option value="">— Затрудняюсь ответить —</option>
+          <option value="0">0 — Ни разу</option>
+          <option value="1">1 — Несколько дней</option>
+          <option value="2">2 — Больше половины дней</option>
+          <option value="3">3 — Почти каждый день</option>
+        </select>
+      </div>
+
+      <div class="field-block">
+        <div class="field-title">C-SSRS (экран суицидального риска, 0–5)</div>
+        <select id="select-cssrs" class="input">
+          <option value="">— Затрудняюсь ответить —</option>
+          <option value="0">0 — Нет</option>
+          <option value="1">1 — Желание умереть</option>
+          <option value="2">2 — Активные мысли</option>
+          <option value="3">3 — Методы (без плана)</option>
+          <option value="4">4 — План</option>
+          <option value="5">5 — Подготовка/попытка</option>
+        </select>
+      </div>
+
+      <div class="error" id="checkin-error"></div>
+      <button type="button" id="btn-checkin" class="btn btn--primary">Отправить врачу</button>
+      <div id="checkin-result"></div>
+    </div>
+
+    <div class="card">
+      <h2>История на этом устройстве</h2>
+      <p class="card-sub">Локальный журнал отправок (данные врача — только в медицинской организации).</p>
+      <ul id="history-list" class="history-list"></ul>
+      <div id="offline-queue-note" class="offline-note" style="display:none;"></div>
+    </div>
+
+    <p class="footer-note">Система сопровождает терапию и не заменяет консультацию врача.
+      При острых состояниях обращайтесь к врачу или в экстренные службы.</p>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>

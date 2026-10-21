@@ -22,7 +22,7 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
-from backend.c_bio_mnets_bridge import (
+from backend.bridges.bio_native import (
     NativeBioMnetsLib,
     CMicroNetDescriptor,
     CMicroNetConformalOut,

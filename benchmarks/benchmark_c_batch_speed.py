@@ -5,21 +5,16 @@
 через нативное C11-ядро libcompass_core.so.
 """
 import ctypes
-import sys
 import time
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT / "backend"))
+from backend.bridges.core import CCompassCoreOutput, CPatientClinicalInput, RapiraCCoreBridge
 
-from trajectory_clustering import RapiraCCoreBridge, CPatientClinicalInput, CCompassCoreOutput
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def run_10k_stress_benchmark(batch_size: int = 10000) -> None:
-    bridge = RapiraCCoreBridge(
-        so_path=str(REPO_ROOT / "c_core" / "libcompass_core.so"),
-        c_src=str(REPO_ROOT / "c_core" / "compass_core.c"),
-    )
+    bridge = RapiraCCoreBridge()
 
     # Выделяем непрерывный блок памяти под 10 000 входных и выходных структур C11
     InArrayType = CPatientClinicalInput * batch_size
