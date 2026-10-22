@@ -6,9 +6,10 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from backend.services.ehr_extract import extract
-
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))  # package-импорты backend.* из любого cwd
+
+from backend.services.ehr_extract import extract  # noqa: E402
 
 path = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "benchmarks" / "holdout" / "cases.json"
 if not path.exists():
