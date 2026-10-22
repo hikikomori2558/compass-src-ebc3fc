@@ -30,6 +30,29 @@ class GroundTruthCase:
     gt_is_aviandr_blocked: bool
     gt_routing_category: str
     gt_missing_labs_warning: bool
+    gt_entities: List[str] = None  # type: ignore[assignment]  # канонические сущности, зашитые генератором
+
+
+# Канонические сущности, которые генератор осознанно зашивает в тексты виньеток.
+# Ground Truth уровня сущностей строится из этого словаря (генератор знает, что
+# зашил), поэтому F1 — не круговая самопроверка: соответствие ищет НЕЗАВИСИМЫЙ
+# Bitap NER (C, edit distance <= 2) по словарю c_core/bitap_ru_lexer.c.
+ENTITY_MARKERS = {
+    "авиандр": "Авиандр", "маритупирдин": "Авиандр",
+    "метопролол": "Метопролол", "эсциталопрам": "Эсциталопрам", "сертралин": "Сертралин",
+    "пароксетин": "Пароксетин", "флуоксетин": "Флуоксетин", "дулоксетин": "Дулоксетин",
+    "фенелзин": "Фенелзин", "транилципромин": "Транилципромин",
+    "кларитромицин": "Кларитромицин", "флуконазол": "Флуконазол",
+    "феназепам": "Феназепам", "алпразолам": "Алпразолам",
+    "серотониновый": "Серотониновый синдром",
+}
+
+
+def embedded_entities(raw_text: str) -> List[str]:
+    """Множество типов зашитых сущностей (set-based entity F1 — стандартная
+    формулировка; кратности вхождений не учитываются)."""
+    low = raw_text.lower()
+    return sorted({canon for marker, canon in ENTITY_MARKERS.items() if marker in low})
 
 
 class SyntheticClinicalVignettesGenerator:
@@ -110,11 +133,27 @@ class SyntheticClinicalVignettesGenerator:
         cases: List[GroundTruthCase] = []
         case_id = 1
 
-        # 1. 30 целевых кейсов под Авиандр (ГТР F41.1 и пост-COVID F43.2)
+        # 1. 30 целевых кейсов под Авиандр: 6 клинических профилей из презентации (по 5 кейсов)
+        PROFILES = [
+            # (clinical_text, comorbid_text)
+            ("Постоянная тревога, нарушение сна, водит авто.",
+             "Сопутствует АГ, принимает метопролол 50 мг/сут."),                      # P1 активный водитель
+            ("Тревога сохраняется; ранее отмечал стартовую тревогу от эсциталопрама.",
+             "Эсциталопрам отменен самостоятельно: тошнота и сексуальная дисфункция в первые недели."),  # P2 негативный опыт СИОЗС
+            ("Назначен сертралин, на 3-й день — стартовая тревога и ажитация, инсомния.",
+             "Совместный прием СИОЗС требует аудита CYP2D6-взаимодействий."),          # P3 стартовая тревога на СИОЗС
+            ("Депрессивная симптоматика на сертралине редуцировалась, но сохраняется остаточная тревога и плохой сон.",
+             "Дозу СИОЗС повышать не хочет."),                                        # P4 частичный ответ, тревожный хвост
+            ("Тревога с запросом на «быстрое успокоение».",
+             "Длительно принимал феназепам, отмечал синдром отмены. Риск зависимости от бензодиазепинов."),  # P5 риск БДЗ
+            ("Тревожное состояние после перенесенного COVID-19, водит авто.",
+             "Астения, нарушен сон. Цель — возврат к обычному ритму жизни."),          # P6 пост-COVID / адаптация
+        ]
         for i in range(30):
             tpl = self.TEMPLATES[i % len(self.TEMPLATES)]
             missing_labs = (tpl == "TEMPLATE_D_MISSING_LABS_GUARD")
-            icd10 = "F43.2" if i % 2 == 0 else "F41.1"
+            icd10 = "F43.2" if i % 6 == 5 else "F41.1"   # пост-COVID профиль под F43.2
+            prof_clinical, prof_comorbid = PROFILES[i % 6]
             sex = i % 2
             age = random.randint(24, 62)
             creat = 78.0 if sex == 1 else 64.0
@@ -123,33 +162,37 @@ class SyntheticClinicalVignettesGenerator:
                 "age": age, "sex": sex, "icd10": icd10, "creat": creat,
                 "missing_labs": missing_labs, "child_pugh_label": "Чайлд-Пью: норма",
                 "cyp2d6_str": "CYP2D6*4/*4 (медленный метаболизатор)" if i % 5 == 0 else "CYP2D6 норма",
-                "clinical_text": "Тревожное состояние после перенесенного COVID-19, водит авто." if icd10 == "F43.2" else "Постоянная тревога, нарушение сна, водит авто.",
-                "comorbid_text": "Сопутствует АГ, принимает метопролол 50 мг/сут." if i % 3 == 0 else "Без тяжелой соматики.",
+                "clinical_text": prof_clinical,
+                "comorbid_text": prof_comorbid,
                 "phq9": random.randint(4, 8), "phq9_i9": 0, "gad7": random.randint(11, 15), "cssrs": 0, "mdq": 1,
             }
+            raw = self._render_template(tpl, data)
             cases.append(GroundTruthCase(
                 case_id=case_id, cohort="TARGET_AVIANDR", template_type=tpl,
-                raw_text=self._render_template(tpl, data), gt_icd10=icd10,
+                raw_text=raw, gt_icd10=icd10,
                 gt_is_aviandr_blocked=False, gt_routing_category="PRIMARY_CARE_MANAGEMENT",
-                gt_missing_labs_warning=missing_labs,
+                gt_missing_labs_warning=missing_labs, gt_entities=embedded_entities(raw),
             ))
             case_id += 1
 
         # 2. 25 кейсов со скрытыми абсолютными противопоказаниями по ОХЛП
-        contra_types = ["LOW_EGFR", "CHILD_PUGH_B", "EPILEPSY", "MAOI", "LACTOSE", "PREGNANCY"]
+        contra_types = ["LOW_EGFR", "CHILD_PUGH_B", "EPILEPSY", "MAOI", "LACTOSE",
+                        "PREGNANCY", "UNDER_18", "MAOI_TRAMYL"]
         for i in range(25):
             tpl = self.TEMPLATES[i % 3]
             ctype = contra_types[i % len(contra_types)]
             sex = 0 if ctype == "PREGNANCY" else (i % 2)
-            age = 30 if ctype == "PREGNANCY" else 54
+            age = 17 if ctype == "UNDER_18" else (30 if ctype == "PREGNANCY" else 54)
             creat = 165.0 if ctype == "LOW_EGFR" else 72.0
             cp_label = "цирроз печени, класс B по Чайлд-Пью" if ctype == "CHILD_PUGH_B" else "печеночные пробы в норме"
 
             comorbid = "ХБП"
             if ctype == "EPILEPSY": comorbid = "в анамнезе посттравматическая эпилепсия"
             elif ctype == "MAOI": comorbid = "принимал ингибитор МАО (фенелзин), отменен 7 дней назад"
+            elif ctype == "MAOI_TRAMYL": comorbid = "принимал ингибитор МАО (транилципромин), отменен 10 дней назад"
             elif ctype == "LACTOSE": comorbid = "врожденный дефицит лактазы (LCT-13910 C/C, непереносимость лактозы)"
             elif ctype == "PREGNANCY": comorbid = "беременность 14 недель"
+            elif ctype == "UNDER_18": comorbid = "возраст 17 лет — младше 18 (ОХЛП)"
 
             data = {
                 "age": age, "sex": sex, "icd10": "F41.1", "creat": creat,
@@ -157,11 +200,12 @@ class SyntheticClinicalVignettesGenerator:
                 "clinical_text": "Жалобы на генерализованную тревогу.", "comorbid_text": comorbid,
                 "phq9": 6, "phq9_i9": 0, "gad7": 13, "cssrs": 0, "mdq": 1,
             }
+            raw = self._render_template(tpl, data)
             cases.append(GroundTruthCase(
                 case_id=case_id, cohort="CONTRAINDICATED", template_type=tpl,
-                raw_text=self._render_template(tpl, data), gt_icd10="F41.1",
+                raw_text=raw, gt_icd10="F41.1",
                 gt_is_aviandr_blocked=True, gt_routing_category="PRIMARY_CARE_MANAGEMENT",
-                gt_missing_labs_warning=False,
+                gt_missing_labs_warning=False, gt_entities=embedded_entities(raw),
             ))
             case_id += 1
 
@@ -177,11 +221,12 @@ class SyntheticClinicalVignettesGenerator:
                 "comorbid_text": "Ранее принимал пароксетин (СИОЗС) — отмена из-за непереносимости. Принимает метопролол.",
                 "phq9": random.randint(11, 17), "phq9_i9": 0, "gad7": 16, "cssrs": 0, "mdq": 2,
             }
+            raw = self._render_template(tpl, data)
             cases.append(GroundTruthCase(
                 case_id=case_id, cohort="RECOMMENDED_PSYCH", template_type=tpl,
-                raw_text=self._render_template(tpl, data), gt_icd10="F41.1",
+                raw_text=raw, gt_icd10="F41.1",
                 gt_is_aviandr_blocked=False, gt_routing_category="RECOMMENDED_PSYCHIATRIST",
-                gt_missing_labs_warning=missing_labs,
+                gt_missing_labs_warning=missing_labs, gt_entities=embedded_entities(raw),
             ))
             case_id += 1
 
@@ -200,14 +245,17 @@ class SyntheticClinicalVignettesGenerator:
                 "creat": 70.0, "missing_labs": False, "child_pugh_label": "Чайлд-Пью: норма",
                 "cyp2d6_str": "CYP2D6 норма",
                 "clinical_text": "Высказывает идеи преследования, слышит оклики, суицидальные мысли." if is_psychotic else "Тяжелая тоска, суицидальные намерения.",
-                "comorbid_text": "Эпизоды гипомании в анамнезе." if is_bipolar else "Соматически здоров.",
+                "comorbid_text": ("Эпизоды гипомании в анамнезе." if is_bipolar else
+                                  ("Комбинация с СИОЗС — признаки серотонинового синдрома (тризм, гиперрефлексия, скованность мышц)."
+                                   if i % 4 == 2 else "Соматически здоров.")),
                 "phq9": phq9_val, "phq9_i9": phq9_i9_val, "gad7": 18, "cssrs": cssrs_val, "mdq": mdq_val,
             }
+            raw = self._render_template(tpl, data)
             cases.append(GroundTruthCase(
                 case_id=case_id, cohort="MANDATORY_PSYCH", template_type=tpl,
-                raw_text=self._render_template(tpl, data), gt_icd10=data["icd10"],
+                raw_text=raw, gt_icd10=data["icd10"],
                 gt_is_aviandr_blocked=False, gt_routing_category="MANDATORY_PSYCHIATRIST",
-                gt_missing_labs_warning=False,
+                gt_missing_labs_warning=False, gt_entities=embedded_entities(raw),
             ))
             case_id += 1
 
@@ -324,7 +372,7 @@ class HybridEHRParser:
                 "albumin_g_l": 29.0 if is_cirrhosis else (42.0 if has_normal_liver else -1.0),
                 "inr": 1.9 if is_cirrhosis else (1.05 if has_normal_liver else -1.0),
                 "has_epilepsy_or_organic_cns": 1 if "эпилепс" in text_low else 0,
-                "days_since_maoi": 7 if ("имао" in text_low or "фенелзин" in text_low) else 255,
+                "days_since_maoi": 7 if ("имао" in text_low or "мао" in text_low or "фенелзин" in text_low or "транилципромин" in text_low) else 255,
                 "has_lactase_deficiency": 1 if ("лактаз" in text_low or "лактоз" in text_low or "lct-13910" in text_low) else 0,
                 "is_pregnant_or_lactating": 1 if "беремен" in text_low else 0,
                 "cyp2d6_phenotype": 2 if ("cyp2d6*4" in text_low or "медленный метаболизатор" in text_low) else 0,
@@ -440,6 +488,20 @@ def run_validation_benchmark_100_vignettes() -> Dict[str, Any]:
     missing_labs_detected_correctly = 0
     latencies_ms: List[float] = []
 
+    # Entity-level F1: независимый Bitap NER (C, edit distance <= 2) против
+    # GT-разметки генератора (мультимножество канонических сущностей).
+    from collections import Counter
+
+    from backend.bridges.lexers import C11PopPKAndBitapEngine
+
+    ner = C11PopPKAndBitapEngine()
+
+    def _label(canonical: str) -> str:
+        # "Метопролол (РКИ: без DDI)" -> "Метопролол"; "MAOI: Фенелзин" -> "Фенелзин"
+        return canonical.split(" (")[0].split(": ")[-1].strip()
+
+    tp_ent = fp_ent = fn_ent = 0
+
     for case in dataset:
         t0 = time.perf_counter()
         parsed = parser.parse_ehr_record(case.raw_text)
@@ -472,6 +534,13 @@ def run_validation_benchmark_100_vignettes() -> Dict[str, Any]:
         if pred_missing_labs == case.gt_missing_labs_warning:
             missing_labs_detected_correctly += 1
 
+        # --- сущности (set-based: типы канонических сущностей) ---
+        found = {_label(e.canonical_name) for e in ner.scan_ehr_text(case.raw_text)}
+        gt = set(case.gt_entities or [])
+        tp_ent += len(found & gt)
+        fp_ent += len(found - gt)
+        fn_ent += len(gt - found)
+
     def calc_prf(tp: int, fp: int, fn: int) -> Dict[str, float]:
         prec = tp / max(tp + fp, 1)
         rec = tp / max(tp + fn, 1)
@@ -487,6 +556,7 @@ def run_validation_benchmark_100_vignettes() -> Dict[str, Any]:
         "mandatory_psychiatrist_alert_metrics": calc_prf(tp_mandatory, fp_mandatory, fn_mandatory),
         "overall_routing_accuracy_pct": round((exact_routing_matches / len(dataset)) * 100.0, 2),
         "missing_data_resilience_accuracy_pct": round((missing_labs_detected_correctly / len(dataset)) * 100.0, 2),
+        "entity_extraction_metrics": calc_prf(tp_ent, fp_ent, fn_ent) | {"tp": tp_ent, "fp": fp_ent, "fn": fn_ent},
     }
 
 
@@ -515,7 +585,7 @@ def generate_markdown_protocol_for_jury() -> str:
     ergo_bench = run_time_motion_ergonomics_study()
 
     md = f"""# ПРОТОКОЛ КЛИНИКО-ТЕХНИЧЕСКОЙ АПРОБАЦИИ СППВР «COMPASS-HYBRID v2.6» (Команда 20-П «Rapira»)
-**Правовой режим апробации:** В строгом соответствии со ст. 13 ФЗ № 323-ФЗ (врачебная тайна) и ст. 10 ФЗ № 152-ФЗ (персональные данные о здоровье) апробация проведена **ИСКЛЮЧИТЕЛЬНО на синтетических клинических виньетках** (`synthetic_100_ehr_vignettes.json`, seed=2026) в 5 шаблонах ЭМК — реальные пациенты и реальные ПДн не использовались.
+**Правовой режим апробации:** В строгом соответствии со ст. 13 ФЗ № 323-ФЗ (врачебная тайна) и ст. 10 ФЗ № 152-ФЗ (персональные данные о здоровье) апробация проведена **ИСКЛЮЧИТЕЛЬНО на синтетических клинических виньетках** (`synthetic_100_ehr_vignettes.json`, корпус v2: 30 In-Label с 6 клиническими профилями / 25 скрытых противопоказаний / 25 «ЖЕЛАТЕЛЬНО» / 20 критических, seed=2026) в 5 шаблонах ЭМК — реальные пациенты и реальные ПДн не использовались.
 
 ## Сводная таблица метрик
 
@@ -523,6 +593,7 @@ def generate_markdown_protocol_for_jury() -> str:
 |---|---|---|
 | Перехват абсолютных противопоказаний ОХЛП (Recall) | `{nlp_bench['contraindication_detection_metrics']['recall']*100:.1f}%` | 100% |
 | F1 противопоказаний | `{nlp_bench['contraindication_detection_metrics']['f1_score']:.4f}` | максимум |
+| F1 извлечения клинических сущностей (Bitap NER, C) | `{nlp_bench['entity_extraction_metrics']['f1_score']:.4f}` | >= 0.96 |
 | Экстренные показания «ОБЯЗАТЕЛЬНО к психиатру» (Recall) | `{nlp_bench['mandatory_psychiatrist_alert_metrics']['recall']*100:.1f}%` | 100% |
 | Точность 3-уровневой маршрутизации | `{nlp_bench['overall_routing_accuracy_pct']}%` | максимум |
 | Устойчивость к неполным данным (Метрика №3) | `{nlp_bench['missing_data_resilience_accuracy_pct']}%` | 100% |

@@ -3,301 +3,381 @@
     "case_id": 1,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 31 лет. Диагноз по МКБ-10: F43.2. Анамнез и статус: Тревожное состояние после перенесенного COVID-19, водит авто. Сопутствующие состояния: Сопутствует АГ, принимает метопролол 50 мг/сут.. Лабораторные данные: Креатинин сыворотки: 64.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6*4/*4 (медленный метаболизатор). Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 15 б., C-SSRS = 0, MDQ = 1.",
-    "gt_icd10": "F43.2",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 31 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Постоянная тревога, нарушение сна, водит авто. Сопутствующие состояния: Сопутствует АГ, принимает метопролол 50 мг/сут.. Лабораторные данные: Креатинин сыворотки: 64.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6*4/*4 (медленный метаболизатор). Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 15 б., C-SSRS = 0, MDQ = 1.",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол"
+    ]
   },
   {
     "case_id": 2,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_B_NEURO_SHORT_025U",
-    "raw_text": "Осмотр невролога (ф. 025/у). М, 56 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Постоянная тревога, нарушение сна, водит авто. Анамнез: Без тяжелой соматики.. Лаб: креат. 78.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 12б, PHQ9 4б (п9=0), CSSRS=0, MDQ=1.",
+    "raw_text": "Осмотр невролога (ф. 025/у). М, 56 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Тревога сохраняется; ранее отмечал стартовую тревогу от эсциталопрама. Анамнез: Эсциталопрам отменен самостоятельно: тошнота и сексуальная дисфункция в первые недели.. Лаб: креат. 78.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 12б, PHQ9 4б (п9=0), CSSRS=0, MDQ=1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Эсциталопрам"
+    ]
   },
   {
     "case_id": 3,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 62 лет. Предварительный шифр: F43.2. Описание жалоб: «Тревожное состояние после перенесенного COVID-19, водит авто.». Принимаемые препараты и хроника: Без тяжелой соматики. (CYP2D6 норма). Анализы: Креатинин сыворотки: 64.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 8 (вопрос №9: 0); GAD-7: 15; C-SSRS: 0; MDQ: 1.",
-    "gt_icd10": "F43.2",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 62 лет. Предварительный шифр: F41.1. Описание жалоб: «Назначен сертралин, на 3-й день — стартовая тревога и ажитация, инсомния.». Принимаемые препараты и хроника: Совместный прием СИОЗС требует аудита CYP2D6-взаимодействий. (CYP2D6 норма). Анализы: Креатинин сыворотки: 64.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 8 (вопрос №9: 0); GAD-7: 15; C-SSRS: 0; MDQ: 1.",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Сертралин"
+    ]
   },
   {
     "case_id": 4,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_D_MISSING_LABS_GUARD",
-    "raw_text": "Выписка из ЭМК. Пациент (М), 50 лет. МКБ-10: F41.1. Постоянная тревога, нарушение сна, водит авто. Анамнез: Сопутствует АГ, принимает метопролол 50 мг/сут.. Биохимия крови: не сдавал.  Шкалы: PHQ-9=8 (п.9=0), GAD-7=15, C-SSRS=0.",
+    "raw_text": "Выписка из ЭМК. Пациент (М), 50 лет. МКБ-10: F41.1. Депрессивная симптоматика на сертралине редуцировалась, но сохраняется остаточная тревога и плохой сон. Анамнез: Дозу СИОЗС повышать не хочет.. Биохимия крови: не сдавал.  Шкалы: PHQ-9=8 (п.9=0), GAD-7=15, C-SSRS=0.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": true
+    "gt_missing_labs_warning": true,
+    "gt_entities": [
+      "Сертралин"
+    ]
   },
   {
     "case_id": 5,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_E_HL7_FHIR_JSON",
-    "raw_text": "{\"resourceType\": \"ClinicalImpression\", \"subject\": {\"age\": 55, \"gender\": \"female\"}, \"diagnosis_icd10\": \"F43.2\", \"clinical_notes\": \"Тревожное состояние после перенесенного COVID-19, водит авто. Без тяжелой соматики.\", \"labs\": {\"creatinine_umol_l\": 64.0, \"child_pugh_class\": \"Чайлд-Пью: норма\", \"cyp2d6\": \"CYP2D6 норма\"}, \"scales\": {\"PHQ9\": 8, \"PHQ9_item9\": 0, \"GAD7\": 14, \"CSSRS\": 0, \"MDQ\": 1}}",
-    "gt_icd10": "F43.2",
+    "raw_text": "{\"resourceType\": \"ClinicalImpression\", \"subject\": {\"age\": 55, \"gender\": \"female\"}, \"diagnosis_icd10\": \"F41.1\", \"clinical_notes\": \"Тревога с запросом на «быстрое успокоение». Длительно принимал феназепам, отмечал синдром отмены. Риск зависимости от бензодиазепинов.\", \"labs\": {\"creatinine_umol_l\": 64.0, \"child_pugh_class\": \"Чайлд-Пью: норма\", \"cyp2d6\": \"CYP2D6 норма\"}, \"scales\": {\"PHQ9\": 8, \"PHQ9_item9\": 0, \"GAD7\": 14, \"CSSRS\": 0, \"MDQ\": 1}}",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Феназепам"
+    ]
   },
   {
     "case_id": 6,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Мужчина, 39 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Постоянная тревога, нарушение сна, водит авто. Сопутствующие состояния: Без тяжелой соматики.. Лабораторные данные: Креатинин сыворотки: 78.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6*4/*4 (медленный метаболизатор). Психометрия: PHQ-9 = 4 б. (п.9 = 0), GAD-7 = 15 б., C-SSRS = 0, MDQ = 1.",
-    "gt_icd10": "F41.1",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Мужчина, 39 лет. Диагноз по МКБ-10: F43.2. Анамнез и статус: Тревожное состояние после перенесенного COVID-19, водит авто. Сопутствующие состояния: Астения, нарушен сон. Цель — возврат к обычному ритму жизни.. Лабораторные данные: Креатинин сыворотки: 78.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6*4/*4 (медленный метаболизатор). Психометрия: PHQ-9 = 4 б. (п.9 = 0), GAD-7 = 15 б., C-SSRS = 0, MDQ = 1.",
+    "gt_icd10": "F43.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 7,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_B_NEURO_SHORT_025U",
-    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 29 г. Код МКБ: F43.2. Жал.: трев., инсомния, утомл. Тревожное состояние после перенесенного COVID-19, водит авто. Анамнез: Сопутствует АГ, принимает метопролол 50 мг/сут.. Лаб: креат. 64.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 4б (п9=0), CSSRS=0, MDQ=1.",
-    "gt_icd10": "F43.2",
+    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 29 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Постоянная тревога, нарушение сна, водит авто. Анамнез: Сопутствует АГ, принимает метопролол 50 мг/сут.. Лаб: креат. 64.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 4б (п9=0), CSSRS=0, MDQ=1.",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол"
+    ]
   },
   {
     "case_id": 8,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Мужчина, Возраст: 30 лет. Предварительный шифр: F41.1. Описание жалоб: «Постоянная тревога, нарушение сна, водит авто.». Принимаемые препараты и хроника: Без тяжелой соматики. (CYP2D6 норма). Анализы: Креатинин сыворотки: 78.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 7 (вопрос №9: 0); GAD-7: 11; C-SSRS: 0; MDQ: 1.",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Мужчина, Возраст: 30 лет. Предварительный шифр: F41.1. Описание жалоб: «Тревога сохраняется; ранее отмечал стартовую тревогу от эсциталопрама.». Принимаемые препараты и хроника: Эсциталопрам отменен самостоятельно: тошнота и сексуальная дисфункция в первые недели. (CYP2D6 норма). Анализы: Креатинин сыворотки: 78.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 7 (вопрос №9: 0); GAD-7: 11; C-SSRS: 0; MDQ: 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Эсциталопрам"
+    ]
   },
   {
     "case_id": 9,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_D_MISSING_LABS_GUARD",
-    "raw_text": "Выписка из ЭМК. Пациент (Ж), 55 лет. МКБ-10: F43.2. Тревожное состояние после перенесенного COVID-19, водит авто. Анамнез: Без тяжелой соматики.. Биохимия крови: не сдавал.  Шкалы: PHQ-9=6 (п.9=0), GAD-7=12, C-SSRS=0.",
-    "gt_icd10": "F43.2",
+    "raw_text": "Выписка из ЭМК. Пациент (Ж), 55 лет. МКБ-10: F41.1. Назначен сертралин, на 3-й день — стартовая тревога и ажитация, инсомния. Анамнез: Совместный прием СИОЗС требует аудита CYP2D6-взаимодействий.. Биохимия крови: не сдавал.  Шкалы: PHQ-9=6 (п.9=0), GAD-7=12, C-SSRS=0.",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": true
+    "gt_missing_labs_warning": true,
+    "gt_entities": [
+      "Сертралин"
+    ]
   },
   {
     "case_id": 10,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_E_HL7_FHIR_JSON",
-    "raw_text": "{\"resourceType\": \"ClinicalImpression\", \"subject\": {\"age\": 49, \"gender\": \"male\"}, \"diagnosis_icd10\": \"F41.1\", \"clinical_notes\": \"Постоянная тревога, нарушение сна, водит авто. Сопутствует АГ, принимает метопролол 50 мг/сут.\", \"labs\": {\"creatinine_umol_l\": 78.0, \"child_pugh_class\": \"Чайлд-Пью: норма\", \"cyp2d6\": \"CYP2D6 норма\"}, \"scales\": {\"PHQ9\": 6, \"PHQ9_item9\": 0, \"GAD7\": 13, \"CSSRS\": 0, \"MDQ\": 1}}",
+    "raw_text": "{\"resourceType\": \"ClinicalImpression\", \"subject\": {\"age\": 49, \"gender\": \"male\"}, \"diagnosis_icd10\": \"F41.1\", \"clinical_notes\": \"Депрессивная симптоматика на сертралине редуцировалась, но сохраняется остаточная тревога и плохой сон. Дозу СИОЗС повышать не хочет.\", \"labs\": {\"creatinine_umol_l\": 78.0, \"child_pugh_class\": \"Чайлд-Пью: норма\", \"cyp2d6\": \"CYP2D6 норма\"}, \"scales\": {\"PHQ9\": 6, \"PHQ9_item9\": 0, \"GAD7\": 13, \"CSSRS\": 0, \"MDQ\": 1}}",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Сертралин"
+    ]
   },
   {
     "case_id": 11,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 46 лет. Диагноз по МКБ-10: F43.2. Анамнез и статус: Тревожное состояние после перенесенного COVID-19, водит авто. Сопутствующие состояния: Без тяжелой соматики.. Лабораторные данные: Креатинин сыворотки: 64.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6*4/*4 (медленный метаболизатор). Психометрия: PHQ-9 = 7 б. (п.9 = 0), GAD-7 = 15 б., C-SSRS = 0, MDQ = 1.",
-    "gt_icd10": "F43.2",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 46 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Тревога с запросом на «быстрое успокоение». Сопутствующие состояния: Длительно принимал феназепам, отмечал синдром отмены. Риск зависимости от бензодиазепинов.. Лабораторные данные: Креатинин сыворотки: 64.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6*4/*4 (медленный метаболизатор). Психометрия: PHQ-9 = 7 б. (п.9 = 0), GAD-7 = 15 б., C-SSRS = 0, MDQ = 1.",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Феназепам"
+    ]
   },
   {
     "case_id": 12,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_B_NEURO_SHORT_025U",
-    "raw_text": "Осмотр невролога (ф. 025/у). М, 28 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Постоянная тревога, нарушение сна, водит авто. Анамнез: Без тяжелой соматики.. Лаб: креат. 78.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 11б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
-    "gt_icd10": "F41.1",
+    "raw_text": "Осмотр невролога (ф. 025/у). М, 28 г. Код МКБ: F43.2. Жал.: трев., инсомния, утомл. Тревожное состояние после перенесенного COVID-19, водит авто. Анамнез: Астения, нарушен сон. Цель — возврат к обычному ритму жизни.. Лаб: креат. 78.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 11б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
+    "gt_icd10": "F43.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 13,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 59 лет. Предварительный шифр: F43.2. Описание жалоб: «Тревожное состояние после перенесенного COVID-19, водит авто.». Принимаемые препараты и хроника: Сопутствует АГ, принимает метопролол 50 мг/сут. (CYP2D6 норма). Анализы: Креатинин сыворотки: 64.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 8 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
-    "gt_icd10": "F43.2",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 59 лет. Предварительный шифр: F41.1. Описание жалоб: «Постоянная тревога, нарушение сна, водит авто.». Принимаемые препараты и хроника: Сопутствует АГ, принимает метопролол 50 мг/сут. (CYP2D6 норма). Анализы: Креатинин сыворотки: 64.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 8 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол"
+    ]
   },
   {
     "case_id": 14,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_D_MISSING_LABS_GUARD",
-    "raw_text": "Выписка из ЭМК. Пациент (М), 42 лет. МКБ-10: F41.1. Постоянная тревога, нарушение сна, водит авто. Анамнез: Без тяжелой соматики.. Биохимия крови: не сдавал.  Шкалы: PHQ-9=7 (п.9=0), GAD-7=12, C-SSRS=0.",
+    "raw_text": "Выписка из ЭМК. Пациент (М), 42 лет. МКБ-10: F41.1. Тревога сохраняется; ранее отмечал стартовую тревогу от эсциталопрама. Анамнез: Эсциталопрам отменен самостоятельно: тошнота и сексуальная дисфункция в первые недели.. Биохимия крови: не сдавал.  Шкалы: PHQ-9=7 (п.9=0), GAD-7=12, C-SSRS=0.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": true
+    "gt_missing_labs_warning": true,
+    "gt_entities": [
+      "Эсциталопрам"
+    ]
   },
   {
     "case_id": 15,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_E_HL7_FHIR_JSON",
-    "raw_text": "{\"resourceType\": \"ClinicalImpression\", \"subject\": {\"age\": 60, \"gender\": \"female\"}, \"diagnosis_icd10\": \"F43.2\", \"clinical_notes\": \"Тревожное состояние после перенесенного COVID-19, водит авто. Без тяжелой соматики.\", \"labs\": {\"creatinine_umol_l\": 64.0, \"child_pugh_class\": \"Чайлд-Пью: норма\", \"cyp2d6\": \"CYP2D6 норма\"}, \"scales\": {\"PHQ9\": 6, \"PHQ9_item9\": 0, \"GAD7\": 11, \"CSSRS\": 0, \"MDQ\": 1}}",
-    "gt_icd10": "F43.2",
+    "raw_text": "{\"resourceType\": \"ClinicalImpression\", \"subject\": {\"age\": 60, \"gender\": \"female\"}, \"diagnosis_icd10\": \"F41.1\", \"clinical_notes\": \"Назначен сертралин, на 3-й день — стартовая тревога и ажитация, инсомния. Совместный прием СИОЗС требует аудита CYP2D6-взаимодействий.\", \"labs\": {\"creatinine_umol_l\": 64.0, \"child_pugh_class\": \"Чайлд-Пью: норма\", \"cyp2d6\": \"CYP2D6 норма\"}, \"scales\": {\"PHQ9\": 6, \"PHQ9_item9\": 0, \"GAD7\": 11, \"CSSRS\": 0, \"MDQ\": 1}}",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Сертралин"
+    ]
   },
   {
     "case_id": 16,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Мужчина, 47 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Постоянная тревога, нарушение сна, водит авто. Сопутствующие состояния: Сопутствует АГ, принимает метопролол 50 мг/сут.. Лабораторные данные: Креатинин сыворотки: 78.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6*4/*4 (медленный метаболизатор). Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 14 б., C-SSRS = 0, MDQ = 1.",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Мужчина, 47 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Депрессивная симптоматика на сертралине редуцировалась, но сохраняется остаточная тревога и плохой сон. Сопутствующие состояния: Дозу СИОЗС повышать не хочет.. Лабораторные данные: Креатинин сыворотки: 78.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6*4/*4 (медленный метаболизатор). Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 14 б., C-SSRS = 0, MDQ = 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Сертралин"
+    ]
   },
   {
     "case_id": 17,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_B_NEURO_SHORT_025U",
-    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 51 г. Код МКБ: F43.2. Жал.: трев., инсомния, утомл. Тревожное состояние после перенесенного COVID-19, водит авто. Анамнез: Без тяжелой соматики.. Лаб: креат. 64.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 14б, PHQ9 4б (п9=0), CSSRS=0, MDQ=1.",
-    "gt_icd10": "F43.2",
+    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 51 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Тревога с запросом на «быстрое успокоение». Анамнез: Длительно принимал феназепам, отмечал синдром отмены. Риск зависимости от бензодиазепинов.. Лаб: креат. 64.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 14б, PHQ9 4б (п9=0), CSSRS=0, MDQ=1.",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Феназепам"
+    ]
   },
   {
     "case_id": 18,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Мужчина, Возраст: 61 лет. Предварительный шифр: F41.1. Описание жалоб: «Постоянная тревога, нарушение сна, водит авто.». Принимаемые препараты и хроника: Без тяжелой соматики. (CYP2D6 норма). Анализы: Креатинин сыворотки: 78.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 8 (вопрос №9: 0); GAD-7: 14; C-SSRS: 0; MDQ: 1.",
-    "gt_icd10": "F41.1",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Мужчина, Возраст: 61 лет. Предварительный шифр: F43.2. Описание жалоб: «Тревожное состояние после перенесенного COVID-19, водит авто.». Принимаемые препараты и хроника: Астения, нарушен сон. Цель — возврат к обычному ритму жизни. (CYP2D6 норма). Анализы: Креатинин сыворотки: 78.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 8 (вопрос №9: 0); GAD-7: 14; C-SSRS: 0; MDQ: 1.",
+    "gt_icd10": "F43.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 19,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_D_MISSING_LABS_GUARD",
-    "raw_text": "Выписка из ЭМК. Пациент (Ж), 31 лет. МКБ-10: F43.2. Тревожное состояние после перенесенного COVID-19, водит авто. Анамнез: Сопутствует АГ, принимает метопролол 50 мг/сут.. Биохимия крови: не сдавал.  Шкалы: PHQ-9=7 (п.9=0), GAD-7=15, C-SSRS=0.",
-    "gt_icd10": "F43.2",
+    "raw_text": "Выписка из ЭМК. Пациент (Ж), 31 лет. МКБ-10: F41.1. Постоянная тревога, нарушение сна, водит авто. Анамнез: Сопутствует АГ, принимает метопролол 50 мг/сут.. Биохимия крови: не сдавал.  Шкалы: PHQ-9=7 (п.9=0), GAD-7=15, C-SSRS=0.",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": true
+    "gt_missing_labs_warning": true,
+    "gt_entities": [
+      "Метопролол"
+    ]
   },
   {
     "case_id": 20,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_E_HL7_FHIR_JSON",
-    "raw_text": "{\"resourceType\": \"ClinicalImpression\", \"subject\": {\"age\": 62, \"gender\": \"male\"}, \"diagnosis_icd10\": \"F41.1\", \"clinical_notes\": \"Постоянная тревога, нарушение сна, водит авто. Без тяжелой соматики.\", \"labs\": {\"creatinine_umol_l\": 78.0, \"child_pugh_class\": \"Чайлд-Пью: норма\", \"cyp2d6\": \"CYP2D6 норма\"}, \"scales\": {\"PHQ9\": 7, \"PHQ9_item9\": 0, \"GAD7\": 14, \"CSSRS\": 0, \"MDQ\": 1}}",
+    "raw_text": "{\"resourceType\": \"ClinicalImpression\", \"subject\": {\"age\": 62, \"gender\": \"male\"}, \"diagnosis_icd10\": \"F41.1\", \"clinical_notes\": \"Тревога сохраняется; ранее отмечал стартовую тревогу от эсциталопрама. Эсциталопрам отменен самостоятельно: тошнота и сексуальная дисфункция в первые недели.\", \"labs\": {\"creatinine_umol_l\": 78.0, \"child_pugh_class\": \"Чайлд-Пью: норма\", \"cyp2d6\": \"CYP2D6 норма\"}, \"scales\": {\"PHQ9\": 7, \"PHQ9_item9\": 0, \"GAD7\": 14, \"CSSRS\": 0, \"MDQ\": 1}}",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Эсциталопрам"
+    ]
   },
   {
     "case_id": 21,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 57 лет. Диагноз по МКБ-10: F43.2. Анамнез и статус: Тревожное состояние после перенесенного COVID-19, водит авто. Сопутствующие состояния: Без тяжелой соматики.. Лабораторные данные: Креатинин сыворотки: 64.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6*4/*4 (медленный метаболизатор). Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 14 б., C-SSRS = 0, MDQ = 1.",
-    "gt_icd10": "F43.2",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 57 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Назначен сертралин, на 3-й день — стартовая тревога и ажитация, инсомния. Сопутствующие состояния: Совместный прием СИОЗС требует аудита CYP2D6-взаимодействий.. Лабораторные данные: Креатинин сыворотки: 64.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6*4/*4 (медленный метаболизатор). Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 14 б., C-SSRS = 0, MDQ = 1.",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Сертралин"
+    ]
   },
   {
     "case_id": 22,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_B_NEURO_SHORT_025U",
-    "raw_text": "Осмотр невролога (ф. 025/у). М, 60 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Постоянная тревога, нарушение сна, водит авто. Анамнез: Сопутствует АГ, принимает метопролол 50 мг/сут.. Лаб: креат. 78.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 15б, PHQ9 7б (п9=0), CSSRS=0, MDQ=1.",
+    "raw_text": "Осмотр невролога (ф. 025/у). М, 60 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Депрессивная симптоматика на сертралине редуцировалась, но сохраняется остаточная тревога и плохой сон. Анамнез: Дозу СИОЗС повышать не хочет.. Лаб: креат. 78.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 15б, PHQ9 7б (п9=0), CSSRS=0, MDQ=1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Сертралин"
+    ]
   },
   {
     "case_id": 23,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 57 лет. Предварительный шифр: F43.2. Описание жалоб: «Тревожное состояние после перенесенного COVID-19, водит авто.». Принимаемые препараты и хроника: Без тяжелой соматики. (CYP2D6 норма). Анализы: Креатинин сыворотки: 64.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 4 (вопрос №9: 0); GAD-7: 15; C-SSRS: 0; MDQ: 1.",
-    "gt_icd10": "F43.2",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 57 лет. Предварительный шифр: F41.1. Описание жалоб: «Тревога с запросом на «быстрое успокоение».». Принимаемые препараты и хроника: Длительно принимал феназепам, отмечал синдром отмены. Риск зависимости от бензодиазепинов. (CYP2D6 норма). Анализы: Креатинин сыворотки: 64.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 4 (вопрос №9: 0); GAD-7: 15; C-SSRS: 0; MDQ: 1.",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Феназепам"
+    ]
   },
   {
     "case_id": 24,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_D_MISSING_LABS_GUARD",
-    "raw_text": "Выписка из ЭМК. Пациент (М), 38 лет. МКБ-10: F41.1. Постоянная тревога, нарушение сна, водит авто. Анамнез: Без тяжелой соматики.. Биохимия крови: не сдавал.  Шкалы: PHQ-9=5 (п.9=0), GAD-7=11, C-SSRS=0.",
-    "gt_icd10": "F41.1",
+    "raw_text": "Выписка из ЭМК. Пациент (М), 38 лет. МКБ-10: F43.2. Тревожное состояние после перенесенного COVID-19, водит авто. Анамнез: Астения, нарушен сон. Цель — возврат к обычному ритму жизни.. Биохимия крови: не сдавал.  Шкалы: PHQ-9=5 (п.9=0), GAD-7=11, C-SSRS=0.",
+    "gt_icd10": "F43.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": true
+    "gt_missing_labs_warning": true,
+    "gt_entities": []
   },
   {
     "case_id": 25,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_E_HL7_FHIR_JSON",
-    "raw_text": "{\"resourceType\": \"ClinicalImpression\", \"subject\": {\"age\": 57, \"gender\": \"female\"}, \"diagnosis_icd10\": \"F43.2\", \"clinical_notes\": \"Тревожное состояние после перенесенного COVID-19, водит авто. Сопутствует АГ, принимает метопролол 50 мг/сут.\", \"labs\": {\"creatinine_umol_l\": 64.0, \"child_pugh_class\": \"Чайлд-Пью: норма\", \"cyp2d6\": \"CYP2D6 норма\"}, \"scales\": {\"PHQ9\": 4, \"PHQ9_item9\": 0, \"GAD7\": 15, \"CSSRS\": 0, \"MDQ\": 1}}",
-    "gt_icd10": "F43.2",
+    "raw_text": "{\"resourceType\": \"ClinicalImpression\", \"subject\": {\"age\": 57, \"gender\": \"female\"}, \"diagnosis_icd10\": \"F41.1\", \"clinical_notes\": \"Постоянная тревога, нарушение сна, водит авто. Сопутствует АГ, принимает метопролол 50 мг/сут.\", \"labs\": {\"creatinine_umol_l\": 64.0, \"child_pugh_class\": \"Чайлд-Пью: норма\", \"cyp2d6\": \"CYP2D6 норма\"}, \"scales\": {\"PHQ9\": 4, \"PHQ9_item9\": 0, \"GAD7\": 15, \"CSSRS\": 0, \"MDQ\": 1}}",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол"
+    ]
   },
   {
     "case_id": 26,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Мужчина, 51 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Постоянная тревога, нарушение сна, водит авто. Сопутствующие состояния: Без тяжелой соматики.. Лабораторные данные: Креатинин сыворотки: 78.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6*4/*4 (медленный метаболизатор). Психометрия: PHQ-9 = 7 б. (п.9 = 0), GAD-7 = 12 б., C-SSRS = 0, MDQ = 1.",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Мужчина, 51 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Тревога сохраняется; ранее отмечал стартовую тревогу от эсциталопрама. Сопутствующие состояния: Эсциталопрам отменен самостоятельно: тошнота и сексуальная дисфункция в первые недели.. Лабораторные данные: Креатинин сыворотки: 78.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6*4/*4 (медленный метаболизатор). Психометрия: PHQ-9 = 7 б. (п.9 = 0), GAD-7 = 12 б., C-SSRS = 0, MDQ = 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Эсциталопрам"
+    ]
   },
   {
     "case_id": 27,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_B_NEURO_SHORT_025U",
-    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 54 г. Код МКБ: F43.2. Жал.: трев., инсомния, утомл. Тревожное состояние после перенесенного COVID-19, водит авто. Анамнез: Без тяжелой соматики.. Лаб: креат. 64.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 11б, PHQ9 5б (п9=0), CSSRS=0, MDQ=1.",
-    "gt_icd10": "F43.2",
+    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 54 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Назначен сертралин, на 3-й день — стартовая тревога и ажитация, инсомния. Анамнез: Совместный прием СИОЗС требует аудита CYP2D6-взаимодействий.. Лаб: креат. 64.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 11б, PHQ9 5б (п9=0), CSSRS=0, MDQ=1.",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Сертралин"
+    ]
   },
   {
     "case_id": 28,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Мужчина, Возраст: 53 лет. Предварительный шифр: F41.1. Описание жалоб: «Постоянная тревога, нарушение сна, водит авто.». Принимаемые препараты и хроника: Сопутствует АГ, принимает метопролол 50 мг/сут. (CYP2D6 норма). Анализы: Креатинин сыворотки: 78.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 7 (вопрос №9: 0); GAD-7: 15; C-SSRS: 0; MDQ: 1.",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Мужчина, Возраст: 53 лет. Предварительный шифр: F41.1. Описание жалоб: «Депрессивная симптоматика на сертралине редуцировалась, но сохраняется остаточная тревога и плохой сон.». Принимаемые препараты и хроника: Дозу СИОЗС повышать не хочет. (CYP2D6 норма). Анализы: Креатинин сыворотки: 78.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 7 (вопрос №9: 0); GAD-7: 15; C-SSRS: 0; MDQ: 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Сертралин"
+    ]
   },
   {
     "case_id": 29,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_D_MISSING_LABS_GUARD",
-    "raw_text": "Выписка из ЭМК. Пациент (Ж), 40 лет. МКБ-10: F43.2. Тревожное состояние после перенесенного COVID-19, водит авто. Анамнез: Без тяжелой соматики.. Биохимия крови: не сдавал.  Шкалы: PHQ-9=8 (п.9=0), GAD-7=14, C-SSRS=0.",
-    "gt_icd10": "F43.2",
+    "raw_text": "Выписка из ЭМК. Пациент (Ж), 40 лет. МКБ-10: F41.1. Тревога с запросом на «быстрое успокоение». Анамнез: Длительно принимал феназепам, отмечал синдром отмены. Риск зависимости от бензодиазепинов.. Биохимия крови: не сдавал.  Шкалы: PHQ-9=8 (п.9=0), GAD-7=14, C-SSRS=0.",
+    "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": true
+    "gt_missing_labs_warning": true,
+    "gt_entities": [
+      "Феназепам"
+    ]
   },
   {
     "case_id": 30,
     "cohort": "TARGET_AVIANDR",
     "template_type": "TEMPLATE_E_HL7_FHIR_JSON",
-    "raw_text": "{\"resourceType\": \"ClinicalImpression\", \"subject\": {\"age\": 43, \"gender\": \"male\"}, \"diagnosis_icd10\": \"F41.1\", \"clinical_notes\": \"Постоянная тревога, нарушение сна, водит авто. Без тяжелой соматики.\", \"labs\": {\"creatinine_umol_l\": 78.0, \"child_pugh_class\": \"Чайлд-Пью: норма\", \"cyp2d6\": \"CYP2D6 норма\"}, \"scales\": {\"PHQ9\": 8, \"PHQ9_item9\": 0, \"GAD7\": 15, \"CSSRS\": 0, \"MDQ\": 1}}",
-    "gt_icd10": "F41.1",
+    "raw_text": "{\"resourceType\": \"ClinicalImpression\", \"subject\": {\"age\": 43, \"gender\": \"male\"}, \"diagnosis_icd10\": \"F43.2\", \"clinical_notes\": \"Тревожное состояние после перенесенного COVID-19, водит авто. Астения, нарушен сон. Цель — возврат к обычному ритму жизни.\", \"labs\": {\"creatinine_umol_l\": 78.0, \"child_pugh_class\": \"Чайлд-Пью: норма\", \"cyp2d6\": \"CYP2D6 норма\"}, \"scales\": {\"PHQ9\": 8, \"PHQ9_item9\": 0, \"GAD7\": 15, \"CSSRS\": 0, \"MDQ\": 1}}",
+    "gt_icd10": "F43.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 31,
@@ -307,7 +387,8 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 32,
@@ -317,7 +398,8 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 33,
@@ -327,7 +409,8 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 34,
@@ -337,7 +420,10 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Фенелзин"
+    ]
   },
   {
     "case_id": 35,
@@ -347,7 +433,8 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 36,
@@ -357,187 +444,216 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 37,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 54 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Жалобы на генерализованную тревогу. Сопутствующие состояния: ХБП. Лабораторные данные: Креатинин сыворотки: 165.0 мкмоль/л. Печень: печеночные пробы в норме. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 13 б., C-SSRS = 0, MDQ = 1.",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 17 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Жалобы на генерализованную тревогу. Сопутствующие состояния: возраст 17 лет — младше 18 (ОХЛП). Лабораторные данные: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 13 б., C-SSRS = 0, MDQ = 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 38,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_B_NEURO_SHORT_025U",
-    "raw_text": "Осмотр невролога (ф. 025/у). М, 54 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Жалобы на генерализованную тревогу. Анамнез: ХБП. Лаб: креат. 72.0 мкмоль/л, Печень: цирроз печени, класс B по Чайлд-Пью. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
+    "raw_text": "Осмотр невролога (ф. 025/у). М, 54 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Жалобы на генерализованную тревогу. Анамнез: принимал ингибитор МАО (транилципромин), отменен 10 дней назад. Лаб: креат. 72.0 мкмоль/л, Печень: печеночные пробы в норме. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Транилципромин"
+    ]
   },
   {
     "case_id": 39,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 54 лет. Предварительный шифр: F41.1. Описание жалоб: «Жалобы на генерализованную тревогу.». Принимаемые препараты и хроника: в анамнезе посттравматическая эпилепсия (CYP2D6 норма). Анализы: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Авто-опросник: PHQ-9: 6 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 54 лет. Предварительный шифр: F41.1. Описание жалоб: «Жалобы на генерализованную тревогу.». Принимаемые препараты и хроника: ХБП (CYP2D6 норма). Анализы: Креатинин сыворотки: 165.0 мкмоль/л. Печень: печеночные пробы в норме. Авто-опросник: PHQ-9: 6 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 40,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Мужчина, 54 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Жалобы на генерализованную тревогу. Сопутствующие состояния: принимал ингибитор МАО (фенелзин), отменен 7 дней назад. Лабораторные данные: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 13 б., C-SSRS = 0, MDQ = 1.",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Мужчина, 54 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Жалобы на генерализованную тревогу. Сопутствующие состояния: ХБП. Лабораторные данные: Креатинин сыворотки: 72.0 мкмоль/л. Печень: цирроз печени, класс B по Чайлд-Пью. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 13 б., C-SSRS = 0, MDQ = 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 41,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_B_NEURO_SHORT_025U",
-    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 54 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Жалобы на генерализованную тревогу. Анамнез: врожденный дефицит лактазы (LCT-13910 C/C, непереносимость лактозы). Лаб: креат. 72.0 мкмоль/л, Печень: печеночные пробы в норме. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
+    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 54 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Жалобы на генерализованную тревогу. Анамнез: в анамнезе посттравматическая эпилепсия. Лаб: креат. 72.0 мкмоль/л, Печень: печеночные пробы в норме. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 42,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 30 лет. Предварительный шифр: F41.1. Описание жалоб: «Жалобы на генерализованную тревогу.». Принимаемые препараты и хроника: беременность 14 недель (CYP2D6 норма). Анализы: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Авто-опросник: PHQ-9: 6 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Мужчина, Возраст: 54 лет. Предварительный шифр: F41.1. Описание жалоб: «Жалобы на генерализованную тревогу.». Принимаемые препараты и хроника: принимал ингибитор МАО (фенелзин), отменен 7 дней назад (CYP2D6 норма). Анализы: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Авто-опросник: PHQ-9: 6 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Фенелзин"
+    ]
   },
   {
     "case_id": 43,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 54 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Жалобы на генерализованную тревогу. Сопутствующие состояния: ХБП. Лабораторные данные: Креатинин сыворотки: 165.0 мкмоль/л. Печень: печеночные пробы в норме. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 13 б., C-SSRS = 0, MDQ = 1.",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 54 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Жалобы на генерализованную тревогу. Сопутствующие состояния: врожденный дефицит лактазы (LCT-13910 C/C, непереносимость лактозы). Лабораторные данные: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 13 б., C-SSRS = 0, MDQ = 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 44,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_B_NEURO_SHORT_025U",
-    "raw_text": "Осмотр невролога (ф. 025/у). М, 54 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Жалобы на генерализованную тревогу. Анамнез: ХБП. Лаб: креат. 72.0 мкмоль/л, Печень: цирроз печени, класс B по Чайлд-Пью. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
+    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 30 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Жалобы на генерализованную тревогу. Анамнез: беременность 14 недель. Лаб: креат. 72.0 мкмоль/л, Печень: печеночные пробы в норме. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 45,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 54 лет. Предварительный шифр: F41.1. Описание жалоб: «Жалобы на генерализованную тревогу.». Принимаемые препараты и хроника: в анамнезе посттравматическая эпилепсия (CYP2D6 норма). Анализы: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Авто-опросник: PHQ-9: 6 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 17 лет. Предварительный шифр: F41.1. Описание жалоб: «Жалобы на генерализованную тревогу.». Принимаемые препараты и хроника: возраст 17 лет — младше 18 (ОХЛП) (CYP2D6 норма). Анализы: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Авто-опросник: PHQ-9: 6 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 46,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Мужчина, 54 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Жалобы на генерализованную тревогу. Сопутствующие состояния: принимал ингибитор МАО (фенелзин), отменен 7 дней назад. Лабораторные данные: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 13 б., C-SSRS = 0, MDQ = 1.",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Мужчина, 54 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Жалобы на генерализованную тревогу. Сопутствующие состояния: принимал ингибитор МАО (транилципромин), отменен 10 дней назад. Лабораторные данные: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 13 б., C-SSRS = 0, MDQ = 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Транилципромин"
+    ]
   },
   {
     "case_id": 47,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_B_NEURO_SHORT_025U",
-    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 54 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Жалобы на генерализованную тревогу. Анамнез: врожденный дефицит лактазы (LCT-13910 C/C, непереносимость лактозы). Лаб: креат. 72.0 мкмоль/л, Печень: печеночные пробы в норме. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
+    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 54 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Жалобы на генерализованную тревогу. Анамнез: ХБП. Лаб: креат. 165.0 мкмоль/л, Печень: печеночные пробы в норме. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 48,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 30 лет. Предварительный шифр: F41.1. Описание жалоб: «Жалобы на генерализованную тревогу.». Принимаемые препараты и хроника: беременность 14 недель (CYP2D6 норма). Анализы: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Авто-опросник: PHQ-9: 6 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Мужчина, Возраст: 54 лет. Предварительный шифр: F41.1. Описание жалоб: «Жалобы на генерализованную тревогу.». Принимаемые препараты и хроника: ХБП (CYP2D6 норма). Анализы: Креатинин сыворотки: 72.0 мкмоль/л. Печень: цирроз печени, класс B по Чайлд-Пью. Авто-опросник: PHQ-9: 6 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 49,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 54 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Жалобы на генерализованную тревогу. Сопутствующие состояния: ХБП. Лабораторные данные: Креатинин сыворотки: 165.0 мкмоль/л. Печень: печеночные пробы в норме. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 13 б., C-SSRS = 0, MDQ = 1.",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 54 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Жалобы на генерализованную тревогу. Сопутствующие состояния: в анамнезе посттравматическая эпилепсия. Лабораторные данные: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 13 б., C-SSRS = 0, MDQ = 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 50,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_B_NEURO_SHORT_025U",
-    "raw_text": "Осмотр невролога (ф. 025/у). М, 54 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Жалобы на генерализованную тревогу. Анамнез: ХБП. Лаб: креат. 72.0 мкмоль/л, Печень: цирроз печени, класс B по Чайлд-Пью. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
+    "raw_text": "Осмотр невролога (ф. 025/у). М, 54 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Жалобы на генерализованную тревогу. Анамнез: принимал ингибитор МАО (фенелзин), отменен 7 дней назад. Лаб: креат. 72.0 мкмоль/л, Печень: печеночные пробы в норме. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Фенелзин"
+    ]
   },
   {
     "case_id": 51,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 54 лет. Предварительный шифр: F41.1. Описание жалоб: «Жалобы на генерализованную тревогу.». Принимаемые препараты и хроника: в анамнезе посттравматическая эпилепсия (CYP2D6 норма). Анализы: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Авто-опросник: PHQ-9: 6 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 54 лет. Предварительный шифр: F41.1. Описание жалоб: «Жалобы на генерализованную тревогу.». Принимаемые препараты и хроника: врожденный дефицит лактазы (LCT-13910 C/C, непереносимость лактозы) (CYP2D6 норма). Анализы: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Авто-опросник: PHQ-9: 6 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 52,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Мужчина, 54 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Жалобы на генерализованную тревогу. Сопутствующие состояния: принимал ингибитор МАО (фенелзин), отменен 7 дней назад. Лабораторные данные: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 13 б., C-SSRS = 0, MDQ = 1.",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 30 лет. Диагноз по МКБ-10: F41.1. Анамнез и статус: Жалобы на генерализованную тревогу. Сопутствующие состояния: беременность 14 недель. Лабораторные данные: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 6 б. (п.9 = 0), GAD-7 = 13 б., C-SSRS = 0, MDQ = 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 53,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_B_NEURO_SHORT_025U",
-    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 54 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Жалобы на генерализованную тревогу. Анамнез: врожденный дефицит лактазы (LCT-13910 C/C, непереносимость лактозы). Лаб: креат. 72.0 мкмоль/л, Печень: печеночные пробы в норме. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
+    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 17 г. Код МКБ: F41.1. Жал.: трев., инсомния, утомл. Жалобы на генерализованную тревогу. Анамнез: возраст 17 лет — младше 18 (ОХЛП). Лаб: креат. 72.0 мкмоль/л, Печень: печеночные пробы в норме. CYP2D6 норма. Шкалы: ГТР-7 13б, PHQ9 6б (п9=0), CSSRS=0, MDQ=1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 54,
     "cohort": "CONTRAINDICATED",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 30 лет. Предварительный шифр: F41.1. Описание жалоб: «Жалобы на генерализованную тревогу.». Принимаемые препараты и хроника: беременность 14 недель (CYP2D6 норма). Анализы: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Авто-опросник: PHQ-9: 6 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Мужчина, Возраст: 54 лет. Предварительный шифр: F41.1. Описание жалоб: «Жалобы на генерализованную тревогу.». Принимаемые препараты и хроника: принимал ингибитор МАО (транилципромин), отменен 10 дней назад (CYP2D6 норма). Анализы: Креатинин сыворотки: 72.0 мкмоль/л. Печень: печеночные пробы в норме. Авто-опросник: PHQ-9: 6 (вопрос №9: 0); GAD-7: 13; C-SSRS: 0; MDQ: 1.",
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Транилципромин"
+    ]
   },
   {
     "case_id": 55,
@@ -547,7 +663,8 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": true,
     "gt_routing_category": "PRIMARY_CARE_MANAGEMENT",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 56,
@@ -557,7 +674,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 57,
@@ -567,7 +688,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 58,
@@ -577,7 +702,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 59,
@@ -587,7 +716,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": true
+    "gt_missing_labs_warning": true,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 60,
@@ -597,7 +730,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 61,
@@ -607,7 +744,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 62,
@@ -617,7 +758,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 63,
@@ -627,7 +772,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": true
+    "gt_missing_labs_warning": true,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 64,
@@ -637,7 +786,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 65,
@@ -647,7 +800,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 66,
@@ -657,7 +814,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 67,
@@ -667,7 +828,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": true
+    "gt_missing_labs_warning": true,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 68,
@@ -677,7 +842,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 69,
@@ -687,7 +856,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 70,
@@ -697,7 +870,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 71,
@@ -707,7 +884,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": true
+    "gt_missing_labs_warning": true,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 72,
@@ -717,7 +898,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 73,
@@ -727,7 +912,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 74,
@@ -737,7 +926,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 75,
@@ -747,7 +940,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": true
+    "gt_missing_labs_warning": true,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 76,
@@ -757,7 +954,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 77,
@@ -767,7 +968,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 78,
@@ -777,7 +982,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 79,
@@ -787,7 +996,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": true
+    "gt_missing_labs_warning": true,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 80,
@@ -797,7 +1010,11 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "RECOMMENDED_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": [
+      "Метопролол",
+      "Пароксетин"
+    ]
   },
   {
     "case_id": 81,
@@ -807,7 +1024,8 @@
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 82,
@@ -817,17 +1035,19 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 83,
     "cohort": "MANDATORY_PSYCH",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 29 лет. Предварительный шифр: F32.2. Описание жалоб: «Тяжелая тоска, суицидальные намерения.». Принимаемые препараты и хроника: Соматически здоров. (CYP2D6 норма). Анализы: Креатинин сыворотки: 70.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 23 (вопрос №9: 2); GAD-7: 18; C-SSRS: 4; MDQ: 2.",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 29 лет. Предварительный шифр: F32.2. Описание жалоб: «Тяжелая тоска, суицидальные намерения.». Принимаемые препараты и хроника: Комбинация с СИОЗС — признаки серотонинового синдрома (тризм, гиперрефлексия, скованность мышц). (CYP2D6 норма). Анализы: Креатинин сыворотки: 70.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 23 (вопрос №9: 2); GAD-7: 18; C-SSRS: 4; MDQ: 2.",
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 84,
@@ -837,7 +1057,8 @@
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 85,
@@ -847,7 +1068,8 @@
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 86,
@@ -857,17 +1079,19 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 87,
     "cohort": "MANDATORY_PSYCH",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 29 лет. Диагноз по МКБ-10: F32.2. Анамнез и статус: Тяжелая тоска, суицидальные намерения. Сопутствующие состояния: Соматически здоров.. Лабораторные данные: Креатинин сыворотки: 70.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 23 б. (п.9 = 2), GAD-7 = 18 б., C-SSRS = 4, MDQ = 2.",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 29 лет. Диагноз по МКБ-10: F32.2. Анамнез и статус: Тяжелая тоска, суицидальные намерения. Сопутствующие состояния: Комбинация с СИОЗС — признаки серотонинового синдрома (тризм, гиперрефлексия, скованность мышц).. Лабораторные данные: Креатинин сыворотки: 70.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 23 б. (п.9 = 2), GAD-7 = 18 б., C-SSRS = 4, MDQ = 2.",
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 88,
@@ -877,7 +1101,8 @@
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 89,
@@ -887,7 +1112,8 @@
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 90,
@@ -897,17 +1123,19 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 91,
     "cohort": "MANDATORY_PSYCH",
     "template_type": "TEMPLATE_B_NEURO_SHORT_025U",
-    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 29 г. Код МКБ: F32.2. Жал.: трев., инсомния, утомл. Тяжелая тоска, суицидальные намерения. Анамнез: Соматически здоров.. Лаб: креат. 70.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 18б, PHQ9 23б (п9=2), CSSRS=4, MDQ=2.",
+    "raw_text": "Осмотр невролога (ф. 025/у). Ж, 29 г. Код МКБ: F32.2. Жал.: трев., инсомния, утомл. Тяжелая тоска, суицидальные намерения. Анамнез: Комбинация с СИОЗС — признаки серотонинового синдрома (тризм, гиперрефлексия, скованность мышц).. Лаб: креат. 70.0 мкмоль/л, Печень: Чайлд-Пью: норма. CYP2D6 норма. Шкалы: ГТР-7 18б, PHQ9 23б (п9=2), CSSRS=4, MDQ=2.",
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 92,
@@ -917,7 +1145,8 @@
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 93,
@@ -927,7 +1156,8 @@
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 94,
@@ -937,17 +1167,19 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 95,
     "cohort": "MANDATORY_PSYCH",
     "template_type": "TEMPLATE_C_TELEMED_PREVISIT",
-    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 29 лет. Предварительный шифр: F32.2. Описание жалоб: «Тяжелая тоска, суицидальные намерения.». Принимаемые препараты и хроника: Соматически здоров. (CYP2D6 норма). Анализы: Креатинин сыворотки: 70.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 23 (вопрос №9: 2); GAD-7: 18; C-SSRS: 4; MDQ: 2.",
+    "raw_text": "[Телемедицинский пред-визит] Пол: Женщина, Возраст: 29 лет. Предварительный шифр: F32.2. Описание жалоб: «Тяжелая тоска, суицидальные намерения.». Принимаемые препараты и хроника: Комбинация с СИОЗС — признаки серотонинового синдрома (тризм, гиперрефлексия, скованность мышц). (CYP2D6 норма). Анализы: Креатинин сыворотки: 70.0 мкмоль/л. Печень: Чайлд-Пью: норма. Авто-опросник: PHQ-9: 23 (вопрос №9: 2); GAD-7: 18; C-SSRS: 4; MDQ: 2.",
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 96,
@@ -957,7 +1189,8 @@
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 97,
@@ -967,7 +1200,8 @@
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 98,
@@ -977,17 +1211,19 @@
     "gt_icd10": "F41.1",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 99,
     "cohort": "MANDATORY_PSYCH",
     "template_type": "TEMPLATE_A_SERBSKY_SECHENOV_STATUS",
-    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 29 лет. Диагноз по МКБ-10: F32.2. Анамнез и статус: Тяжелая тоска, суицидальные намерения. Сопутствующие состояния: Соматически здоров.. Лабораторные данные: Креатинин сыворотки: 70.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 23 б. (п.9 = 2), GAD-7 = 18 б., C-SSRS = 4, MDQ = 2.",
+    "raw_text": "ПСИХИАТРИЧЕСКИЙ И СОМАТИЧЕСКИЙ СТАТУС (Шаблон НМИЦ им. Сербского / Сеченовки). Пациент: Женщина, 29 лет. Диагноз по МКБ-10: F32.2. Анамнез и статус: Тяжелая тоска, суицидальные намерения. Сопутствующие состояния: Комбинация с СИОЗС — признаки серотонинового синдрома (тризм, гиперрефлексия, скованность мышц).. Лабораторные данные: Креатинин сыворотки: 70.0 мкмоль/л. Печень: Чайлд-Пью: норма. Фармакогенетика: CYP2D6 норма. Психометрия: PHQ-9 = 23 б. (п.9 = 2), GAD-7 = 18 б., C-SSRS = 4, MDQ = 2.",
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   },
   {
     "case_id": 100,
@@ -997,6 +1233,7 @@
     "gt_icd10": "F32.2",
     "gt_is_aviandr_blocked": false,
     "gt_routing_category": "MANDATORY_PSYCHIATRIST",
-    "gt_missing_labs_warning": false
+    "gt_missing_labs_warning": false,
+    "gt_entities": []
   }
 ]

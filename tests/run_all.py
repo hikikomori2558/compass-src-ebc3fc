@@ -20,6 +20,7 @@ SUITES = [
     ("tests.test_pk_calibration", False),
     ("tests.test_domain_rules", False),
     ("tests.test_domain_guidance", False),
+    ("tests.test_domain_axes_and_guard", False),
     ("tests.test_c_lexer_ahocorasik", False),
     ("tests.test_c_pii_scrubber", False),
     ("tests.test_safe_pipeline", False),

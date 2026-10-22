@@ -179,10 +179,18 @@ def analyze_voice_biomarkers(req: VoiceBiomarkerCheckinRequest) -> Dict[str, Any
 
 @bio_router.get("/scales-and-trials-registry", summary="[Справочник ГРЛС и Шкалы] Паспорта валидации, лицензии и коридор РКИ Волель 2025")
 def get_scales_and_trials_registry() -> Dict[str, Any]:
+    from backend.domain.trajectory import TrajectoryClusterEngine24D
+
     return {
         "scales_registry": rule_engine.kb["psychometric_scales_registry"],
         "aviandr_reference_corridors": rule_engine.kb["aviandr_clinical_trials_reference_corridors"],
         "therapy_grls_catalog": rule_engine.kb["therapy_options_grls_catalog"],
+        # Контуры 2-3: доказательность, фенотипы, контрольные точки, коридоры графиков
+        "evidence_grades": rule_engine.kb.get("evidence_grades", {}),
+        "open_label_disclaimer": rule_engine.kb.get("open_label_disclaimer", ""),
+        "patient_phenotypes": rule_engine.kb.get("patient_phenotypes", {}),
+        "monitoring_schedule": rule_engine.kb.get("monitoring_schedule", {}),
+        "chart_reference_corridors": TrajectoryClusterEngine24D.reference_corridors(),
     }
 
 

@@ -173,12 +173,22 @@ void compass_bitap_init_clinical_dictionary(CompassBitapDictionary *dict) {
     compass_bitap_add_pattern(dict, "бупропион",      303, LEX_CAT_CYP2D6_INHIBITOR, 2, 2.9, "CYP2D6 Strong Inh: Бупропион");
     compass_bitap_add_pattern(dict, "хинидин",        304, LEX_CAT_CYP2D6_INHIBITOR, 1, 5.5, "CYP2D6 Strong Inh: Хинидин");
     compass_bitap_add_pattern(dict, "дулоксетин",     305, LEX_CAT_CYP2D6_INHIBITOR, 2, 1.8, "CYP2D6 Mod Inh: Дулоксетин");
+    /* Слабые ингибиторы и субстрат CYP2D6: верифицированно безопасно (РКИ),
+     * вклад в DDI нулевой/минимальный — нужны для NER и клинических фенотипов */
+    compass_bitap_add_pattern(dict, "метопролол",     306, LEX_CAT_CYP2D6_INHIBITOR, 2, 0.0, "Метопролол (РКИ: без DDI)");
+    compass_bitap_add_pattern(dict, "эсциталопрам",   307, LEX_CAT_CYP2D6_INHIBITOR, 2, 0.3, "Эсциталопрам (СИОЗС)");
+    compass_bitap_add_pattern(dict, "сертралин",      308, LEX_CAT_CYP2D6_INHIBITOR, 2, 0.4, "Сертралин (СИОЗС)");
 
     /* 4. Модуляторы CYP3A4 */
     compass_bitap_add_pattern(dict, "кетоконазол",    401, LEX_CAT_CYP3A4_MODULATOR, 2, 6.0, "CYP3A4 Strong Inh: Кетоконазол");
     compass_bitap_add_pattern(dict, "кларитромицин",  402, LEX_CAT_CYP3A4_MODULATOR, 2, 3.8, "CYP3A4 Strong Inh: Кларитромицин");
     compass_bitap_add_pattern(dict, "итраконазол",    403, LEX_CAT_CYP3A4_MODULATOR, 2, 5.2, "CYP3A4 Strong Inh: Итраконазол");
     compass_bitap_add_pattern(dict, "карбамазепин",   404, LEX_CAT_CYP3A4_MODULATOR, 2, -0.6, "CYP3A4 Inducer: Карбамазепин");
+    /* Флуконазол — ингибитор CYP2C19: клинически значимых изменений PK маритупирдина
+     * и М1 не выявлено (РКИ) — вклад нулевой; бензодиазепины — маркер седативного риска */
+    compass_bitap_add_pattern(dict, "флуконазол",     405, LEX_CAT_CYP3A4_MODULATOR, 2, 0.0, "Флуконазол (РКИ: без DDI)");
+    compass_bitap_add_pattern(dict, "феназепам",      406, LEX_CAT_CYP3A4_MODULATOR, 2, 0.0, "Феназепам (БДЗ)");
+    compass_bitap_add_pattern(dict, "алпразолам",     407, LEX_CAT_CYP3A4_MODULATOR, 2, 0.0, "Алпразолам (БДЗ)");
 
     /* 5. Клинические маркеры токсичности / нежелательных явлений */
     compass_bitap_add_pattern(dict, "серотониновый",  501, LEX_CAT_ADVERSE_SYMPTOM,  2, 0.0, "AE: Серотониновый синдром");

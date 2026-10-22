@@ -519,6 +519,13 @@
     RKI.forEach(function (p, i) { i ? ctx.lineTo(x(p[0]), y(p[1])) : ctx.moveTo(x(p[0]), y(p[1])); });
     ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = "#0284c7"; ctx.fillText("коридор РКИ (Сеченовский ун-т, N=98)", padL + 4, padT + 8);
+    // контрольные точки терапии: Визит 0 / Нед 2 / Нед 4 / Нед 8 (слайд 24)
+    ctx.strokeStyle = "#64748b"; ctx.setLineDash([2, 3]); ctx.lineWidth = 1;
+    [[0, "В0"], [2, "Н2"], [4, "Н4"], [8, "Н8"]].forEach(function (v) {
+      ctx.beginPath(); ctx.moveTo(x(v[0]), padT + 14); ctx.lineTo(x(v[0]), H - padB); ctx.stroke();
+      ctx.fillStyle = "#475569"; ctx.fillText(v[1], x(v[0]) + 2, padT + 14);
+    });
+    ctx.setLineDash([]);
 
     function line(key, color, label) {
       ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();

@@ -312,6 +312,7 @@
         sessionUser.style.display = "inline-flex";
       }
       startLiveChannels();
+      fetchEvidenceGrades();
       recalculateClinicalState();
     }
 
@@ -597,7 +598,60 @@
       owenUnions
     );
 
+    renderPhenotypeCards(srv);
     updateEngineBadge();
+  }
+
+  function renderPhenotypeCards(srv) {
+    const box = document.getElementById("phenotype-cards");
+    if (!box) return;
+    box.innerHTML = "";
+    const list = srv && srv.phenotype_guidance;
+    if (!list) { box.style.display = "none"; return; }
+    box.style.display = "block";
+    if (list.length === 0) return;
+    const head = document.createElement("div");
+    head.className = "phenotype-head";
+    head.textContent = "Клинический фенотип (подсказки врачу):";
+    box.appendChild(head);
+    list.forEach(function (ph) {
+      const card = document.createElement("div");
+      card.className = "phenotype-card";
+      const items = ph.advisory.map(function (a) { return "<li>" + escapeHtml(a) + "</li>"; }).join("");
+      card.innerHTML = "<div class='phenotype-title'>" + escapeHtml(ph.title) +
+        " <span class='cds--tag cds--tag--blue'>" + escapeHtml(ph.detected_by) + "</span></div>" +
+        "<ul class='phenotype-list'>" + items + "</ul>";
+      box.appendChild(card);
+    });
+  }
+
+  function fetchEvidenceGrades() {
+    Auth.fetchWithAuth("/api/v1/compass-bio/scales-and-trials-registry").then(function (r) {
+      if (!r.ok) return;
+      return r.json();
+    }).then(function (d) {
+      if (!d || !d.evidence_grades) return;
+      const LEVEL_RU = { PROVEN: "ДОКАЗАНО (РКИ)", SECONDARY: "ВТОРИЧНЫЙ ИСХОД", PROMISING: "ПЕРСПЕКТИВНЫЙ" };
+      const TITLES = { anxiolytic: "Противотревожный", antidepressant: "Антидепрессивный",
+        anti_asthenic: "Антиастенический", pro_cognitive: "Прокогнитивный",
+        daytime_sleepiness_neutral: "Нейтрален к дневной сонливости" };
+      const tbody = document.getElementById("rd-evidence-tbody");
+      if (tbody) {
+        tbody.innerHTML = "";
+        Object.keys(TITLES).forEach(function (key) {
+          const g = d.evidence_grades[key];
+          if (!g) return;
+          const cls = g.level === "PROVEN" ? "cds--tag--green" : (g.level === "SECONDARY" ? "cds--tag--cool-gray" : "cds--tag--warm-gray");
+          const tr = document.createElement("tr");
+          tr.innerHTML = "<td>" + TITLES[key] + "</td>" +
+            "<td><span class='cds--tag " + cls + "'>" + (LEVEL_RU[g.level] || g.level) + "</span></td>" +
+            "<td style='font-size:10.5px;'>" + escapeHtml(g.evidence) + "</td>";
+          tbody.appendChild(tr);
+        });
+      }
+      const note = document.getElementById("rd-evidence-note");
+      if (note && d.open_label_disclaimer) note.textContent = d.open_label_disclaimer;
+    }).catch(function () { /* офлайн — таблица останется пустой */ });
   }
 
   function renderCDSHooksAndStagedOrders(pt, pkSol, dissimIdx, conflictK, hasMAOI, suicidal, isMandatory, isRecommended) {

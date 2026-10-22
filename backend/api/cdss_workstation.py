@@ -11,6 +11,7 @@ backend/api/cdss_workstation.py
 
 from __future__ import annotations
 
+import json
 import time
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends
@@ -18,6 +19,8 @@ from pydantic import BaseModel, Field
 
 from backend.api.auth import get_principal
 from backend.bridges.lexers import C11PopPKAndBitapEngine
+from backend.domain.phenotypes import detect_phenotypes
+from backend.paths import KB_PATH
 from backend.bridges.ot_xai import C11TrajectoryOTAndXAIOrchestrator, DEFAULT_HEALTHY_BASELINE_24D
 from backend.services.bio_control import HybridBioControlBridge
 
@@ -28,6 +31,7 @@ router = APIRouter(
     dependencies=[Depends(get_principal)],
 )
 
+_kb = json.loads(KB_PATH.read_text(encoding="utf-8"))
 _pk_lexer_engine = C11PopPKAndBitapEngine()
 _ot_xai_orchestrator = C11TrajectoryOTAndXAIOrchestrator()
 _bio_control_bridge = HybridBioControlBridge()
@@ -176,4 +180,7 @@ def evaluate_clinical_encounter(req: EncounterEvaluationRequest) -> Dict[str, An
         "poppk_rk45": pk_sol.to_dict(),
         "bio_and_micronets": bio_ctrl,
         "owen_xai": owen_xai.to_dict(),
+        # Карточки клинических фенотипов (6 целевых профилей): подсказки врачу,
+        # детекция детерминированная по тексту ЭМК (backend/domain/phenotypes.py).
+        "phenotype_guidance": detect_phenotypes(req.ehr_note_text, {}, _kb),
     }

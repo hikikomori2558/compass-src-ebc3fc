@@ -481,6 +481,9 @@
         <!-- Заполняется динамически из app.js -->
       </div>
 
+      <!-- Карточки клинических фенотипов (6 целевых профилей, контур 3) -->
+      <div id="phenotype-cards" class="phenotype-cards"></div>
+
       <!-- Декомпозиция факторов риска Оуэна-Шепли -->
       <div class="cdss-xai-box">
         <div class="xai-box-header">
@@ -561,6 +564,13 @@
         </table>
       </div>
       <div class="rd-col">
+        <h4>Градация доказательности эффектов (система не завышает обещания)</h4>
+        <table class="cds--data-table cds--data-table--compact mt-8">
+          <thead><tr><th>Эффект</th><th>Уровень</th><th>Основание</th></tr></thead>
+          <tbody id="rd-evidence-tbody"></tbody>
+        </table>
+        <p class="rd-evidence-note" id="rd-evidence-note"></p>
+
         <h4>Горячее добавление правил алертинга и шкал (Тех. метрика №10 — без изменения ядра)</h4>
         <textarea id="rd-rules-json" class="omrs-textarea mono mt-8" rows="7" spellcheck="false"></textarea>
         <button type="button" id="btn-hot-reload-rules" class="cds--btn cds--btn--primary cds--btn--sm mt-8">
