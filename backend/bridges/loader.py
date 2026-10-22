@@ -7,6 +7,7 @@ import ctypes
 import subprocess
 import sys
 import threading
+from pathlib import Path
 from typing import Optional
 
 from backend.paths import C_CORE_DIR, CORE_LIB, REPO_ROOT
