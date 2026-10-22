@@ -32,3 +32,4 @@ redis_data/
 .DS_Store
 Thumbs.db
 .env
+design_refs/case_sources/
