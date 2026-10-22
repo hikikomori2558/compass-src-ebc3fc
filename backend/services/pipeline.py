@@ -14,6 +14,7 @@ import time
 from datetime import date
 from typing import Any, Dict, List, Optional
 
+from backend.domain.phenotypes import detect_phenotypes, differential_gad_vs_adaptation, monitoring_and_review
 from backend.domain.routing import ClinicalCompassRuleEngine
 from backend.domain.rules import RulesEngine
 from backend.services.ehr_extract import apply_confirmations, extract, missing_confirmations
@@ -31,12 +32,13 @@ class SafeCompassPipeline:
                      as_of: Optional[date] = None) -> Dict[str, Any]:
         t0 = time.perf_counter()
         ex = extract(raw_text, as_of=as_of)
-        res = self.analyze_extracted(ex, confirmations)
+        res = self.analyze_extracted(ex, confirmations, ehr_text=raw_text)
         res["parse_and_decide_latency_ms"] = round((time.perf_counter() - t0) * 1000.0, 3)
         return res
 
     # ------------------------------------------------------------------ вход: извлечённое
-    def analyze_extracted(self, ex_in: Dict[str, Any], confirmations: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
+    def analyze_extracted(self, ex_in: Dict[str, Any], confirmations: Optional[Dict[str, bool]] = None,
+                          ehr_text: str = "") -> Dict[str, Any]:
         ex = apply_confirmations(ex_in, confirmations)
         p, cs = ex["profile"], ex["clinical_state"]
         assumptions: List[str] = list(ex["assumptions"])
@@ -154,6 +156,11 @@ class SafeCompassPipeline:
         # ---------------- 8. кластеризация 24D: только на известных входах
         cluster = self._cluster(cs, c_res, icd)
 
+        # ---------------- 9. фенотипы, дифдиагноз, контрольные точки (аддитивные блоки)
+        phenotype_guidance = detect_phenotypes(ehr_text, {**p, **cs}, self.engine.kb)
+        differential = differential_gad_vs_adaptation({**p, "icd10_code": icd}, self.engine.kb)
+        monitoring = monitoring_and_review(cs, self.engine.kb)
+
         return {
             "overall_status": overall,
             "human_in_the_loop_notice": self.engine.kb["human_in_the_loop_disclaimer"],
@@ -165,6 +172,9 @@ class SafeCompassPipeline:
             "data_required": data_required,
             "doctor_confirmations_needed": missing_confirmations(ex),
             "routing_and_alerting": routing,
+            "phenotype_guidance": phenotype_guidance,
+            "differential_gad_vs_adaptation": differential,
+            "monitoring_and_review": monitoring,
             "cluster_24d_analysis": cluster,
             "c_core_pk_and_safety": c_res,
             "assumptions": assumptions,

@@ -99,6 +99,18 @@ VERIFIED_RKI_COHORTS_CBR = [
 ]
 
 
+EFFECT_GRADES_RU = {
+    "anxiolytic": "Противотревожный эффект",
+    "antidepressant": "Антидепрессивный эффект",
+    "anti_asthenic": "Антиастенический эффект",
+    "pro_cognitive": "Прокогнитивный эффект",
+    "daytime_sleepiness_neutral": "Нейтральность к дневной сонливости",
+}
+LEVEL_RU = {"PROVEN": "ДОКАЗАНО (плацебо-контролируемые РКИ)",
+            "SECONDARY": "ВТОРИЧНЫЙ ИСХОД (подтверждено как сопутствующий исход)",
+            "PROMISING": "ПЕРСПЕКТИВНЫЙ (доклиника + открытые; в РКИ отличие от плацебо незначимо)"}
+
+
 class EvidenceAndXAIEngine:
     """
     Генерирует блок объяснимого ИИ (SHAP values по ГОСТ Р 59921.1-2022),
@@ -190,6 +202,30 @@ class EvidenceAndXAIEngine:
 
         scored_cohorts.sort(key=lambda x: x["similarity_score_pct"], reverse=True)
         return scored_cohorts[:3]
+
+    def _kb(self) -> Dict[str, Any]:
+        import json
+
+        if not hasattr(self, "_kb_cache"):
+            self._kb_cache = json.loads(self.kb_path.read_text(encoding="utf-8"))
+        return self._kb_cache
+
+    def annotate_evidence_levels(self) -> Dict[str, Dict[str, str]]:
+        """Градация доказательности эффектов из KB: система не завышает обещания.
+        Возвращает {эффект: {level, level_ru, evidence}} для карточек UI."""
+        grades = self._kb().get("evidence_grades", {})
+        out: Dict[str, Dict[str, str]] = {}
+        for key, title in EFFECT_GRADES_RU.items():
+            g = grades.get(key)
+            if not g:
+                continue
+            out[key] = {"effect": title, "level": g["level"],
+                        "level_ru": LEVEL_RU.get(g["level"], g["level"]),
+                        "evidence": g["evidence"]}
+        return out
+
+    def open_label_disclaimer(self) -> str:
+        return self._kb().get("open_label_disclaimer", "")
 
     def build_authority_provenance_passport(self, icd10_code: str, is_blocked: bool) -> Dict[str, Any]:
         """Формирует юридический и регуляторный паспорт авторитетности источника данных."""

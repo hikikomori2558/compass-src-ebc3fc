@@ -52,66 +52,83 @@ static uint8_t calc_child_pugh_from_labs(const PatientClinicalInput* in, char* c
 }
 
 // 3. Численный решатель ОДУ Рунге-Кутты 4-го порядка (RK4) на 168 часов (7 суток)
+//
+// Калибровка по ОХЛП «Авиандр®» (маритупирдин 20 мг × 2 р/сут за 30 мин до еды)
+// и данным клинических исследований (линейная фармакокинетика в диапазоне 2–20 мг,
+// связывание с белками плазмы 40,8% — на тотальные концентрации не влияет):
+//   * родитель: T1/2 = 15 ч, Tmax однократно ≈ 1 ч (ka = 4.7 1/ч),
+//     Cmax,ss = 84.1 пг/мл, выход на преддозовые Css к 48 ч (~89% плато);
+//   * метаболит М1 (печёночный, CYP2D6/1A2/2C19): T1/2 = 4.7 ч,
+//     AUC_M1/AUC_P = 2.9 — выполняется структурно через CL_M1 = fm·CL_P/2.9;
+//   * PM (CYP2D6 *4/*4): рост Ctrough и Cavg РОДИТЕЛЯ и М1 в 1.5–2 раза —
+//     достигается мягким масштабированием клиренса cyp_mult^0.85 (проверено
+//     тестом калибровки: Ctrough_P ×1.88, Ctrough_M1 ×1.72 при m=1.85);
+//   * феноконверсия: сильные ингибиторы CYP2D6 у NM поднимают активность
+//     фермента до эффективной 1.75 (экспозиция ×1.60 — в том же коридоре).
+//
+// ЧЕСТНОЕ ОГРАНИЧЕНИЕ МОДЕЛИ: опубликованная в ОХЛП тройка «Cmax М1 в 6.9 раза
+// выше / AUC в 2.9 раза / T1/2 4.7 ч» не выводится одновременно ни из какой
+// минимальной линейной 1-компартментной модели (потолок Cmax-отношения ≈ 4.8 —
+// резкость пика М1 ограничена его собственным T1/2). Модель воспроизводит
+// T1/2, AUC-отношение и PM-эффект точно; значение 6.9 публикуется в
+// справочниках интерфейса КАК ЗНАЧЕНИЕ ОХЛП (референс), кривые же — модельная
+// аппроксимация (отношение ≈ 2.4), что помечено в UI и базе знаний.
 static void solve_pk_rk4_168h(float cyp_mult, CompassCoreOutput* out) {
-    const float dt = 0.1f;
-    const int steps_per_hour = 10;
+    const float dt = 0.05f;
+    const int steps_per_hour = 20;
 
-    float ka = 2.85f;
-    float ke_p = (0.693147f / 15.0f) / cyp_mult;
-    float ke_m1 = (0.693147f / 4.7f) / powf(cyp_mult, 0.72f);
+    const float ka      = 4.7f;                  // 1/ч: Tmax однократно ≈ 1 ч
+    const float ke_p0   = 0.693147f / 15.0f;     // T1/2 родителя 15 ч
+    const float ke_m1_0 = 0.693147f / 4.7f;      // T1/2 М1 4.7 ч
+    const float p_cl    = 0.85f;                 // мягкое фенотипное масштабирование клиренса
+    const float fm      = 1.0f;                  // доля клиренса родителя -> М1 (печёночный путь)
+    const float auc_ratio = 2.9f;                // AUC_M1/AUC_P по ОХЛП
+    const float dose_scale = 37.2887f;           // калибровка: Cmax,ss родителя 84.1 пг/мл
 
-    float scale_p = 112.0f * powf(cyp_mult, 0.42f);
-    float scale_m1 = (84.1f * 6.9f) * 1.38f * powf(cyp_mult, 0.52f);
+    float cl_p  = ke_p0 / powf(cyp_mult, p_cl);  // CL родителя (Vp = 1)
+    float cl_m1 = fm * cl_p / auc_ratio;         // => AUC_M1/AUC_P = 2.9
+    float vm    = cl_m1 / ke_m1_0;               // => T1/2 М1 = 4.7 ч
 
     float a_gut = 0.0f, c_p = 0.0f, c_m1 = 0.0f;
     float max_p = 0.0f, max_m1 = 0.0f;
 
     for (int h = 0; h < PK_HORIZON_168H; ++h) {
-        if (h % 12 == 0) {
-            a_gut += 1.0f; // Прием 20 мг каждые 12 часов за 30 мин до еды
-        }
-        float peak_h_p = c_p;
-        float peak_h_m1 = c_m1;
+        if (h % 12 == 0) a_gut += 1.0f;          // приём 20 мг каждые 12 часов
 
         for (int s = 0; s < steps_per_hour; ++s) {
+            // dA_gut/dt = -ka*A;  dCp/dt = ka*S*A - CLp*Cp;  dCm1/dt = (fm*CLp*Cp - CLm1*Cm1)/Vm
             float k1_g = -ka * a_gut;
-            float k1_p = ka * scale_p * a_gut - ke_p * c_p;
-            float k1_m = ka * scale_m1 * a_gut + 0.18f * c_p - ke_m1 * c_m1;
-
+            float k1_p = ka * dose_scale * a_gut - cl_p * c_p;
+            float k1_m = (fm * cl_p * c_p - cl_m1 * c_m1) / vm;
             float g2 = a_gut + 0.5f * dt * k1_g;
             float p2 = c_p   + 0.5f * dt * k1_p;
             float m2 = c_m1  + 0.5f * dt * k1_m;
             float k2_g = -ka * g2;
-            float k2_p = ka * scale_p * g2 - ke_p * p2;
-            float k2_m = ka * scale_m1 * g2 + 0.18f * p2 - ke_m1 * m2;
-
+            float k2_p = ka * dose_scale * g2 - cl_p * p2;
+            float k2_m = (fm * cl_p * p2 - cl_m1 * m2) / vm;
             float g3 = a_gut + 0.5f * dt * k2_g;
             float p3 = c_p   + 0.5f * dt * k2_p;
             float m3 = c_m1  + 0.5f * dt * k2_m;
             float k3_g = -ka * g3;
-            float k3_p = ka * scale_p * g3 - ke_p * p3;
-            float k3_m = ka * scale_m1 * g3 + 0.18f * p3 - ke_m1 * m3;
-
+            float k3_p = ka * dose_scale * g3 - cl_p * p3;
+            float k3_m = (fm * cl_p * p3 - cl_m1 * m3) / vm;
             float g4 = a_gut + dt * k3_g;
             float p4 = c_p   + dt * k3_p;
             float m4 = c_m1  + dt * k3_m;
             float k4_g = -ka * g4;
-            float k4_p = ka * scale_p * g4 - ke_p * p4;
-            float k4_m = ka * scale_m1 * g4 + 0.18f * p4 - ke_m1 * m4;
+            float k4_p = ka * dose_scale * g4 - cl_p * p4;
+            float k4_m = (fm * cl_p * p4 - cl_m1 * m4) / vm;
 
             a_gut += (dt / 6.0f) * (k1_g + 2.0f * k2_g + 2.0f * k3_g + k4_g);
             c_p   += (dt / 6.0f) * (k1_p + 2.0f * k2_p + 2.0f * k3_p + k4_p);
             c_m1  += (dt / 6.0f) * (k1_m + 2.0f * k2_m + 2.0f * k3_m + k4_m);
 
-            if (c_p > peak_h_p)   peak_h_p = c_p;
-            if (c_m1 > peak_h_m1) peak_h_m1 = c_m1;
+            if (c_p  > max_p)  max_p  = c_p;
+            if (c_m1 > max_m1) max_m1 = c_m1;
         }
 
-        out->pk_curve_parent[h] = (h % 12 == 0) ? peak_h_p : c_p;
-        out->pk_curve_m1[h]     = (h % 12 == 0) ? peak_h_m1 : c_m1;
-
-        if (out->pk_curve_parent[h] > max_p)  max_p  = out->pk_curve_parent[h];
-        if (out->pk_curve_m1[h]     > max_m1) max_m1 = out->pk_curve_m1[h];
+        out->pk_curve_parent[h] = c_p;   // срез на конце часа (дозы на границе часов)
+        out->pk_curve_m1[h]     = c_m1;
     }
 
     out->parent_cmax_pg_ml       = max_p;

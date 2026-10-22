@@ -45,6 +45,34 @@ class TrajectoryClusterEngine24D:
 
     SECHENOV_36W_SIGH_A = [(0, 22.06), (2, 19.12), (8, 14.12), (16, 9.84), (24, 7.44), (36, 6.90)]
 
+    # РКИ III фазы ГТР (Морозова 2024, n=160): редукция SIGH-A от исходного, баллы
+    # (8 недель слепого этапа: -11.97 vs -8.21 плацебо, p=0.006; открытая фаза
+    # 16/24/32 недели: -16.08 / -20.28 / -22.53; ответ 89.47%, ремиссия <=7 у 68.42%).
+    RCT3_MOROZOVA_2024_SIGH_A = [(0, 0.0), (8, 11.97), (16, 16.08), (24, 20.28), (32, 22.53)]
+    RCT3_MOROZOVA_2024_META = {
+        "n": 160, "randomization": "3:1 (121 препарат / 39 плацебо)",
+        "response_week8_pct": 36.97, "placebo_response_week8_pct": 15.38,
+        "remission_week32_pct": 68.42,
+    }
+
+    # Постковидная тревога / расстройство адаптации (Попова 2024, n=109, 40 мг/сут до 28 дней)
+    POSTCOVID_2024_HAMA = [(0, 20.4), (14, 12.2), (28, 6.2), (35, 4.7)]
+    POSTCOVID_2024_META = {
+        "n": 109, "response_day28_pct": 83.49, "remission_day28_pct": 68.81,
+        "note": "открытое исследование — без плацебо: эффект неотделим от естественного восстановления",
+    }
+
+    @classmethod
+    def reference_corridors(cls):
+        """Эталонные коридоры для графиков динамики и UI."""
+        return {
+            "sechenov_36w_sigh_a": cls.SECHENOV_36W_SIGH_A,
+            "rct3_morozova_2024_sigh_a_reduction": cls.RCT3_MOROZOVA_2024_SIGH_A,
+            "rct3_meta": cls.RCT3_MOROZOVA_2024_META,
+            "postcovid_2024_hama": cls.POSTCOVID_2024_HAMA,
+            "postcovid_meta": cls.POSTCOVID_2024_META,
+        }
+
     @staticmethod
     def compute_dtw_distance(seq_a: List[float], seq_b: List[float]) -> float:
         n, m = len(seq_a), len(seq_b)
