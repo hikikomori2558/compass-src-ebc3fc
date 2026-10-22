@@ -347,9 +347,10 @@
       document.getElementById("qr-modal").style.display = "none";
     });
 
-    // Уже есть живая сессия — не мучаем врача формой
+    // Уже есть живая сессия — не мучаем врача формой. Адрес API: сохранённый
+    // приоритетнее, иначе автоопределение по hostname страницы (стенд на виртуалке).
     const savedBase = localStorage.getItem("compass_api_base");
-    if (savedBase) document.getElementById("login-api-base").value = savedBase;
+    document.getElementById("login-api-base").value = savedBase || (window.CompassAPIBase || "");
     if (Auth.restore() && Auth.access) {
       Auth.fetchWithAuth("/api/v1/auth/me").then(function (r) {
         if (r.ok) { enterWorkstation(); } else { overlay.style.display = "flex"; }

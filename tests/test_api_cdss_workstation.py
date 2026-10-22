@@ -24,7 +24,7 @@ def test_openmrs_carbon_structure_and_interactive_workflows() -> None:
     app_js = (doc_dir / "app.js").read_text(encoding="utf-8")
 
     # 1. Подключен официальный пакет стилей IBM Carbon v11 (@carbon/styles) и структура OpenMRS 3
-    assert "@carbon/styles" in index_html
+    assert "vendor/carbon-styles.min.css" in index_html  # стили вендорены: демо не зависит от CDN
     assert "omrs-patient-banner" in index_html
     assert "cds-hooks-stream" in index_html
 

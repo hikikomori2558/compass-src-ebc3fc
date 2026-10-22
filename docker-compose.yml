@@ -51,6 +51,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_me}
       PII_PEPPER: ${PII_PEPPER:-dev_pepper_change_me}
       CORS_ORIGINS: "*"
+      # QR-приглашение пациента ведёт на PWA; для показа с телефона укажи LAN-IP:
+      # PATIENT_APP_URL=http://<LAN-IP>:5501/ (в .env или окружении docker compose)
+      PATIENT_APP_URL: ${PATIENT_APP_URL:-http://127.0.0.1:5501/}
     ports:
       - "8000:8000"
     depends_on:

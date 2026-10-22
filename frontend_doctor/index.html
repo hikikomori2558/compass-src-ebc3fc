@@ -4,11 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>УКБ №3 Сеченовского Университета — ЭМК и СППВР «Клинический компас»</title>
-  <!-- Официальный пакет стилей IBM Carbon v11 (используется в OpenMRS 3 esm-patient-chart) -->
-  <link rel="stylesheet" href="https://unpkg.com/@carbon/styles@1.55.0/css/styles.min.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Стили IBM Carbon v11 (как в OpenMRS 3) — ВЕНДОРЕНЫ локально: демо не зависит
+       от интернета (CDN unpkg и IBM-шрифты лежат в vendor/ и vendor/fonts/) -->
+  <link rel="stylesheet" href="vendor/carbon-styles.min.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="cds-theme-g10">
@@ -582,8 +580,8 @@
           <p>ЕГИСЗ / УКБ №3 им. С.С. Корсакова • СППВР «Клинический компас»</p>
         </div>
       </div>
-      <label class="login-field-label" for="login-api-base">Адрес сервера COMPASS</label>
-      <input type="text" id="login-api-base" class="omrs-input" value="http://127.0.0.1:8000" spellcheck="false" />
+      <label class="login-field-label" for="login-api-base">Адрес сервера COMPASS (подставляется автоматически)</label>
+      <input type="text" id="login-api-base" class="omrs-input" placeholder="http://<адрес-виртуалки>:8000" spellcheck="false" />
       <label class="login-field-label" for="login-user">Логин врача</label>
       <input type="text" id="login-user" class="omrs-input" value="neuro.ivlanov" spellcheck="false" autocomplete="username" />
       <label class="login-field-label" for="login-pass">Пароль</label>

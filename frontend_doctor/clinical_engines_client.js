@@ -24,7 +24,17 @@
 
   // ---------------------------------------------------------------- конфиг
   const QS = new URLSearchParams(window.location.search);
-  const DEFAULT_API = window.location.protocol === "https:" ? "" : "http://127.0.0.1:8000";
+  // Стенд обычно живёт на виртуалке/сервере в локальной сети, а смотрят с хоста
+  // или телефона: если страницу открыли НЕ с localhost, API ищем на том же хосте
+  // (http://<этот-hostname>:8000), а не в 127.0.0.1 браузера. Ручной ввод в форме
+  // входа или ?api=... всегда приоритетнее.
+  const DEFAULT_API = (function () {
+    const h = window.location.hostname;
+    if (h && h !== "127.0.0.1" && h !== "localhost" && h !== "0.0.0.0") {
+      return "http://" + h + ":8000";
+    }
+    return window.location.protocol === "https:" ? "" : "http://127.0.0.1:8000";
+  })();
   const CFG = {
     apiBase: (QS.get("api") || localStorage.getItem("compass_api_base") || DEFAULT_API).replace(/\/+$/, ""),
     debounceMs: 350,
