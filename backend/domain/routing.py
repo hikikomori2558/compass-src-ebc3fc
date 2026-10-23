@@ -5,7 +5,6 @@
 # (legacy-путь run_full_clinical_compass_pipeline удалён; замороженная реплика для
 # регрессионного эталона живёт в benchmarks/ehr_nlp_benchmark.py).
 import json
-import time
 from typing import Any, Dict, List, Optional
 
 from backend.bridges.core import RapiraCCoreBridge

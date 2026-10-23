@@ -14,7 +14,7 @@ APP_DATABASE_URL / OWNER_DATABASE_URL можно переопределить ч
 import asyncio
 import os
 import sys
-from pathlib import Path
+
 
 import asyncpg
 

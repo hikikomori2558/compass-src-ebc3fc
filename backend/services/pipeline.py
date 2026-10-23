@@ -237,7 +237,6 @@ if __name__ == "__main__":
     # Виньетки берутся из детерминированного корпуса (seed=2026), поэтому вывод стабилен.
     import json
 
-    from backend.domain.routing import ClinicalCompassRuleEngine
     from backend.paths import VIGNETTES_PATH
 
     print("=" * 88)

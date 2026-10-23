@@ -9,7 +9,7 @@ test_pii_scrubber.py — тесты и бенчмарк обезличивани
 import random
 import sys
 import time
-from pathlib import Path
+
 
 from backend.bridges.pii import PiiScrubber, legacy_scrub
 

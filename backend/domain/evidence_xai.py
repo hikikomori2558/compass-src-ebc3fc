@@ -9,7 +9,7 @@ import json
 import math
 import time
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from backend.paths import KB_PATH
 

@@ -19,7 +19,6 @@ def check(name, cond, detail=""):
 def main() -> int:
     # ================= 1. 24 оси: маппинг «вход -> индекс» =================
     eng = TrajectoryClusterEngine24D()
-    marker = [10.0 + i for i in range(24)]  # z[i] = 10+i, если маппинг верен
     z = eng.build_24d_state_vector(
         psychometrics={"hads_a": 10.0, "hads_d": 11.0, "gad7": 12.0, "phq9": 13.0,
                        "suicidal_composite": 14.0, "moca": 15.0},

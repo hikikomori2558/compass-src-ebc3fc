@@ -9,7 +9,6 @@
 #   POST /alerts/{id}/confirm    — «время до подтверждения человеком»: вот наша
 #                                  метрика алертинга (решение 0-bis №2), не «45 мс».
 import json
-import time
 import uuid
 from datetime import datetime, timezone
 from typing import Optional

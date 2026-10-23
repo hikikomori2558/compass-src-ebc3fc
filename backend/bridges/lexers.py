@@ -28,7 +28,7 @@ import subprocess
 import threading
 from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 
 from backend.bridges.loader import load_core_lib, resolve_bridge_lib
@@ -399,7 +399,7 @@ class C11PopPKAndBitapEngine:
 
         pk_result = self.simulate_poppk_rk45(
             cyp2d6_activity_score=cyp2d6_activity_score,
-            cyp2d6_inhibitor_ratio_sum=cyp2d6_inhibitor_ratio_sum if False else cyp2d6_inh_sum,
+            cyp2d6_inhibitor_ratio_sum=cyp2d6_inh_sum,
             cyp2d6_mbi_remaining_frac=mbi_2d6,
             cyp3a4_inhibitor_ratio_sum=cyp3a4_inh_sum,
             hepatic_child_pugh_factor=hepatic_child_pugh_factor,

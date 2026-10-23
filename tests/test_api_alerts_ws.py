@@ -21,7 +21,6 @@ import sys
 import time
 import uuid
 from contextlib import ExitStack
-from pathlib import Path
 
 import asyncpg
 from fastapi.testclient import TestClient

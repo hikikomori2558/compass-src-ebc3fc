@@ -11,7 +11,7 @@
 # Клиникa по alert_id достаётся внутри контура, авторизованным врачом.
 import asyncio
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import asyncpg
 import redis.asyncio as aioredis

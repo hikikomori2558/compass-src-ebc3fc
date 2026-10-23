@@ -8,7 +8,7 @@ import base64
 import io
 import os
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional
 
 import qrcode

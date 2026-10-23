@@ -3,7 +3,7 @@
 # Доменная часть (24D-вектор z_t и стратификация К1–К5) — в backend/domain/trajectory.py.
 import ctypes
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from backend.bridges.loader import load_core_lib
 from backend.paths import CORE_LIB
