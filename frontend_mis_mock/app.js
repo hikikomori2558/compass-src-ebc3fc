@@ -56,6 +56,7 @@
     $("app").hidden = false;
     const login = localStorage.getItem("mis_last_login") || "врач";
     $("user-name").textContent = login;
+    const sbu = $("sb-user-name"); if (sbu) sbu.textContent = login;
     const initials = login.replace(/[^a-zа-яё]/gi, "").slice(0, 2).toUpperCase() || "ВР";
     $("user-avatar").textContent = initials;
     const now = new Date();
@@ -96,15 +97,15 @@
     tb.innerHTML = "";
     rows.forEach(p => {
       const row = document.createElement("div");
-      row.className = "list-row";
+      row.className = "mis-list-row";
       row.innerHTML =
         '<span class="t">' + p.slot + "</span>" +
         '<span><span class="fio">' + p.fio + "</span>" +
-        '<span class="meta">' + p.born + " &bull; ИБ № " + p.ib + " &bull; " + (p.doctor || "") + "</span></span>" +
+        '<span class="meta">' + p.born + " • ИБ № " + p.ib + " • " + (p.doctor || "") + "</span></span>" +
         '<span class="icd">' + (p.icd10 || "—") + "</span>" +
         "<span>" + tagChip(p) + "</span>" +
-        '<span><span class="st st-' + statusClass(p.status) + '">' + p.status + "</span></span>" +
-        '<span><button type="button" class="btn btn-secondary" style="height:26px;font-size:11.5px">Открыть</button></span>';
+        '<span><span class="mis-st st-' + statusClass(p.status) + '">' + p.status + "</span></span>" +
+        '<span><button type="button" class="mis-btn mis-btn-outline mis-btn-sm">Открыть</button></span>';
       row.addEventListener("click", () => openCard(p));
       tb.appendChild(row);
     });
@@ -115,7 +116,7 @@
   }
 
   function tagChip(p) {
-    let cls = "pill";
+    let cls = "mis-pill";
     if (p.source === "webinar") cls += " webinar";
     if ((p.tag || "").includes("CONTRA")) cls += " contra";
     return "<span class='" + cls + "'>" + (p.tag || "") + "</span>";
@@ -267,13 +268,13 @@
     try { if (state.ws) state.ws.close(); } catch (e) { /* ignore */ }
     const ws = new WebSocket(url);
     state.ws = ws;
-    ws.onopen = () => { el.textContent = "WS: online"; el.className = "nav-ws on"; };
+    ws.onopen = () => { el.textContent = "WS: online"; el.className = "mis-ws on"; };
     ws.onmessage = (m) => {
       const msg = JSON.parse(m.data);
       if (msg.kind === "CRITICAL_PING") refreshAlerts(); // в канале пустой пинг; клиника — по REST
     };
     ws.onclose = () => {
-      el.textContent = "WS: offline"; el.className = "nav-ws off";
+      el.textContent = "WS: offline"; el.className = "mis-ws off";
       setTimeout(connectWS, 5000);
     };
     ws.onerror = () => { try { ws.close(); } catch (e) { /* ignore */ } };

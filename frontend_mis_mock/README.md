@@ -3,13 +3,16 @@
 Имитационный стенд типовой российской поликлинической ЭМК для демо субботы 25.10
 (см. `docs/PLAN_SATURDAY.md`).
 
-**Дизайн-основа:** Ghost Admin (github.com/TryGhost/Ghost, лицензия MIT; дизайн-система
-Shade — `apps/shade/theme-variables.css` + `tailwind.theme.css`). Взят «основной дизайн»
-и адаптирован под клинику без фанатизма: тёмная навигация #15171a, фирменный зелёный
-#30cf43 (green-500) в акцентах, чёрные primary-кнопки (сигнатура Ghost Admin), геометрия
-контролов из токенов Shade (32/40px, радиус 9px), скрим и easing панели — их паттерны.
-Клиническая семантика светофора green/yellow/red сохранена. Атрибуция обязательна на
-защите: «дизайн-система — по мотивам Ghost Admin (MIT)».
+**Дизайн — Ghost Admin напрямую (TryGhost/Ghost, MIT):** файлы в `vendor/ghost/`
+скопированы байт-в-байт из репо (`apps/shade/*`, шрифты Inter Admin из
+`apps/admin/src/assets/fonts`); CSS собирается ИХ же пайплайном — Tailwind v4 CLI
+из их исходников (`ghost-shade.css` → `vendor/ghost/shade.compiled.css`,
+пересборка: `scripts/build_ghost_css.sh`). Каркас повторяет `admin-frame.tsx`
+(чёрная рамка, топ-бар 44px, безель 10px, страница-карточка r=10px) и
+`floating-app-sidebar.tsx` (стекло 300px: `--surface-glass` + blur + их
+glass-тень); кнопки/поля — их cva-рецепты (`button-variants.ts`,
+`input-surface.ts`). COMPASS — слой поверх ЭМК в том же стеклянном жанре.
+Атрибуция на защите: «дизайн — Ghost Admin (MIT), использован напрямую».
 
 **Архитектура стенда = архитектура продукта:** интерфейс ЭМК живёт своей жизнью,
 COMPASS — отдельный слой ПОВЕРХ него (панель настроек редактора Ghost как паттерн:

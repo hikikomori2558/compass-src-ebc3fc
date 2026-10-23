@@ -132,7 +132,7 @@ const CompassSidebar = {
     } catch (e) {
       document.getElementById("csb-status-title").textContent = "Ошибка API";
       document.getElementById("csb-status-text").textContent = String(e.message || e);
-      document.getElementById("csb-svetofor").className = "csb-svetofor red";
+      document.getElementById("csb-svetofor").className = "mis-svetofor red";
     } finally {
       this.busy = false;
     }
@@ -152,7 +152,7 @@ const CompassSidebar = {
 
     /* светофор */
     const sv = document.getElementById("csb-svetofor");
-    sv.className = "csb-svetofor " + st.css;
+    sv.className = "mis-svetofor " + st.css;
     document.getElementById("csb-status-title").textContent = st.title;
     document.getElementById("csb-status-text").textContent =
       (d.aviandr_decision_support && d.aviandr_decision_support.headline) || "";
@@ -167,7 +167,7 @@ const CompassSidebar = {
     need.forEach(c => {
       const done = !!this.confirmations[c.key];
       const row = document.createElement("div");
-      row.className = "csb-confirm-item" + (done ? " done" : "");
+      row.className = "mis-confirm-item" + (done ? " done" : "");
       row.innerHTML = '<span class="lbl">' + (c.label_ru || c.key) + "</span>";
       const btn = document.createElement("button");
       btn.type = "button";
@@ -182,7 +182,7 @@ const CompassSidebar = {
     const req = data.data_required || d.data_required || [];
     document.getElementById("csb-sec-datareq").hidden = req.length === 0;
     document.getElementById("csb-datareq-list").innerHTML = req.map(g =>
-      '<div class="csb-datareq-item"><b>' + (g.field || "?") + "</b> — " + (g.why_needed || "") + "</div>"
+      '<div class="mis-datareq-item"><b>' + (g.field || "?") + "</b> — " + (g.why_needed || "") + "</div>"
     ).join("");
 
     /* предупреждения движка правил: врач обязан ВИДЕТЬ, почему жёлтый/красный
@@ -192,8 +192,8 @@ const CompassSidebar = {
     document.getElementById("csb-findings-list").innerHTML = findings.map(f => {
       const red = f.severity === "HARD_STOP";
       const src = f.source || {};
-      return '<div class="csb-datareq-item" style="border-left-color:' + (red ? "#da1e28" : "#f1c21b") +
-        ';background:' + (red ? "#fdeaea" : "#fffdf4") + '"><b>' + (f.message || f.message_ru) + "</b>" +
+      return '<div class="mis-datareq-item" style="border-left-color:' + (red ? "var(--color-red-500)" : "var(--state-warning)") +
+        ';background:' + (red ? "var(--color-red-50)" : "var(--color-yellow-50)") + '"><b>' + (f.message || f.message_ru) + "</b>" +
         (src.quote ? '<div style="font-size:10.3px;color:#525252;margin-top:2px">— ' +
           src.doc + ": «" + src.quote + "»</div>" : "") + "</div>";
     }).join("");
@@ -235,7 +235,7 @@ const CompassSidebar = {
     document.getElementById("csb-sec-cbr").hidden = !cbr || !cbr.length;
     if (cbr && cbr.length) {
       document.getElementById("csb-cbr-list").innerHTML = cbr.map(c =>
-        '<div class="csb-cbr-item"><span class="sim">' + c.similarity_score_pct + "%</span>" +
+        '<div class="mis-cbr-item"><span class="sim">' + c.similarity_score_pct + "%</span>" +
         "<b>n=" + c.rki_sample_size + "</b> &bull; " + (c.archetype_profile || "") +
         '<div class="cite">' + (c.study_citation || "") + "</div></div>"
       ).join("");
