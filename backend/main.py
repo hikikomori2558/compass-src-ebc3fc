@@ -5,9 +5,12 @@ import os
 import time
 from collections import deque
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from backend.api.alerts import alerts_router, ws_router
 from backend.api.auth import auth_router
@@ -143,6 +146,25 @@ app.include_router(auth_router)
 app.include_router(alerts_router)
 app.include_router(ws_router)
 app.include_router(cdss_router)
+
+# ------------------------------------------------------------------ стека демо
+# Статика демо-стенда: МИС-имитатор (точка входа демо), АРМ врача (OpenMRS/Carbon),
+# PWA пациента. Один origin с API — сайдбар COMPASS ходит в бэкенд без CORS-танцев,
+# а tailscale serve проксирует наружу только этот порт (план субботы, PLAN_SATURDAY.md).
+_ROOT = Path(__file__).resolve().parent.parent
+for _mount, _dir in (
+    ("/static/mis", "frontend_mis_mock"),
+    ("/static/arm", "frontend_doctor"),
+    ("/static/pwa", "frontend_patient"),
+):
+    _p = _ROOT / _dir
+    if _p.is_dir():
+        app.mount(_mount, StaticFiles(directory=str(_p), html=True), name=_dir)
+
+
+@app.get("/", include_in_schema=False)
+async def root_redirect():
+    return RedirectResponse("/static/mis/index.html")
 
 
 if __name__ == "__main__":
