@@ -6,6 +6,7 @@
 # в момент привязки — без них пациентский контур не активируется (152-ФЗ ст. 10).
 import base64
 import io
+import json
 import os
 import uuid
 from datetime import datetime, timezone
@@ -35,6 +36,54 @@ from backend.db.context import db_conn
 
 # auto_error=False: свой 401 с WWW-Authenticate и понятным JSON, а не дефолт «Not authenticated»
 _bearer = HTTPBearer(auto_error=False)
+
+# ---------------------------------------------------------------- anti-bruteforce
+# Скользящее окно на IP: не более LOGIN_LIMIT попыток за LOGIN_WINDOW сек -> 429.
+# В памяти процесса (для мультиворкера лимит действует на воркер — для демо достаточно;
+# в бою заменить на общий Redis-счётчик, см. THREAT_MODEL).
+
+import time as _time
+from collections import defaultdict, deque
+
+LOGIN_LIMIT = int(os.getenv("LOGIN_RATE_LIMIT", "5"))
+LOGIN_WINDOW = float(os.getenv("LOGIN_RATE_WINDOW", "60"))
+_login_attempts: dict = defaultdict(deque)
+
+
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def _rate_ok(ip: str) -> bool:
+    now = _time.monotonic()
+    q = _login_attempts[ip]
+    while q and now - q[0] > LOGIN_WINDOW:
+        q.popleft()
+    if len(q) >= LOGIN_LIMIT:
+        return False
+    q.append(now)
+    return True
+
+
+async def _audit(action: str, request: Request, actor_id: str | None = None,
+                 entity: str = "users_auth", entity_id: str = "",
+                 details: dict | None = None, pool=None) -> None:
+    """Append-only запись в audit_log (роль приложения имеет только INSERT —
+    прочитать журнал из-под API нельзя BY DESIGN, см. schema.sql)."""
+    if pool is None:
+        pool = request.app.state.pg_pool
+    if pool is None:
+        return
+    try:
+        async with db_conn(pool) as conn:
+            await conn.execute(
+                "INSERT INTO audit_log (actor_id, action, entity, entity_id, details) "
+                "VALUES ($1,$2,$3,$4,$5::jsonb)",
+                actor_id, action, entity, entity_id,
+                json.dumps(details or {}, ensure_ascii=False),
+            )
+    except Exception:  # noqa: BLE001 — аудит не должен ломать основной поток
+        pass
 
 auth_router = APIRouter(prefix="/api/v1/auth", tags=["Аутентификация и RBAC"])
 
@@ -108,6 +157,12 @@ async def login(req: LoginRequest, request: Request):
     if pool is None:
         raise HTTPException(503, "БД недоступна")
 
+    # anti-bruteforce: 5 попыток/мин на IP (Метрика ИБ; в бою — общий счётчик в Redis)
+    if not _rate_ok(_client_ip(request)):
+        await _audit("login_rate_limited", request, entity_id=req.login,
+                     details={"ip": _client_ip(request)}, pool=pool)
+        raise HTTPException(429, "Слишком много попыток входа — повторите через минуту")
+
     # Чтение users_auth допустимо роли приложения (см. комментарий в schema.sql):
     # пароль обязан верифицироваться на бэкенде, другого пути получить hash нет.
     async with db_conn(pool) as conn:
@@ -118,7 +173,15 @@ async def login(req: LoginRequest, request: Request):
     # Одинаковый 401 и на неизвестный логин, и на неверный пароль: не дарим переборщику
     # информацию о том, какие логины существуют.
     if row is None or not verify_password(row["password_hash"], req.password):
+        # одинаковый ответ и на неизвестный логин, и на неверный пароль (анти-перебор),
+        # но в аудит пишется честная причина — читать журнал может только владелец БД
+        await _audit("login_fail", request, entity_id=req.login,
+                     details={"ip": _client_ip(request), "known_login": row is not None}, pool=pool)
         raise HTTPException(401, "Неверный логин или пароль")
+
+    await _audit("login_ok", request, actor_id=str(row["user_id"]),
+                 entity_id=req.login, details={"ip": _client_ip(request), "role": row["role_code"]},
+                 pool=pool)
 
     # Обновить параметры хеша, если дефолты argon2 изменились (канонический паттерн argon2-cffi)
     if needs_rehash(row["password_hash"]):

@@ -2,6 +2,7 @@
 # Каждый suite — самостоятельный модуль с ненулевым exit-кодом при провале.
 # Смоук/нагрузочные замеры, требующие внешней инфры (Postgres/Redis/API),
 # помечены как SKIP, если инфра недоступна.
+import os
 import socket
 import subprocess
 import sys
@@ -42,6 +43,14 @@ SUITES = [
 def main() -> int:
     passed, skipped, failed = [], [], []
     infra_up = _pg_up() and _port_open("127.0.0.1", 6379)
+    if infra_up and _port_open("127.0.0.1", 5432) and not _port_open("127.0.0.1", 5433):
+        # нативный Postgres на 5432 (VM без Docker): подставляем DSN детям,
+        # если пользователь не задал свои
+        native = "postgresql://compass_api:compass_api_demo@localhost:5432/compass"
+        native_owner = "postgresql://compass_app:compass_demo@localhost:5432/compass"
+        os.environ.setdefault("DATABASE_URL", native)
+        os.environ.setdefault("APP_DATABASE_URL", native)
+        os.environ.setdefault("OWNER_DATABASE_URL", native_owner)
     for module, needs_infra in SUITES:
         r = subprocess.run([sys.executable, "-m", module], capture_output=True, text=True)
         name = module.replace("tests.", "")

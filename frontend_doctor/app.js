@@ -267,7 +267,21 @@
     }).catch(function () { /* без БД баннер не показываем */ });
   }
 
+  function pollSla() {
+    Auth.fetchWithAuth("/api/v1/telemetry/summary").then(function (r) {
+      if (!r.ok) return;
+      return r.json();
+    }).then(function (d) {
+      const el = document.getElementById("sla-badge");
+      if (!el || d.requests_observed === 0) return;
+      el.textContent = "API p50 " + (d.p50_ms ?? "—") + " мс · p95 " + (d.p95_ms ?? "—") + " мс · " + d.requests_observed + " запр.";
+      el.style.color = (d.p95_ms ?? 99) < 100 ? "#198038" : "#b28600";
+    }).catch(function () { /* офлайн — бейдж молчит */ });
+  }
+
   function startLiveChannels() {
+    pollSla();
+    setInterval(pollSla, 5000);
     AlertsBus.connect(
       function onHello(m) {
         if (m.unconfirmed && m.unconfirmed.length) refreshAlertsBanner();

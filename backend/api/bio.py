@@ -4,7 +4,7 @@ import ctypes
 import time
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, Depends, FastAPI, Request
 from pydantic import BaseModel, Field
 
 from backend.api.auth import get_principal, require_roles
@@ -195,8 +195,8 @@ def get_scales_and_trials_registry() -> Dict[str, Any]:
 
 
 @bio_router.post("/admin/hot-reload-scale-plugin", summary="[Метрика №10] Горячее добавление новой шкалы (только ADMIN_METHODOLOGIST)")
-def register_new_scale_plugin(req: CustomScalePluginRequest,
-                              principal: Principal = Depends(require_roles("ADMIN_METHODOLOGIST"))) -> Dict[str, Any]:
+async def register_new_scale_plugin(req: CustomScalePluginRequest, request: Request,
+                                    principal: Principal = Depends(require_roles("ADMIN_METHODOLOGIST"))) -> Dict[str, Any]:
     # Метрика №10 без дыры: менять клинический реестр имеет право только врач-методист,
     # и его личность фиксируется в ответе (в боевой версии — ещё и в audit_log).
     manifest = {
@@ -214,9 +214,83 @@ def register_new_scale_plugin(req: CustomScalePluginRequest,
         "cutoffs": req.cutoffs,
     }
     result = rule_engine.register_custom_scale_plugin(req.scale_code, manifest)
+
+    # Метрика №10 с аудируемостью: каждая горячая правка = версия + sha256 + автор
+    # (таблицы scale_versions / audit_log из schema.sql). Только INSERT: читать
+    # журнал из-под API нельзя by design.
+    import hashlib
+    import json as _json
+    from datetime import datetime, timezone
+
+    manifest_json = _json.dumps(manifest, ensure_ascii=False, sort_keys=True)
+    sha = hashlib.sha256(manifest_json.encode()).hexdigest()
+    version = datetime.now(timezone.utc).strftime("v%Y.%m.%d-%H%M")
+    if getattr(request.app.state, "pg_pool", None) is not None:
+        from backend.db.context import db_conn
+        import uuid as _uuid
+        try:
+            async with db_conn(request.app.state.pg_pool) as conn:
+                await conn.execute(
+                    "INSERT INTO scale_versions (scale_code, version, content_sha256, is_active) "
+                    "VALUES ($1,$2,$3,true) ON CONFLICT (scale_code, version) DO NOTHING",
+                    req.scale_code, version, sha)
+                await conn.execute(
+                    "INSERT INTO audit_log (actor_id, action, entity, entity_id, details) "
+                    "VALUES ($1,'scale_plugin_registered','psychometric_scales_registry',$2,$3::jsonb)",
+                    _uuid.UUID(principal.sub), req.scale_code,
+                    _json.dumps({"version": version, "sha256": sha[:16]},
+                                ensure_ascii=False))
+        except Exception:  # noqa: BLE001
+            pass
+
+    result = rule_engine.register_custom_scale_plugin(req.scale_code, manifest)
     result["registered_by"] = principal.sub
     result["registered_by_role"] = principal.role
+    result["version"] = version
+    result["content_sha256"] = sha
     return result
+
+
+@bio_router.get("/patient/{patient_hash}/timeline",
+                summary="[Динамика] Реальная история пациента: шкалы, алерты, приверженность (RLS)")
+async def patient_timeline(patient_hash: str, request: Request,
+                           principal: Principal = Depends(get_principal)) -> Dict[str, Any]:
+    """Всё, что накопилось между визитами: чек-ины, шкалы, алерты, приверженность.
+    RLS сам отрезает чужих пациентов: не привязан — увидишь пустые списки, чужое не утечёт."""
+    import json as _json
+    import uuid as _uuid
+
+    from backend.db.context import db_conn
+    from fastapi import HTTPException
+
+    pool = getattr(request.app.state, "pg_pool", None)
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    try:
+        ph = _uuid.UUID(patient_hash)
+    except ValueError:
+        raise HTTPException(400, "patient_hash должен быть UUID")
+
+    async with db_conn(pool, role=principal.role, user_id=principal.sub) as conn:
+        scales = await conn.fetch(
+            "SELECT scale_code, total_score, taken_at, delta_prev FROM patient_scale_assessments "
+            "WHERE patient_hash_id=$1 ORDER BY taken_at DESC LIMIT 60", ph)
+        alerts = await conn.fetch(
+            "SELECT alert_id, category, critical, reasons, created_at, doctor_reaction_at "
+            "FROM clinical_alerts_and_routing WHERE patient_hash_id=$1 "
+            "ORDER BY created_at DESC LIMIT 30", ph)
+        adherence = await conn.fetch(
+            "SELECT taken_at, dose_skipped, pdc_pct, kop25_score FROM medication_adherence_logs "
+            "WHERE patient_hash_id=$1 ORDER BY taken_at DESC LIMIT 60", ph)
+
+    return {
+        "patient_hash": patient_hash,
+        "scales": [dict(s) for s in scales],
+        "alerts": [{**dict(a), "reasons": _json.loads(a["reasons"]) if a["reasons"] else []}
+                   for a in alerts],
+        "adherence": [dict(x) for x in adherence],
+        "note": "RLS: врач видит только своих пациентов; чужие списки пусты",
+    }
 
 
 @bio_router.get("/telemetry/full-benchmark-report", summary="[Телеметрия Жюри] Прогон 100 синтетических ЭМК (Метрики №1, 2, 3, 4)")

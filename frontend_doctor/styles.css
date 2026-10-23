@@ -1160,3 +1160,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .omrs-chart-layout, .omrs-patient-banner, .omrs-cdss-rail { animation: none; }
   * { transition: none !important; }
 }
+
+
+/* SLA-бейдж живой телеметрии в шапке */
+.sla-badge { margin-left: 10px; font-size: 10px; color: #198038; white-space: nowrap; }

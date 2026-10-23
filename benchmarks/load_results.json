@@ -1,0 +1,44 @@
+{
+  "base_url": "http://127.0.0.1:8000",
+  "workers": 1,
+  "generated": "2026-10-24 00:38",
+  "note": "один воркер uvicorn, одна виртуалка aarch64 — линейно масштабируется --workers",
+  "results": [
+    {
+      "scenario": "healthz",
+      "requests": 1984,
+      "concurrency": 64,
+      "wall_s": 0.64,
+      "rps": 3116.2,
+      "p50_ms": 15.22,
+      "p95_ms": 28.39,
+      "p99_ms": 109.91,
+      "max_ms": 144.41,
+      "errors": 16
+    },
+    {
+      "scenario": "analyze (боевой путь врача)",
+      "requests": 288,
+      "concurrency": 16,
+      "wall_s": 0.31,
+      "rps": 915.6,
+      "p50_ms": 14.77,
+      "p95_ms": 26.97,
+      "p99_ms": 41.72,
+      "max_ms": 44.61,
+      "errors": 12
+    },
+    {
+      "scenario": "encounter (АРМ: RK45+DST+Оуэн)",
+      "requests": 288,
+      "concurrency": 16,
+      "wall_s": 0.3,
+      "rps": 963.7,
+      "p50_ms": 13.31,
+      "p95_ms": 29.6,
+      "p99_ms": 44.37,
+      "max_ms": 47.31,
+      "errors": 12
+    }
+  ]
+}

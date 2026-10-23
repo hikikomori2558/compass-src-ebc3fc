@@ -10,7 +10,11 @@
 
 Перегенерация:
 
+5. `fig6_load_profile` — Нагрузочный профиль API (p50/p95, rps): строит `scripts/load_test.py` по живому серверу (+ `benchmarks/load_results.json`).
+6. `fig7_evidence_base` — Доказательная база продуктовых решений: только опубликованные цифры РКИ + живой замер стенда (замена выдуманному CustDev).
+
 ```bash
-python3 -m benchmarks.generate_scientific_plots   # fig1–fig3
+python3 -m benchmarks.generate_scientific_plots        # fig1–fig5, fig7
+scripts/load_test.py                                    # fig6 (нужен поднятый сервер)
 # или VS Code: Cmd+Shift+P -> Tasks: Run Task -> «6. Научные графики»
 ```

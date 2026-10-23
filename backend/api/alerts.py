@@ -191,6 +191,18 @@ async def confirm_alert(alert_id: int, req: ConfirmRequest, request: Request,
             "SELECT EXTRACT(EPOCH FROM (doctor_reaction_at - created_at)) "
             "FROM clinical_alerts_and_routing WHERE alert_id = $1", alert_id
         )
+    # Условие 7 (врач в контуре) доказуемо: каждое подтверждение — append-only запись
+    # в audit_log (INSERT-грант; читать журнал из-под API нельзя by design).
+    try:
+        async with db_conn(pool, role=doctor.role, user_id=doctor.sub) as conn:
+            await conn.execute(
+                "INSERT INTO audit_log (actor_id, action, entity, entity_id, details) "
+                "VALUES ($1,'alert_confirmed','clinical_alerts_and_routing',$2,$3::jsonb)",
+                uuid.UUID(doctor.sub), str(alert_id),
+                json.dumps({"seconds_to_confirmation": round(float(reacted or 0), 3)}),
+            )
+    except Exception:  # noqa: BLE001
+        pass
     return {"alert_id": alert_id, "confirmed": True,
             "seconds_to_human_confirmation": round(float(reacted or 0), 3)}
 

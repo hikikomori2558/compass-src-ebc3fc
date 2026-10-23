@@ -11,6 +11,8 @@
 # Клиникa по alert_id достаётся внутри контура, авторизованным врачом.
 import asyncio
 import json
+import os
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 import asyncpg
@@ -92,7 +94,20 @@ class AlertRelay:
         except asyncio.CancelledError:
             raise
 
+    FREEZE_FLAG = Path("/tmp/compass_relay_freeze")  # CHAOS-демо: «Redis недоступен»
+
     async def _drain_once(self) -> None:
+        # CHAOS-режим (Метрика №7): наличие файла-флага = «транспорт мёртв».
+        # Релей не умирает и не теряет курсор: записи остаются в outbox
+        # (published_to_redis=false), восстановление — убрать файл.
+        if self.FREEZE_FLAG.exists():
+            if not getattr(self, "_freeze_logged", False):
+                print("[alert-relay] CHAOS: транспорт недоступен (флаг) — копим outbox")
+                self._freeze_logged = True
+            return
+        if getattr(self, "_freeze_logged", False):
+            print("[alert-relay] CHAOS снят: догоняю накопленное")
+            self._freeze_logged = False
         assert self._pool is not None and self._redis is not None
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(
@@ -121,8 +136,6 @@ class AlertRelay:
 
 if __name__ == "__main__":
     # Standalone-режим релея (второй узел): python3 -m backend.services.alerts
-    import os
-
     async def _standalone() -> None:
         pool = await asyncpg.create_pool(
             os.getenv("DATABASE_URL", "postgresql://compass_api:compass_api_demo@localhost:5433/compass"),

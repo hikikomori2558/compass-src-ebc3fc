@@ -1,6 +1,7 @@
 # benchmarks/generate_scientific_plots.py — генерация 3 научных графиков (PNG 300 DPI + SVG).
 # Запуск из корня репо: python3 -m benchmarks.generate_scientific_plots
 import os
+import pathlib
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -168,7 +169,48 @@ def generate_all_plots(out_dir: str = str(BIO_PLOTS_DIR)) -> None:
     plt.savefig(os.path.join(out_dir, "fig5_time_motion_targets.png"), dpi=300)
     plt.savefig(os.path.join(out_dir, "fig5_time_motion_targets.svg"))
     plt.close(fig)
-    print(f"[OK] Все 5 научных графиков успешно сохранены в benchmarks/plots/ (PNG 300 DPI + SVG)!")
+    # 6. Доказательная база продуктовых решений (замена выдуманному CustDev:
+    #    все цифры — из опубликованных исследований и нагрузки живого стенда)
+    import json as _json
+    fig, axes = plt.subplots(1, 4, figsize=(16, 4.2))
+    fig.patch.set_facecolor("white")
+
+    def _bars(ax, labels, values, colors, title, unit=""):
+        ax.barh(labels, values, color=colors, height=0.55)
+        for i, v in enumerate(values):
+            ax.text(v + max(values) * 0.02, i, f"{v}{unit}", va="center", fontsize=9, fontweight="bold")
+        ax.set_title(title, fontsize=9.5, fontweight="bold")
+        ax.set_xlim(0, max(values) * 1.22)
+        ax.tick_params(labelsize=8.5)
+        ax.grid(True, axis="x", linestyle=":", alpha=0.6)
+
+    _bars(axes[0], ["Маритупирдин\n40 мг/сут", "Плацебо"],
+          [36.97, 15.38], ["#16a34a", "#94a3b8"],
+          "Ответ на терапию, 8 нед (РКИ III,\nМорозова 2024, n=160, p=0.012)", "%")
+    _bars(axes[1], ["Ремиссия\nк 32 нед", "Ответ\nк 24 нед"],
+          [68.42, 86.67], ["#0284c7", "#38bdf8"],
+          "Открытая фаза РКИ III\n(SIGH-A ≤ 7 / ответ ≥ 50%)", "%")
+    _bars(axes[2], ["Сонливость\n40 мг/сут", "Сонливость\n60 мг/сут"],
+          [2.4, 15.9], ["#198038", "#dc2626"],
+          "Обоснование дозы 40 мг/сут\n(РКИ II, Ivashchenko 2021)", "%")
+
+    load_file = pathlib.Path(out_dir).parent / "load_results.json"
+    if load_file.exists():
+        lr = _json.loads(load_file.read_text(encoding="utf-8"))
+        heavy = next(r for r in lr["results"] if r["scenario"].startswith("encounter"))
+        axes[3].text(0.03, 0.72, f"Боевой путь АРМ (RK45+DST+Оуэн):\n"
+                                 f"p50 = {heavy['p50_ms']} мс · p95 = {heavy['p95_ms']} мс\n"
+                                 f"{heavy['rps']} запросов/сек на 1 воркере", fontsize=10)
+        axes[3].text(0.03, 0.30, f"Нативный вызов C-ядра:\np95 < 0.06 мс (смоук тестов)", fontsize=10)
+        axes[3].text(0.03, 0.06, "Нагрузка живого стенда, aarch64 VM", fontsize=8, color="#64748b")
+        axes[3].set_title("Скорость системы (живой замер)", fontsize=9.5, fontweight="bold")
+        axes[3].axis("off")
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(out_dir, "fig7_evidence_base.png"), dpi=300)
+    plt.savefig(os.path.join(out_dir, "fig7_evidence_base.svg"))
+    plt.close(fig)
+    print(f"[OK] 6 графиков (fig1–fig5 + fig7) + нагрузочный fig6 (scripts/load_test.py)")
     print(f"     Каталог вывода: {out_dir}")
 
 
