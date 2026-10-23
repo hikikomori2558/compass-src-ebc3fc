@@ -296,6 +296,15 @@
     const modal = document.getElementById("qr-modal");
     document.getElementById("qr-modal-img").src = "data:image/png;base64," + invite.qr_png_base64;
     document.getElementById("qr-modal-link").textContent = invite.invite_url;
+    document.getElementById("qr-modal-token").value = invite.token;
+    document.getElementById("btn-copy-token").onclick = function () {
+      const inp = document.getElementById("qr-modal-token");
+      inp.select();
+      (navigator.clipboard ? navigator.clipboard.writeText(inp.value) : Promise.reject())
+        .then(function () { this.textContent = "Скопировано ✓"; }.bind(this))
+        .catch(function () { try { document.execCommand("copy"); } catch (e) {} });
+      setTimeout(function () { this.textContent = "Скопировать код"; }.bind(this), 1500);
+    };
     document.getElementById("qr-modal-exp").textContent =
       "Одноразовый токен, действует до " + new Date(invite.expires_at).toLocaleString("ru-RU");
     modal.style.display = "flex";

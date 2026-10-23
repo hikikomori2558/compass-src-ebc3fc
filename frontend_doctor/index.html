@@ -9,6 +9,15 @@
        от интернета (CDN unpkg и IBM-шрифты лежат в vendor/ и vendor/fonts/) -->
   <link rel="stylesheet" href="vendor/carbon-styles.min.css" />
   <link rel="stylesheet" href="styles.css" />
+<script>
+window.addEventListener("error", function (e) {
+  var b = document.getElementById("js-error-banner");
+  if (!b) { b = document.createElement("div"); b.id = "js-error-banner";
+    b.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#da1e28;color:#fff;font:12px monospace;padding:8px 12px;white-space:pre-wrap;";
+    (document.body || document.documentElement).appendChild(b); }
+  b.textContent += "JS: " + e.message + "\n";
+});
+</script>
 </head>
 <body class="cds-theme-g10">
 
@@ -622,6 +631,9 @@
         ИДС-согласия создаются автоматически. В ссылке нет клинических данных.</p>
       <img id="qr-modal-img" alt="QR-код приглашения пациента" />
       <div class="qr-modal-link mono" id="qr-modal-link"></div>
+      <div class="field-label mt-8" style="font-size:11px;">Код связи (вставить на странице пациента):</div>
+      <input type="text" id="qr-modal-token" class="omrs-input mono" style="font-size:10px;" readonly onclick="this.select()" />
+      <button type="button" id="btn-copy-token" class="cds--btn cds--btn--secondary cds--btn--sm mt-8">Скопировать код</button>
       <div class="qr-modal-exp" id="qr-modal-exp"></div>
       <button type="button" id="btn-close-qr" class="cds--btn cds--btn--secondary cds--btn--sm">Закрыть</button>
     </div>
