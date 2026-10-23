@@ -86,14 +86,21 @@ XAI/CBR-панель. Все вызовы — к живому API (Bearer-лог
 - [x] E2E замкнутый цикл проверен: login → analyze AMBER → 6 подтверждений →
       AMBER_REVIEW → invite → bind → checkin C-SSRS=4 → красный алерт врачу (WS
       пустой пинг + REST) → confirm. Локально (TestClient + браузер) и на Debian.
-- [x] `tailscale serve` + **funnel** — включены 23.10, HTTPS и публичный доступ работают:
-      * внутри tailnet: `https://debian-server.tailb27284.ts.net/`
-      * **публично (телефон трекера без установки чего-либо): тот же URL** —
-        `tailscale funnel --bg http://localhost:8000`;
-      * QR-приглашения ведут на `…/static/pwa/?token=…` (PATIENT_APP_URL в .env на сервере);
-      * PWA по умолчанию ходит в API своего origin (коммит 178b407);
-      * публичный замкнутый цикл проверен: login → invite → bind → checkin C-SSRS=4 →
-        алерт врачу → confirm. Тестовые алерты закрыты (banner чистый).
+- [x] **ts.net заблокирован DPI в РФ** (TLS-хендшейк к 185.40.234.x рвётся по SNI
+      *.ts.net; с сервера — ок, с пользовательских сетей — нет). Публичный доступ
+      переведён на **Cloudflare Tunnel**:
+      * рабочая ссылка: `https://sofa-cadillac-implement-august.trycloudflare.com/`
+        (QUIC/UDP до edge — TCP/TLS к 198.41.x тоже режется);
+      * systemd-сервис `compass-tunnel` (restart=always, автозапуск);
+      * ⚠️ quick-tunnel URL меняется при рестарте сервиса — перед демо НЕ рестартовать
+        туннель; если сменился — `journalctl -u compass-tunnel -o cat | grep -oE
+        'https://[a-z-]+.trycloudflare.com' | head -1`, обновить `.env`
+        (PATIENT_APP_URL) и `docker compose up -d api`;
+      * для постоянного URL: бесплатный домен + Cloudflare-аккаунт → именованный
+        туннель (QUIC-edge работает, подойдёт);
+      * QR ведёт на публичную PWA; PWA ходит в API своего origin (178b407);
+      * публичный цикл проверен: login → invite → bind → checkin C-SSRS=4 → алерт →
+        confirm. Тестовые алерты закрыты (banner чистый).
 
 **Пятница 24.10 (я + Миша):**
 - [ ] (я) Замкнутый демо-цикл QR→чек-ин→алерт→подтверждение→057/у-04
