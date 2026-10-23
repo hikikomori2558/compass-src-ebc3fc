@@ -148,12 +148,15 @@
     /* вкладка осмотра: жалобы — фрагмент до лаборатории, заключение — весь текст */
     const text = p.raw_text || "";
     const stopIdx = Math.max(text.search(/Лабораторные/i), text.search(/Лаб:/i), text.search(/Шкалы/i));
-    const complaints = stopIdx > 0 ? text.slice(0, stopIdx).replace(/^[^:]*:\s*/, "") : text;
+    const complaints = (stopIdx > 0 ? text.slice(0, stopIdx).replace(/^[^:]*:\s*/, "") : text)
+      .replace(/^[A-Z]\d{2}(?:\.\d)?[.\s]*/i, ""); // срезать ведущий код МКБ-10
     $("insp-complaints").textContent = complaints || "—";
     $("insp-anamnesis").textContent =
       "Данные перенесены из импортированной истории (шаблон " + (p.source === "webinar" ? "осмотр ф. 025/у" : "ЭМК") + "). Полный текст — во вкладке заключения.";
     $("insp-text").value = text;
     $("import-text").value = text;
+    $("insp-doctor").textContent = p.doctor || "врач";
+    $("insp-date").textContent = new Date().toLocaleDateString("ru-RU");
 
     $("labs-tbody").innerHTML = parseLabs(text).map(l =>
       "<tr><td>" + l[0] + "</td><td>" + (l[1] === null ? "<span class='mis-chip contra'>не указано</span>" : l[1]) +

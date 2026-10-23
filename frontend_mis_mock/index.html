@@ -23,7 +23,7 @@
       </label>
       <div class="mis-login-err" id="login-err" hidden></div>
       <button type="submit" class="mis-btn mis-btn-primary" id="btn-login">Войти в систему</button>
-      <div class="mis-login-hint">Демо-доступ: neuro.ivlanov / compass-demo-2026 (невролог,_seed скрипта).</div>
+      <div class="mis-login-hint">Демо-доступ: neuro.ivlanov / compass-demo-2026 (невролог, из seed-скрипта).</div>
     </form>
     <div class="mis-login-foot">
       Все пациенты стенда — синтетические/обезличенные (152-ФЗ). Стенд имитирует жанр типовой
@@ -141,6 +141,10 @@
                 <button type="button" class="mis-btn" id="btn-save-inspect">Сохранить заключение</button>
                 <button type="button" class="mis-btn" id="btn-push-compass">Передать в COMPASS ▸</button>
               </div>
+              <div class="mis-sign-line">
+                Врач: <span id="insp-doctor">—</span> &bull; Подпись (ЭЦП): <span class="mis-sign-box">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                &bull; Дата: <span id="insp-date">—</span>
+              </div>
             </div>
           </div>
 
@@ -212,6 +216,11 @@
             <div class="csb-section" id="csb-sec-datareq" hidden>
               <div class="csb-sec-title">Недостающие данные</div>
               <div id="csb-datareq-list"></div>
+            </div>
+
+            <div class="csb-section" id="csb-sec-findings" hidden>
+              <div class="csb-sec-title">Предупреждения ОХЛП (движок правил)</div>
+              <div id="csb-findings-list"></div>
             </div>
 
             <div class="csb-section">

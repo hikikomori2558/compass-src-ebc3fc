@@ -185,6 +185,19 @@ const CompassSidebar = {
       '<div class="csb-datareq-item"><b>' + (g.field || "?") + "</b> — " + (g.why_needed || "") + "</div>"
     ).join("");
 
+    /* предупреждения движка правил: врач обязан ВИДЕТЬ, почему жёлтый/красный
+       (например, WARNING про вождение по ОХЛП или абсолютные противопоказания) */
+    const findings = (d.rules_engine && d.rules_engine.findings) || [];
+    document.getElementById("csb-sec-findings").hidden = findings.length === 0;
+    document.getElementById("csb-findings-list").innerHTML = findings.map(f => {
+      const red = f.severity === "HARD_STOP";
+      const src = f.source || {};
+      return '<div class="csb-datareq-item" style="border-left-color:' + (red ? "#da1e28" : "#f1c21b") +
+        ';background:' + (red ? "#fdeaea" : "#fffdf4") + '"><b>' + (f.message || f.message_ru) + "</b>" +
+        (src.quote ? '<div style="font-size:10.3px;color:#525252;margin-top:2px">— ' +
+          src.doc + ": «" + src.quote + "»</div>" : "") + "</div>";
+    }).join("");
+
     /* PK 168 ч */
     const pk = d.c_core_pk_and_safety && d.c_core_pk_and_safety.pk_summary_168h;
     if (pk) {
@@ -208,7 +221,7 @@ const CompassSidebar = {
     document.getElementById("csb-sec-xai").hidden = !xai;
     if (xai) {
       const t = document.getElementById("csb-xai-table");
-      t.innerHTML = "<tr><th>Фактор</th><th>φ</th><th>Направление</th></tr>" +
+      t.innerHTML = "<tr><th>Фактор</th><th>Вклад φ (SHAP)</th><th>Эффект</th></tr>" +
         xai.top_5_shap_clinical_drivers.map(f =>
           "<tr><td>" + f.feature_name + "</td><td>" + (f.shap_phi_value > 0 ? "+" : "") +
           f.shap_phi_value.toFixed(3) + "</td><td>" +
@@ -265,7 +278,14 @@ const CompassSidebar = {
       ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - 4, y); ctx.stroke();
       ctx.fillText(Math.round(maxV * (1 - k / 4)), 2, y + 3);
     }
-    [0, 42, 84, 126, 167].forEach(h => ctx.fillText(h + "ч", X(h) - 6, H - 3));
+    // последняя метка прижата вправо, иначе «167ч» обрезается краем канвы
+    const hours = [0, 42, 84, 126, 167];
+    hours.forEach(h => {
+      const last = h === hours[hours.length - 1];
+      ctx.textAlign = last ? "right" : "left";
+      ctx.fillText(h + "ч", X(h) + (last ? 8 : -6), H - 3);
+    });
+    ctx.textAlign = "left";
 
     const curve = (arr, color) => {
       ctx.strokeStyle = color; ctx.lineWidth = 1.6; ctx.beginPath();
