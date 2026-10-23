@@ -67,6 +67,10 @@
           <a id="bookmarklet" class="cp-bookmark" href="#" draggable="true"> COMPASS ▸ </a>
           <span class="cp-hint">← зажмите мышью и перетащите наверх, на панель закладок</span>
         </div>
+        <div class="cp-emc-row" style="margin-top:10px">
+          <button type="button" class="cp-btn cp-btn-outline cp-btn-sm" id="btn-copy-bk">Не получается перетащить? Скопировать код закладки</button>
+        </div>
+        <div class="cp-status" id="copy-status"></div>
         <div class="cp-hint" style="margin-top:8px">Агент — это мини-версия браузерного расширения: он
           читает данные <b>с экрана</b> карты пациента и открывает эту панель поверх ЭМК.
           Файлы ЭМК не изменяются.</div>
@@ -89,10 +93,12 @@
     <div class="wz-faq">
       <h2>Если ничего не происходит</h2>
       <details>
-        <summary>Нажал закладку — ничего не случилось</summary>
-        Агент работает только на <b>открытой карте пациента</b> (не на журнале). Откройте
-        пациента кнопкой «Открыть карту» и нажмите закладку ещё раз — внизу экрана
-        появится подсказка о состоянии.
+        <summary>Нажал закладку — ничего не случилось (или открылся текст с %2520)</summary>
+        Закладка побилась при перетаскивании (старая версия с русским текстом внутри
+        кодировалась дважды). Обновите страницу хаба и перетащите кнопку заново —
+        теперь код ссылки только ASCII и не бьётся. Либо нажмите «Скопировать код
+        закладки» и создайте закладку вручную. И помните: агент срабатывает только
+        на <b>открытой карте пациента</b>, не на журнале.
       </details>
       <details>
         <summary>Панель открылась, но пишет «Ожидание данных»</summary>
@@ -121,11 +127,39 @@
 <script>
 (function () {
   var BASE = location.origin;
-  var BK = "javascript:(function(){var b='" + BASE + "';var s=document.createElement('script');" +
+  /* БУКМАРКЛЕТ: строго ASCII и без русских строк — Chrome при перетаскивании
+     кодирует не-ASCII в javascript:-ссылках ДВАЖДЫ (%2520) и код ломается.
+     Весь русский текст живёт в agent.js (обычный скрипт, кодирование не касается). */
+  var code = "(function(){var b='" + BASE + "';" +
+    "var s=document.createElement('script');" +
     "s.src=b+'/static/compass/agent.js?ts='+Date.now();" +
     "s.onload=function(){window.__compassAgent&&window.__compassAgent(b)};" +
-    "document.body.appendChild(s);s.onerror=function(){alert('COMPASS: агент недоступен')};})()";
+    "s.onerror=function(){alert('COMPASS: agent unavailable')};" +
+    "document.body.appendChild(s)})()";
+  var BK = "javascript:" + code;
   document.getElementById("bookmarklet").href = BK;
+
+  /* Запасной способ: скопировать код закладки и создать её вручную */
+  document.getElementById("btn-copy-bk").addEventListener("click", function () {
+    var done = function () {
+      var el = document.getElementById("copy-status");
+      el.textContent = "Код скопирован. Правый клик по панели закладок → «Добавить страницу…» → вставьте в поле URL → назовите «COMPASS».";
+      el.className = "cp-status ok";
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(BK).then(done).catch(function () { fallbackCopy(BK, done); });
+    } else { fallbackCopy(BK, done); }
+  });
+  function fallbackCopy(text, done) {
+    var ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) {
+      var el = document.getElementById("copy-status");
+      el.textContent = "Не удалось скопировать автоматически — скопируйте вручную: " + text.slice(0, 80) + "…";
+      el.className = "cp-status err";
+    }
+    ta.remove();
+  }
 
   function setCheck(id, ok) {
     var el = document.getElementById(id);
