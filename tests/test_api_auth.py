@@ -15,11 +15,11 @@ test_auth.py — жизненный цикл аутентификации и п�
 import asyncio
 import atexit
 import base64
+import os
 import sys
 import uuid
 from contextlib import ExitStack
 from datetime import timedelta
-from pathlib import Path
 
 import asyncpg
 import jwt as pyjwt
@@ -116,7 +116,7 @@ check("/me: пациент опознан", r.status_code == 200 and r.json()["i
 
 # --- 7. Состояние БД и RLS-изоляция (напрямую, через owner-соединение) ---
 async def db_checks():
-    conn = await asyncpg.connect("postgresql://compass_app:compass_demo@localhost:5433/compass")
+    conn = await asyncpg.connect(os.getenv("OWNER_DATABASE_URL", "postgresql://compass_app:compass_demo@localhost:5433/compass"))
     try:
         invite = await conn.fetchrow(
             "SELECT doctor_id, used_at, used_by_patient FROM patient_invite_tokens ORDER BY created_at DESC LIMIT 1")
@@ -138,7 +138,7 @@ async def db_checks():
         await conn.close()
 
     # RLS глазами роли приложения: новый пациент видит только себя
-    conn = await asyncpg.connect("postgresql://compass_api:compass_api_demo@localhost:5433/compass")
+    conn = await asyncpg.connect(os.getenv("APP_DATABASE_URL") or os.getenv("OWNER_DATABASE_URL", "postgresql://compass_api:compass_api_demo@localhost:5433/compass"))
     try:
         await conn.execute("SELECT set_config('app.role', 'PATIENT', false)")
         await conn.execute("SELECT set_config('app.user_id', $1, false)", pat["principal_sub"])

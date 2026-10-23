@@ -45,10 +45,22 @@ if command -v docker >/dev/null 2>&1; then
   say "5/6 · Демо-данные БД (врачи, пациенты, шкалы)"
   python3 -m backend.db.seed
 else
-  say "3/6 · Docker не найден: поднимаю API без БД (HOST=0.0.0.0 — видно с хоста)"
-  say "    (вход врача и WS-алерты будут недоступны — АРМ покажет офлайн-режим с бейджем)"
-  ( HOST=0.0.0.0 python3 -m backend.main >/tmp/compass_api.log 2>&1 & )
-  sleep 3
+  # Нативный Postgres без докера (Debian): если 5432 отвечает — работаем в ПОЛНОМ режиме.
+  if (echo >/dev/tcp/127.0.0.1/5432) 2>/dev/null; then
+    say "3/6 · Docker не найден, но найден нативный Postgres:5432 — полный режим"
+    export DATABASE_URL="${DATABASE_URL:-postgresql://compass_api:compass_api_demo@localhost:5432/compass}"
+    export ENABLE_DB=1
+    ( HOST=0.0.0.0 python3 -m backend.main >/tmp/compass_api.log 2>&1 & )
+    sleep 3
+    say "4/6 · Демо-данные (seed) при необходимости"
+    OWNER_DATABASE_URL="${OWNER_DATABASE_URL:-postgresql://compass_app:compass_demo@localhost:5432/compass}" \
+      python3 -m backend.db.seed 2>&1 | tail -1 || echo "[!] seed пропущен (возможно, уже залит)"
+  else
+    say "3/6 · Docker не найден: поднимаю API без БД (HOST=0.0.0.0 — видно с хоста)"
+    say "    (вход врача и WS-алерты будут недоступны — АРМ покажет офлайн-режим с бейджем)"
+    ( HOST=0.0.0.0 python3 -m backend.main >/tmp/compass_api.log 2>&1 & )
+    sleep 3
+  fi
 fi
 
 say "6/6 · Фронтенды (статика, bind 0.0.0.0 — видны с хоста и телефона)"
@@ -59,9 +71,11 @@ python3 -m http.server 5500 --bind 0.0.0.0 -d frontend_doctor  >/tmp/compass_550
 python3 -m http.server 5501 --bind 0.0.0.0 -d frontend_patient >/tmp/compass_5501.log 2>&1 &
 sleep 1
 
+MODE=$(curl -s "http://${LAN_IP}:8000/healthz" 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print('ПОЛНЫЙ (БД+алерты)' if d['status']=='ok' else 'DEGRADED (офлайн-фоллбэк)')" 2>/dev/null || echo "?")
 cat <<EOF
 
 =================== ДЕМО-СТЕНД ПОДНЯТ ===================
+  Режим: ${MODE}
   С ХОСТА (браузер):
     АРМ врача:      http://${LAN_IP}:5500
     PWA пациента:   http://${LAN_IP}:5501

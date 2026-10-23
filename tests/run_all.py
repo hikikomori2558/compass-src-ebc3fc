@@ -7,6 +7,11 @@ import subprocess
 import sys
 
 
+def _pg_up() -> bool:
+    """Postgres: репо-конвенция 5433 (docker) или нативный 5432."""
+    return any(_port_open("127.0.0.1", p) for p in (5433, 5432))
+
+
 def _port_open(host: str, port: int) -> bool:
     try:
         with socket.create_connection((host, port), timeout=0.5):
@@ -36,7 +41,7 @@ SUITES = [
 
 def main() -> int:
     passed, skipped, failed = [], [], []
-    infra_up = _port_open("127.0.0.1", 5433) and _port_open("127.0.0.1", 6379)
+    infra_up = _pg_up() and _port_open("127.0.0.1", 6379)
     for module, needs_infra in SUITES:
         r = subprocess.run([sys.executable, "-m", module], capture_output=True, text=True)
         name = module.replace("tests.", "")

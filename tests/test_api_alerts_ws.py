@@ -15,6 +15,7 @@ test_ws_latency.py — шина экстренного алертинга (де�
   * delivery-журнал и delivery_ms заполнены (транспортная телеметрия).
 """
 import asyncio
+import os
 import atexit
 import statistics
 import sys
@@ -131,7 +132,7 @@ check("Спокойный чек-ин: 201, не критичный", r.status_c
 
 # --- Состояние транспорта в БД ---
 async def db_checks():
-    conn = await asyncpg.connect("postgresql://compass_app:compass_demo@localhost:5433/compass")
+    conn = await asyncpg.connect(os.getenv("OWNER_DATABASE_URL", "postgresql://compass_app:compass_demo@localhost:5433/compass"))
     try:
         n_outbox = await conn.fetchval(
             "SELECT count(*) FROM critical_events_outbox WHERE published_to_redis")
