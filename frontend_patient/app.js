@@ -15,8 +15,11 @@
   "use strict";
 
   var QS = new URLSearchParams(window.location.search);
+  // По умолчанию API — тот же origin (стенд: https://...ts.net/static/pwa/).
+  // Явное ?api=... — для локальной разработки (python3 -m http.server 5501).
+  var SAME_ORIGIN = (location.origin && location.origin.indexOf("http") === 0) ? location.origin : "http://127.0.0.1:8000";
   var CFG = {
-    apiBase: (QS.get("api") || localStorage.getItem("compass_patient_api") || "http://127.0.0.1:8000").replace(/\/+$/, "")
+    apiBase: (QS.get("api") || localStorage.getItem("compass_patient_api") || SAME_ORIGIN).replace(/\/+$/, "")
   };
   var STORE = {
     get session() {
