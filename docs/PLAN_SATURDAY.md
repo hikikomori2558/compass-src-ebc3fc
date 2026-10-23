@@ -74,11 +74,22 @@ XAI/CBR-панель. Все вызовы — к живому API (Bearer-лог
 
 ## 4. План закрытия разработки (до субботы, по исполнителям)
 
-**Четверг 23.10 (я):**
-- [ ] `frontend_mis_mock/`: каркас 5 экранов в жанре российской МИС + 24 пациента
-- [ ] Сайдбар: перевод cockpit-логики на живой API (логин → analyze-and-route →
-      confirmations → confirm alert), сегодня он на локальных данных
-- [ ] Статика через FastAPI StaticFiles + `tailscale serve` на Debian
+**Четверг 23.10 (я):** ✅ выполнено (коммиты 6733922, 72e8060)
+- [x] `frontend_mis_mock/`: 5 экранов в жанре российской МИС + журнал 38 пациентов
+      (5 персон вебинара + 24 holdout + 9 корпуса, `scripts/gen_mis_journal.py`);
+      персоны вебинара — `clinical_data/webinar_patient_profiles.json` (факты со
+      слайдов + честно размеченная синтетика лаборатории/шкал)
+- [x] Сайдбар COMPASS на живом API: светофор → подтверждения врача → находки правил
+      ОХЛП (напр., WARNING про вождение с цитатой) → PK RK45 canvas → XAI SHAP →
+      CBR-когорты → паспорт провенанса → 057/у-04 → SLA-строка
+- [x] Статика через FastAPI StaticFiles (`/static/mis|arm|pwa`, `/` → МИС)
+- [x] E2E замкнутый цикл проверен: login → analyze AMBER → 6 подтверждений →
+      AMBER_REVIEW → invite → bind → checkin C-SSRS=4 → красный алерт врачу (WS
+      пустой пинг + REST) → confirm. Локально (TestClient + браузер) и на Debian.
+- [ ] `tailscale serve`: нужен ОДИН клик владельца tailnet (разрешить Serve):
+      **https://login.tailscale.com/f/serve?node=nYKNCpdrX621CNTRL**
+      — после него на Debian: `tailscale serve --bg --https=443 http://localhost:8000`.
+      Запасной вариант без клика: `http://100.104.45.89:8000` из tailnet (без TLS).
 
 **Пятница 24.10 (я + Миша):**
 - [ ] (я) Замкнутый демо-цикл QR→чек-ин→алерт→подтверждение→057/у-04
