@@ -127,7 +127,7 @@ const CompassSidebar = {
       this.render(data, rawText);
       const lat = data.api_total_latency_ms;
       document.getElementById("csb-latency").textContent =
-        "ядро+API: " + lat.toFixed(1) + " мс (HTTP " + (latencyHeader || "—") + ")";
+        "ядро+API: " + lat.toFixed(1) + " мс";
       this.refreshTelemetryLine();
     } catch (e) {
       document.getElementById("csb-status-title").textContent = "Ошибка API";
@@ -203,8 +203,9 @@ const CompassSidebar = {
     if (pk) {
       this.drawPK(pk);
       document.getElementById("csb-pk-nums").innerHTML =
-        "Cmax родителя: <b>" + pk.parent_cmax_pg_ml + "</b> пг/мл &bull; Cmin M1 (SS): <b>" +
-        pk.m1_ctrough_ss_pg_ml + "</b> пг/мл &bull; горизонт 168 ч, RK45 (C-ядро)";
+        "Cmax маритупирдина: <b>" + pk.parent_cmax_pg_ml + "</b> пг/мл<br>" +
+        "Cmin метаболита M1 (равновесие): <b>" + pk.m1_ctrough_ss_pg_ml + "</b> пг/мл<br>" +
+        "<span style='color:var(--gray-600)'>горизонт 168 ч &bull; RK45, C-ядро</span>";
     }
 
     /* маршрутизация */
@@ -292,8 +293,8 @@ const CompassSidebar = {
       arr.forEach((v, i) => (i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v))));
       ctx.stroke();
     };
-    curve(p, "#0f62fe");
-    curve(m1, "#9f1853");
+    curve(p, "#15171a");   /* маритупирдин — фирменный тёмный Ghost */
+    curve(m1, "#30cf43");  /* метаболит M1 — фирменный green-500 Ghost */
   },
 
   async refreshTelemetryLine() {

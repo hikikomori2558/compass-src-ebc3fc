@@ -9,26 +9,28 @@
 <body>
 
 <!-- ============================================================ ЭКРАН ВХОДА -->
-<div id="screen-login" class="mis-login-screen">
-  <div class="mis-login-box">
-    <div class="mis-login-org">ГБУЗ «Городская поликлиника № 158 ДЗМ»<br>Департамент здравоохранения города Москвы</div>
-    <div class="mis-login-title">АИС «ПОЛИКЛИНИКА» <span class="mis-demo-mark">демо-стенд</span></div>
-    <div class="mis-login-sub">Единая медицинская информационная система &bull; Рабочее место врача</div>
+<div id="screen-login" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="logo-mark">К</span>
+      <div class="login-title">АИС «ПОЛИКЛИНИКА»</div>
+      <div class="login-sub">ГБУЗ «Городская поликлиника № 158 ДЗМ»</div>
+    </div>
     <form id="form-login" autocomplete="off">
-      <label class="mis-field">Логин учётной записи
+      <label class="field">Логин учётной записи
         <input id="in-login" value="neuro.ivlanov" spellcheck="false">
       </label>
-      <label class="mis-field">Пароль
+      <label class="field">Пароль
         <input id="in-password" type="password" value="compass-demo-2026">
       </label>
-      <div class="mis-login-err" id="login-err" hidden></div>
-      <button type="submit" class="mis-btn mis-btn-primary" id="btn-login">Войти в систему</button>
-      <div class="mis-login-hint">Демо-доступ: neuro.ivlanov / compass-demo-2026 (невролог, из seed-скрипта).</div>
+      <div class="login-err" id="login-err" hidden></div>
+      <button type="submit" class="btn btn-primary btn-block" id="btn-login">Войти в систему</button>
+      <div class="login-hint">Демо-доступ: neuro.ivlanov / compass-demo-2026 (невролог, из seed-скрипта).</div>
     </form>
-    <div class="mis-login-foot">
-      Все пациенты стенда — синтетические/обезличенные (152-ФЗ). Стенд имитирует жанр типовой
-      поликлинической МИС; в реальном внедрении виджет COMPASS встраивается поверх МИС УЗ
-      через iframe/extension, обмен — FHIR R4 / СЭМД.
+    <div class="login-foot">
+      Все пациенты стенда — синтетические/обезличенные (152-ФЗ). Стенд имитирует жанр
+      типовой поликлинической МИС; в реальном внедрении виджет COMPASS встраивается
+      поверх МИС УЗ через iframe/extension, обмен — FHIR R4 / СЭМД.
     </div>
   </div>
 </div>
@@ -36,276 +38,309 @@
 <!-- ============================================================ ОБОЛОЧКА -->
 <div id="app" hidden>
 
-  <!-- Красный баннер неподтверждённых критических алертов -->
-  <div id="alert-banner" class="mis-alert-banner" hidden>
-    <span class="mis-alert-icon">&#9888;</span>
-    <div class="mis-alert-text">
-      <strong id="alert-banner-title">Критический алерт</strong>
-      <span id="alert-banner-sub"></span>
-    </div>
-    <button class="mis-btn mis-btn-white" id="btn-alert-open">Открыть</button>
-    <button class="mis-btn mis-btn-white" id="btn-alert-confirm">Подтвердить реакцию…</button>
-  </div>
-
-  <header class="mis-header">
-    <div class="mis-header-org">
-      <div class="mis-logo">ГП<br>№158</div>
-      <div>
-        <div class="mis-org-name">ГБУЗ «Городская поликлиника № 158 ДЗМ»</div>
-        <div class="mis-app-name">АИС «ПОЛИКЛИНИКА» &bull; Рабочее место врача
-          <span class="mis-demo-mark">демо-стенд COMPASS 2026</span></div>
+  <!-- Тёмная левая навигация (жанр Ghost Admin) -->
+  <aside class="nav">
+    <div class="nav-head">
+      <span class="logo-mark">К</span>
+      <div class="nav-head-text">
+        <div class="nav-site">АИС «Поликлиника»</div>
+        <div class="nav-org">ГП № 158 ДЗМ <span class="demo-mark">демо</span></div>
       </div>
     </div>
-    <nav class="mis-tabs" id="mis-tabs">
-      <button type="button" data-view="journal" class="active">Журнал приёма</button>
-      <button type="button" data-view="card" id="tab-card" hidden>Карта пациента</button>
-      <button type="button" data-view="directions">Направления <span class="mis-tab-badge" id="dir-count">0</span></button>
-    </nav>
-    <div class="mis-header-right">
-      <button type="button" class="mis-alerts-btn" id="btn-alerts">
-        Алерты <span class="mis-alerts-badge" id="alerts-badge" hidden>0</span>
+
+    <nav class="nav-menu" id="mis-tabs">
+      <button type="button" class="nav-item active" data-view="journal">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        Журнал приёма
       </button>
-      <span class="mis-ws-state" id="ws-state" title="WebSocket-канал критических алертов">WS: —</span>
-      <div class="mis-user">
-        <span id="user-name">—</span>
-        <span id="user-date">—</span>
-      </div>
-      <button type="button" class="mis-btn" id="btn-logout">Выход</button>
-    </div>
-  </header>
+      <button type="button" class="nav-item" data-view="card" id="tab-card" hidden>
+        <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        Карта пациента
+      </button>
+      <button type="button" class="nav-item" data-view="directions">
+        <svg viewBox="0 0 24 24"><path d="M7 12h10m0 0-3-3m3 3-3 3M5 5v14"/></svg>
+        Направления <span class="nav-badge" id="dir-count">0</span>
+      </button>
+      <button type="button" class="nav-item nav-item-danger" id="btn-alerts">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        Алерты <span class="nav-badge nav-badge-danger" id="alerts-badge" hidden>0</span>
+      </button>
+    </nav>
 
-  <main class="mis-main">
+    <div class="nav-foot">
+      <div class="nav-ws" id="ws-state" title="WebSocket-канал критических алертов">WS: —</div>
+      <div class="nav-user">
+        <span class="avatar" id="user-avatar">АИ</span>
+        <div class="nav-user-text">
+          <div class="nav-user-name" id="user-name">—</div>
+          <div class="nav-user-role" id="user-date">—</div>
+        </div>
+        <button type="button" class="icon-btn" id="btn-logout" title="Выход">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Контент ЭМК (ЭМК живёт своей жизнью; COMPASS — слоем ПОВЕРХ, справа) -->
+  <main class="main">
+
+    <!-- Красный баннер неподтверждённых критических алертов -->
+    <div id="alert-banner" class="alert-banner" hidden>
+      <span class="alert-icon">&#9888;</span>
+      <div class="alert-text">
+        <strong id="alert-banner-title">Критический алерт</strong>
+        <span id="alert-banner-sub"></span>
+      </div>
+      <button class="btn btn-white-sm" id="btn-alert-open">Открыть</button>
+      <button class="btn btn-white-sm" id="btn-alert-confirm">Подтвердить реакцию…</button>
+    </div>
 
     <!-- ================================================== ЖУРНАЛ ПРИЁМА -->
-    <section class="mis-view active" id="view-journal">
-      <div class="mis-filter-row">
-        <label>Дата приёма: <input type="date" id="f-date"></label>
-        <label>Врач: <select id="f-doctor">
-          <option value="">все</option>
-          <option value="невролог">невролог</option>
-          <option value="психиатр">психиатр</option>
-          <option value="терапевт">терапевт</option>
-        </select></label>
-        <label>Поиск: <input id="f-search" placeholder="ФИО / ИБ / диагноз" size="28"></label>
-        <span class="mis-filter-stat" id="journal-stat">—</span>
-      </div>
-      <div class="mis-table-wrap">
-        <table class="mis-table" id="journal-table">
-          <thead>
-            <tr>
-              <th>№</th><th>Время</th><th>ФИО пациента</th><th>Дата рожд.</th>
-              <th>Диагноз МКБ-10</th><th>Отметки</th><th>Статус приёма</th><th></th>
-            </tr>
-          </thead>
-          <tbody id="journal-tbody"></tbody>
-        </table>
+    <section class="view active" id="view-journal">
+      <header class="view-head">
+        <div>
+          <h1 class="view-title">Журнал приёма</h1>
+          <div class="view-sub" id="journal-stat">—</div>
+        </div>
+        <div class="view-actions">
+          <input id="f-search" class="input" placeholder="Поиск: ФИО / ИБ / диагноз…">
+          <select id="f-doctor" class="input select">
+            <option value="">все врачи</option>
+            <option value="невролог">невролог</option>
+            <option value="психиатр">психиатр</option>
+            <option value="терапевт">терапевт</option>
+          </select>
+          <input type="date" id="f-date" class="input select">
+        </div>
+      </header>
+
+      <div class="card">
+        <div class="list-head">
+          <span>Время</span><span>Пациент</span><span>Диагноз МКБ-10</span>
+          <span>Отметки</span><span>Статус</span><span></span>
+        </div>
+        <div class="list" id="journal-tbody"></div>
       </div>
     </section>
 
     <!-- ================================================== КАРТА ПАЦИЕНТА -->
-    <section class="mis-view" id="view-card">
-      <div class="mis-card-banner" id="card-banner">
-        <div class="mis-card-fio">
-          <span id="cb-fio">—</span>
-          <span class="mis-card-meta" id="cb-sex-age">—</span>
+    <section class="view" id="view-card">
+      <header class="view-head">
+        <div>
+          <button type="button" class="btn btn-ghost" id="btn-to-journal">← Журнал</button>
+          <h1 class="view-title" id="cb-fio">—</h1>
+          <div class="view-sub">
+            <span id="cb-sex-age">—</span> &bull; <span id="cb-ib">ИБ № —</span> &bull;
+            <span id="cb-oms">ОМС —</span> &bull; <span class="pill pill-diag" id="cb-icd">—</span>
+            <span class="pill pill-tag" id="cb-source">—</span>
+          </div>
         </div>
-        <div class="mis-card-tags">
-          <span class="mis-tag" id="cb-ib">ИБ № —</span>
-          <span class="mis-tag" id="cb-oms">ОМС —</span>
-          <span class="mis-tag mis-tag-diag" id="cb-icd">—</span>
-          <span class="mis-tag" id="cb-source">—</span>
+        <div class="view-actions">
+          <button type="button" class="btn btn-secondary" id="btn-save-inspect">Сохранить заключение</button>
+          <button type="button" class="btn btn-compass" id="btn-push-compass">
+            <span class="dot-live"></span> COMPASS
+          </button>
         </div>
-        <button type="button" class="mis-btn mis-btn-primary" id="btn-to-journal">← Журнал</button>
-      </div>
+      </header>
 
-      <div class="mis-card-body">
-        <!-- Левая колонка — «МИС» -->
-        <div class="mis-card-left">
-          <nav class="mis-tabs2" id="card-tabs">
-            <button type="button" data-tab="inspect" class="active">Осмотр (ф. 025/у)</button>
-            <button type="button" data-tab="labs">Лаборатория</button>
-            <button type="button" data-tab="meds">Назначения</button>
-            <button type="button" data-tab="scales">Шкалы</button>
-            <button type="button" data-tab="import">Импорт истории</button>
-          </nav>
+      <div class="card">
+        <nav class="tabs" id="card-tabs">
+          <button type="button" class="tab active" data-tab="inspect">Осмотр (ф. 025/у)</button>
+          <button type="button" class="tab" data-tab="labs">Лаборатория</button>
+          <button type="button" class="tab" data-tab="meds">Назначения</button>
+          <button type="button" class="tab" data-tab="scales">Шкалы</button>
+          <button type="button" class="tab" data-tab="import">Импорт истории</button>
+        </nav>
 
-          <div class="mis-card-tab active" id="card-tab-inspect">
-            <h3 class="mis-form-title">МЕДИЦИНСКАЯ КАРТА АМБУЛАТОРНОГО ПАЦИЕНТА &mdash; ф. 025/у</h3>
-            <div class="mis-field"><label>Жалобы</label>
-              <div class="mis-static" id="insp-complaints">—</div></div>
-            <div class="mis-field"><label>Анамнез заболевания / статус</label>
-              <div class="mis-static" id="insp-anamnesis">—</div></div>
-            <div class="mis-field"><label>Данные осмотра (текст заключения)</label>
-              <textarea class="mis-textarea" id="insp-text" rows="8" spellcheck="false"></textarea>
-              <div class="mis-form-actions">
-                <button type="button" class="mis-btn" id="btn-save-inspect">Сохранить заключение</button>
-                <button type="button" class="mis-btn" id="btn-push-compass">Передать в COMPASS ▸</button>
-              </div>
-              <div class="mis-sign-line">
-                Врач: <span id="insp-doctor">—</span> &bull; Подпись (ЭЦП): <span class="mis-sign-box">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                &bull; Дата: <span id="insp-date">—</span>
-              </div>
-            </div>
+        <div class="card-tab active" id="card-tab-inspect">
+          <div class="form-title">МЕДИЦИНСКАЯ КАРТА АМБУЛАТОРНОГО ПАЦИЕНТА &mdash; ф. 025/у</div>
+          <div class="field"><label>Жалобы</label>
+            <div class="static" id="insp-complaints">—</div></div>
+          <div class="field"><label>Анамнез заболевания / статус</label>
+            <div class="static" id="insp-anamnesis">—</div></div>
+          <div class="field"><label>Данные осмотра (текст заключения)</label>
+            <textarea class="textarea" id="insp-text" rows="9" spellcheck="false"></textarea>
           </div>
-
-          <div class="mis-card-tab" id="card-tab-labs">
-            <h3 class="mis-form-title">РЕЗУЛЬТАТЫ ЛАБОРАТОРНЫХ ИССЛЕДОВАНИЙ</h3>
-            <table class="mis-table mis-table-form" id="labs-table">
-              <thead><tr><th>Показатель</th><th>Значение</th><th>Ед.</th><th>Реф. интервал</th></tr></thead>
-              <tbody id="labs-tbody"></tbody>
-            </table>
-          </div>
-
-          <div class="mis-card-tab" id="card-tab-meds">
-            <h3 class="mis-form-title">ТЕКУЩИЕ НАЗНАЧЕНИЯ</h3>
-            <table class="mis-table mis-table-form">
-              <thead><tr><th>Препарат</th><th>Режим</th><th>Начало</th><th>Назначил</th></tr></thead>
-              <tbody id="meds-tbody"></tbody>
-            </table>
-          </div>
-
-          <div class="mis-card-tab" id="card-tab-scales">
-            <h3 class="mis-form-title">ПСИХОМЕТРИЧЕСКИЕ ШКАЛЫ</h3>
-            <table class="mis-table mis-table-form">
-              <thead><tr><th>Шкала</th><th>Баллы</th><th>Интерпретация</th></tr></thead>
-              <tbody id="scales-tbody"></tbody>
-            </table>
-          </div>
-
-          <div class="mis-card-tab" id="card-tab-import">
-            <h3 class="mis-form-title">ИМПОРТ ИСТОРИИ БОЛЕЗНИ (текст ЭМК / выписки)</h3>
-            <p class="mis-form-note">
-              Вставьте текст истории болезни в любом из 5 шаблонов (осмотр ф. 025/у, выписка,
-              псих. статус, FHIR JSON, свободный текст) — COMPASS извлечёт сущности безопасным
-              tri-state парсером (Метрика №2). Отрицания («эпилепсии нет») учитываются.
-            </p>
-            <textarea class="mis-textarea mis-textarea-wide" id="import-text" rows="10" spellcheck="false"></textarea>
-            <div class="mis-form-actions">
-              <button type="button" class="mis-btn mis-btn-primary" id="btn-import-analyze">Импортировать и проанализировать ▸</button>
-            </div>
+          <div class="sign-line">
+            Врач: <span id="insp-doctor">—</span> &bull; Подпись (ЭЦП):
+            <span class="sign-box">ЭЦП • МИС УЗ</span>
+            &bull; Дата: <span id="insp-date">—</span>
           </div>
         </div>
 
-        <!-- Правая колонка — COMPASS-сайдбар (живой API) -->
-        <aside class="compass-sidebar" id="compass-sidebar">
-          <div class="csb-head">
-            <div class="csb-title">COMPASS&ndash;HYBRID <span>v2.6</span></div>
-            <div class="csb-sub">CDSS команды 20-П «Rapira» &bull; <span id="csb-src" class="csb-live">живой API</span></div>
-            <div class="csb-latency" id="csb-latency">— мс</div>
+        <div class="card-tab" id="card-tab-labs">
+          <div class="form-title">РЕЗУЛЬТАТЫ ЛАБОРАТОРНЫХ ИССЛЕДОВАНИЙ</div>
+          <table class="table">
+            <thead><tr><th>Показатель</th><th>Значение</th><th>Ед.</th><th>Реф. интервал</th></tr></thead>
+            <tbody id="labs-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="card-tab" id="card-tab-meds">
+          <div class="form-title">ТЕКУЩИЕ НАЗНАЧЕНИЯ</div>
+          <table class="table">
+            <thead><tr><th>Препарат</th><th>Режим</th><th>Начало</th><th>Назначил</th></tr></thead>
+            <tbody id="meds-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="card-tab" id="card-tab-scales">
+          <div class="form-title">ПСИХОМЕТРИЧЕСКИЕ ШКАЛЫ</div>
+          <table class="table">
+            <thead><tr><th>Шкала</th><th>Баллы</th><th>Интерпретация</th></tr></thead>
+            <tbody id="scales-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="card-tab" id="card-tab-import">
+          <div class="form-title">ИМПОРТ ИСТОРИИ БОЛЕЗНИ (текст ЭМК / выписки)</div>
+          <p class="form-note">
+            Вставьте текст истории болезни в любом из 5 шаблонов (осмотр ф. 025/у, выписка,
+            псих. статус, FHIR JSON, свободный текст) — COMPASS извлечёт сущности безопасным
+            tri-state парсером (Метрика №2). Отрицания («эпилепсии нет») учитываются.
+          </p>
+          <textarea class="textarea textarea-wide" id="import-text" rows="10" spellcheck="false"></textarea>
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary" id="btn-import-analyze">Импортировать и проанализировать ▸</button>
           </div>
-
-          <div class="csb-empty" id="csb-empty">
-            Передайте текст осмотра в COMPASS кнопкой «Передать в COMPASS ▸»
-            или вкладкой «Импорт истории».
-          </div>
-
-          <div class="csb-body" id="csb-body" hidden>
-
-            <div class="csb-svetofor" id="csb-svetofor">
-              <div class="csb-svetofor-head" id="csb-status-title">—</div>
-              <div class="csb-svetofor-text" id="csb-status-text">—</div>
-            </div>
-
-            <div class="csb-section" id="csb-sec-confirm">
-              <div class="csb-sec-title">Подтверждения врача <span class="csb-badge-amber" id="csb-confirm-count">0</span></div>
-              <div class="csb-note">Неизвестное не даёт зелёного статуса: подтвердите отсутствие
-                (или укажите в тексте осмотра) — разбор повторится.</div>
-              <div id="csb-confirm-list"></div>
-            </div>
-
-            <div class="csb-section" id="csb-sec-datareq" hidden>
-              <div class="csb-sec-title">Недостающие данные</div>
-              <div id="csb-datareq-list"></div>
-            </div>
-
-            <div class="csb-section" id="csb-sec-findings" hidden>
-              <div class="csb-sec-title">Предупреждения ОХЛП (движок правил)</div>
-              <div id="csb-findings-list"></div>
-            </div>
-
-            <div class="csb-section">
-              <div class="csb-sec-title">Фармакокинетика 168 ч (RK45, C-ядро)</div>
-              <canvas id="csb-pk-chart" width="376" height="150"></canvas>
-              <div class="csb-pk-legend">
-                <span><i class="sw sw-parent"></i>маритупирдин</span>
-                <span><i class="sw sw-m1"></i>метаболит M1</span>
-              </div>
-              <div class="csb-pk-nums" id="csb-pk-nums">—</div>
-            </div>
-
-            <div class="csb-section" id="csb-sec-routing">
-              <div class="csb-sec-title">Маршрутизация</div>
-              <div id="csb-routing-body">—</div>
-            </div>
-
-            <div class="csb-section" id="csb-sec-xai" hidden>
-              <div class="csb-sec-title">XAI: топ-факторы (SHAP, ГОСТ Р 59921)</div>
-              <table class="csb-table" id="csb-xai-table"></table>
-            </div>
-
-            <div class="csb-section" id="csb-sec-cbr" hidden>
-              <div class="csb-sec-title">Похожие когорты РКИ (CBR)</div>
-              <div id="csb-cbr-list"></div>
-            </div>
-
-            <div class="csb-section" id="csb-sec-passport" hidden>
-              <div class="csb-sec-title">Паспорт провенанса решения</div>
-              <div class="csb-passport" id="csb-passport-body"></div>
-            </div>
-
-            <div class="csb-section" id="csb-sec-warn" hidden>
-              <div class="csb-sec-title">Предупреждения и допущения</div>
-              <div class="csb-warnbox" id="csb-warn-body"></div>
-            </div>
-
-            <div class="csb-actions">
-              <button type="button" class="csb-btn" id="btn-form-057">Сформировать направление ф. 057/у-04</button>
-            </div>
-            <div class="csb-foot">
-              Решение принимает врач. Система предупреждает и оформляет.<br>
-              <span id="csb-telemetry">телеметрия: —</span>
-            </div>
-          </div>
-        </aside>
+        </div>
       </div>
     </section>
 
     <!-- ================================================== НАПРАВЛЕНИЯ -->
-    <section class="mis-view" id="view-directions">
-      <div class="mis-filter-row"><span class="mis-filter-stat">Сформированные на стенде направления ф. 057/у-04 (localStorage браузера)</span></div>
-      <div class="mis-table-wrap">
-        <table class="mis-table" id="directions-table">
-          <thead><tr><th>№</th><th>Дата/время</th><th>Пациент</th><th>МКБ-10</th><th>Цель направления</th><th>Статус COMPASS</th><th></th></tr></thead>
+    <section class="view" id="view-directions">
+      <header class="view-head">
+        <div>
+          <h1 class="view-title">Направления</h1>
+          <div class="view-sub">Сформированные на стенде направления ф. 057/у-04 (localStorage браузера)</div>
+        </div>
+      </header>
+      <div class="card">
+        <table class="table">
+          <thead><tr><th>№</th><th>Дата/время</th><th>Пациент</th><th>МКБ-10</th><th>Цель</th><th>Статус COMPASS</th><th></th></tr></thead>
           <tbody id="directions-tbody"></tbody>
         </table>
       </div>
     </section>
   </main>
+
+  <!-- COMPASS-сайдбар: слой ПОВЕРХ ЭМК (жанр панели настроек Ghost Editor) -->
+  <aside class="compass" id="compass-sidebar" aria-hidden="true">
+    <div class="csb-head">
+      <div class="csb-head-row">
+        <div class="csb-title">COMPASS<span>&ndash;HYBRID v2.6</span></div>
+        <button type="button" class="icon-btn icon-btn-dark" id="btn-compass-close" title="Свернуть панель">
+          <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="csb-sub">CDSS 20-П «Rapira» &bull; <span id="csb-src" class="csb-live">живой API</span>
+        <span class="csb-latency" id="csb-latency">— мс</span></div>
+    </div>
+
+    <div class="csb-empty" id="csb-empty">
+      Панель клинических решений. Откройте карту пациента и нажмите
+      <b>COMPASS</b> — разбор истории пойдёт на живой API.
+    </div>
+
+    <div class="csb-body" id="csb-body" hidden>
+
+      <div class="csb-svetofor" id="csb-svetofor">
+        <div class="csb-svetofor-head" id="csb-status-title">—</div>
+        <div class="csb-svetofor-text" id="csb-status-text">—</div>
+      </div>
+
+      <div class="csb-section" id="csb-sec-confirm">
+        <div class="csb-sec-title">Подтверждения врача <span class="badge badge-amber" id="csb-confirm-count">0</span></div>
+        <div class="csb-note">Неизвестное не даёт зелёного статуса: подтвердите отсутствие
+          (или укажите в тексте осмотра) — разбор повторится.</div>
+        <div id="csb-confirm-list"></div>
+      </div>
+
+      <div class="csb-section" id="csb-sec-datareq" hidden>
+        <div class="csb-sec-title">Недостающие данные</div>
+        <div id="csb-datareq-list"></div>
+      </div>
+
+      <div class="csb-section" id="csb-sec-findings" hidden>
+        <div class="csb-sec-title">Предупреждения ОХЛП (движок правил)</div>
+        <div id="csb-findings-list"></div>
+      </div>
+
+      <div class="csb-section">
+        <div class="csb-sec-title">Фармакокинетика 168 ч (RK45, C-ядро)</div>
+        <canvas id="csb-pk-chart" width="384" height="150"></canvas>
+        <div class="csb-pk-legend">
+          <span><i class="sw sw-parent"></i>маритупирдин</span>
+          <span><i class="sw sw-m1"></i>метаболит M1</span>
+        </div>
+        <div class="csb-pk-nums" id="csb-pk-nums">—</div>
+      </div>
+
+      <div class="csb-section" id="csb-sec-routing">
+        <div class="csb-sec-title">Маршрутизация</div>
+        <div id="csb-routing-body">—</div>
+      </div>
+
+      <div class="csb-section" id="csb-sec-xai" hidden>
+        <div class="csb-sec-title">XAI: топ-факторы (SHAP, ГОСТ Р 59921)</div>
+        <table class="csb-table" id="csb-xai-table"></table>
+      </div>
+
+      <div class="csb-section" id="csb-sec-cbr" hidden>
+        <div class="csb-sec-title">Похожие когорты РКИ (CBR)</div>
+        <div id="csb-cbr-list"></div>
+      </div>
+
+      <div class="csb-section" id="csb-sec-passport" hidden>
+        <div class="csb-sec-title">Паспорт провенанса решения</div>
+        <div class="csb-passport" id="csb-passport-body"></div>
+      </div>
+
+      <div class="csb-section" id="csb-sec-warn" hidden>
+        <div class="csb-sec-title">Предупреждения и допущения</div>
+        <div class="csb-warnbox" id="csb-warn-body"></div>
+      </div>
+
+      <div class="csb-actions">
+        <button type="button" class="btn btn-primary btn-block" id="btn-form-057">Сформировать направление ф. 057/у-04</button>
+      </div>
+      <div class="csb-foot">
+        Решение принимает врач. Система предупреждает и оформляет.<br>
+        <span id="csb-telemetry">телеметрия: —</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Кнопка вызова панели, когда она скрыта -->
+  <button type="button" class="compass-fab" id="btn-compass-fab" hidden title="Открыть COMPASS">
+    <span class="dot-live"></span> COMPASS
+  </button>
 </div>
 
 <!-- ============================================================ МОДАЛКИ -->
-<div class="mis-modal" id="modal-confirm-alert" hidden>
-  <div class="mis-modal-box">
+<div class="modal" id="modal-confirm-alert" hidden>
+  <div class="modal-box">
     <h3>Подтверждение реакции на критический алерт</h3>
-    <p class="mis-form-note" id="confirm-alert-info"></p>
-    <label class="mis-field">Что сделал врач (идёт в аудит; в канал уведомлений клиника не попадает)
-      <textarea class="mis-textarea" id="confirm-action" rows="3">Связался с пациентом, проведён телефонный контакт, рекомендован очный приём психиатра сегодня.</textarea>
+    <p class="form-note" id="confirm-alert-info"></p>
+    <label class="field">Что сделал врач (идёт в аудит; в канал уведомлений клиника не попадает)
+      <textarea class="textarea" id="confirm-action" rows="3">Связался с пациентом, проведён телефонный контакт, рекомендован очный приём психиатра сегодня.</textarea>
     </label>
-    <div class="mis-form-actions">
-      <button type="button" class="mis-btn mis-btn-primary" id="btn-confirm-ok">Подтвердить</button>
-      <button type="button" class="mis-btn" id="btn-confirm-cancel">Отмена</button>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" id="btn-confirm-ok">Подтвердить</button>
+      <button type="button" class="btn btn-secondary" id="btn-confirm-cancel">Отмена</button>
     </div>
   </div>
 </div>
 
-<div class="mis-modal" id="modal-057" hidden>
-  <div class="mis-modal-box mis-modal-057">
+<div class="modal" id="modal-057" hidden>
+  <div class="modal-box modal-057">
     <h3>НАПРАВЛЕНИЕ НА КОНСУЛЬТАЦИЮ — ф. 057/у-04</h3>
-    <div class="mis-f057" id="f057-body"></div>
-    <div class="mis-form-actions">
-      <button type="button" class="mis-btn mis-btn-primary" id="btn-057-save">Сохранить в журнал</button>
-      <button type="button" class="mis-btn" id="btn-057-print">Печать</button>
-      <button type="button" class="mis-btn" id="btn-057-cancel">Закрыть</button>
+    <div class="f057" id="f057-body"></div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" id="btn-057-save">Сохранить в журнал</button>
+      <button type="button" class="btn btn-secondary" id="btn-057-print">Печать</button>
+      <button type="button" class="btn btn-ghost" id="btn-057-cancel">Закрыть</button>
     </div>
   </div>
 </div>

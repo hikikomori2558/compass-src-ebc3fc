@@ -1,7 +1,9 @@
-/* frontend_mis_mock/app.js — логика МИС-стенда «АИС Поликлиника» (демо, жанр типовой
- * российской поликлинической ЭМК). Клиентские парсинги лаборатории/шкал здесь — только
- * для ОТОБРАЖЕНИЯ в карте; клинические решения всегда считает серверный safe-pipeline
- * (/api/v1/compass-bio/ehr/analyze-and-route) — это принципиально для честности демо.
+/* frontend_mis_mock/app.js — логика МИС-стенда «АИС Поликлиника» (демо).
+ * Оболочка в дизайн-системе Ghost (TryGhost/Ghost, фреймворк Shade): тёмная левая
+ * навигация, белый контент, COMPASS — слой ПОВЕРХ ЭМК (панель настроек редактора
+ * Ghost как архитектурный паттерн). Клиентские парсинги лаборатории/шкал здесь —
+ * только для ОТОБРАЖЕНИЯ; клинические решения всегда считает серверный safe-pipeline
+ * (/api/v1/compass-bio/ehr/analyze-and-route).
  */
 "use strict";
 
@@ -15,6 +17,20 @@
     currentAlert: null,
   };
 
+  /* ================================================================ COMPASS-панель (overlay поверх ЭМК) */
+  function openCompass() {
+    $("compass-sidebar").classList.remove("closed");
+    $("compass-sidebar").setAttribute("aria-hidden", "false");
+    document.body.classList.add("compass-open");
+    $("btn-compass-fab").hidden = true;
+  }
+  function closeCompass() {
+    $("compass-sidebar").classList.add("closed");
+    $("compass-sidebar").setAttribute("aria-hidden", "true");
+    document.body.classList.remove("compass-open");
+    $("btn-compass-fab").hidden = !(CompassSidebar.lastResult || state.current);
+  }
+
   /* ================================================================ вход */
   async function doLogin(evt) {
     evt.preventDefault();
@@ -24,7 +40,7 @@
     $("btn-login").textContent = "Проверка…";
     try {
       const s = await CompassAPI.login($("in-login").value.trim(), $("in-password").value);
-      $("user-name").textContent = s.principal_sub === "" ? "" : ($("in-login").value.trim());
+      localStorage.setItem("mis_last_login", $("in-login").value.trim());
       enterApp(s);
     } catch (e) {
       err.textContent = e.message || String(e);
@@ -38,11 +54,14 @@
   function enterApp(session) {
     $("screen-login").hidden = true;
     $("app").hidden = false;
-    $("user-name").textContent = $("in-login").value.trim() || "врач";
+    const login = localStorage.getItem("mis_last_login") || "врач";
+    $("user-name").textContent = login;
+    const initials = login.replace(/[^a-zа-яё]/gi, "").slice(0, 2).toUpperCase() || "ВР";
+    $("user-avatar").textContent = initials;
     const now = new Date();
-    $("user-date").textContent = now.toLocaleDateString("ru-RU") + " " +
-      now.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    $("user-date").textContent = now.toLocaleDateString("ru-RU", { weekday: "short", day: "numeric", month: "long" });
     $("f-date").value = now.toISOString().slice(0, 10);
+    closeCompass();
     loadJournal();
     refreshAlerts();
     connectWS();
@@ -75,19 +94,19 @@
     const rows = journalFiltered();
     const tb = $("journal-tbody");
     tb.innerHTML = "";
-    rows.forEach((p, i) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML =
-        "<td>" + (i + 1) + "</td>" +
-        "<td class='mono'>" + p.slot + "</td>" +
-        "<td><b>" + p.fio + "</b></td>" +
-        "<td>" + p.born + "</td>" +
-        "<td>" + (p.icd10 || "—") + "</td>" +
-        "<td>" + tagChip(p) + "</td>" +
-        "<td><span class='st-" + statusClass(p.status) + "'>" + p.status + "</span></td>" +
-        "<td><button class='mis-btn'>Открыть карту</button></td>";
-      tr.addEventListener("click", () => openCard(p));
-      tb.appendChild(tr);
+    rows.forEach(p => {
+      const row = document.createElement("div");
+      row.className = "list-row";
+      row.innerHTML =
+        '<span class="t">' + p.slot + "</span>" +
+        '<span><span class="fio">' + p.fio + "</span>" +
+        '<span class="meta">' + p.born + " &bull; ИБ № " + p.ib + " &bull; " + (p.doctor || "") + "</span></span>" +
+        '<span class="icd">' + (p.icd10 || "—") + "</span>" +
+        "<span>" + tagChip(p) + "</span>" +
+        '<span><span class="st st-' + statusClass(p.status) + '">' + p.status + "</span></span>" +
+        '<span><button type="button" class="btn btn-secondary" style="height:26px;font-size:11.5px">Открыть</button></span>';
+      row.addEventListener("click", () => openCard(p));
+      tb.appendChild(row);
     });
     const waiting = state.journal.filter(p => p.status === "ожидает").length;
     $("journal-stat").textContent =
@@ -96,7 +115,7 @@
   }
 
   function tagChip(p) {
-    let cls = "mis-chip";
+    let cls = "pill";
     if (p.source === "webinar") cls += " webinar";
     if ((p.tag || "").includes("CONTRA")) cls += " contra";
     return "<span class='" + cls + "'>" + (p.tag || "") + "</span>";
@@ -159,7 +178,7 @@
     $("insp-date").textContent = new Date().toLocaleDateString("ru-RU");
 
     $("labs-tbody").innerHTML = parseLabs(text).map(l =>
-      "<tr><td>" + l[0] + "</td><td>" + (l[1] === null ? "<span class='mis-chip contra'>не указано</span>" : l[1]) +
+      "<tr><td>" + l[0] + "</td><td>" + (l[1] === null ? "<span class='pill contra'>не указано</span>" : l[1]) +
       "</td><td>" + l[2] + "</td><td>" + l[3] + "</td></tr>").join("");
 
     $("meds-tbody").innerHTML = medRows(text);
@@ -182,33 +201,35 @@
       ["ципрофлоксацин", "Ципрофлоксацин", "500 мг 2 р/сут"],
     ];
     const found = known.filter(k => text.toLowerCase().includes(k[0]));
-    if (!found.length) return "<tr><td colspan='4'>Активных сопутствующих назначений не найдено</td></tr>";
+    if (!found.length) return "<tr><td colspan='4' style='color:var(--gray-600)'>Активных сопутствующих назначений не найдено</td></tr>";
     return found.map(k =>
-      "<tr><td>" + k[1] + "</td><td>" + k[2] + "</td><td>—</td><td>" +
+      "<tr><td><b>" + k[1] + "</b></td><td>" + k[2] + "</td><td>—</td><td>" +
       (state.current ? state.current.doctor : "") + "</td></tr>").join("");
   }
 
   function pushToCompass() {
     if (!state.current) return;
+    openCompass();
     CompassSidebar.analyze($("insp-text").value);
   }
   function importAndAnalyze() {
     if (!state.current) return;
     $("insp-text").value = $("import-text").value;
+    openCompass();
     CompassSidebar.analyze($("import-text").value);
   }
 
   /* ================================================================ навигация */
   function switchView(name) {
-    document.querySelectorAll(".mis-view").forEach(v => v.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     $("view-" + name).classList.add("active");
-    document.querySelectorAll("#mis-tabs button").forEach(b =>
+    document.querySelectorAll(".nav-item[data-view]").forEach(b =>
       b.classList.toggle("active", b.dataset.view === name));
   }
   function switchCardTab(name) {
-    document.querySelectorAll(".mis-card-tab").forEach(v => v.classList.remove("active"));
+    document.querySelectorAll(".card-tab").forEach(v => v.classList.remove("active"));
     $("card-tab-" + name).classList.add("active");
-    document.querySelectorAll("#card-tabs button").forEach(b =>
+    document.querySelectorAll("#card-tabs .tab").forEach(b =>
       b.classList.toggle("active", b.dataset.tab === name));
   }
 
@@ -246,13 +267,13 @@
     try { if (state.ws) state.ws.close(); } catch (e) { /* ignore */ }
     const ws = new WebSocket(url);
     state.ws = ws;
-    ws.onopen = () => { el.textContent = "WS: online"; el.className = "mis-ws-state on"; };
+    ws.onopen = () => { el.textContent = "WS: online"; el.className = "nav-ws on"; };
     ws.onmessage = (m) => {
       const msg = JSON.parse(m.data);
       if (msg.kind === "CRITICAL_PING") refreshAlerts(); // в канале пустой пинг; клиника — по REST
     };
     ws.onclose = () => {
-      el.textContent = "WS: offline"; el.className = "mis-ws-state off";
+      el.textContent = "WS: offline"; el.className = "nav-ws off";
       setTimeout(connectWS, 5000);
     };
     ws.onerror = () => { try { ws.close(); } catch (e) { /* ignore */ } };
@@ -302,7 +323,7 @@
       f057row("Статус COMPASS на момент формирования", overall) +
       f057row("Направил", $("user-name").textContent + " • " + (p.doctor || "врач")) +
       "</table>" +
-      "<div style='font-size:10px;color:#5a6a78'>Сформировано на демо-стенде COMPASS-HYBRID v2.6 (команда 20-П «Rapira»). Пациенты синтетические.</div>";
+      "<div style='font-size:10px;color:var(--gray-700)'>Сформировано на демо-стенде COMPASS-HYBRID v2.6 (команда 20-П «Rapira»). Пациенты синтетические.</div>";
     $("modal-057").hidden = false;
   }
   function f057row(k, v) { return "<tr><td class='k'>" + k + "</td><td>" + v + "</td></tr>"; }
@@ -333,8 +354,8 @@
     $("directions-tbody").innerHTML = list.length ? list.map(d =>
       "<tr><td>" + d.num + "</td><td>" + d.ts + "</td><td><b>" + d.fio + "</b></td><td>" +
       d.icd10 + "</td><td>" + d.aim + "</td><td>" + d.status + "</td>" +
-      "<td><button class='mis-btn'>Печать</button></td></tr>").join("")
-      : "<tr><td colspan='7'>Направлений пока не сформировано</td></tr>";
+      "<td><button class='btn btn-secondary' style='height:26px'>Печать</button></td></tr>").join("")
+      : "<tr><td colspan='7' style='color:var(--gray-600)'>Направлений пока не сформировано</td></tr>";
   }
 
   /* ================================================================ init */
@@ -343,12 +364,16 @@
     $("btn-logout").addEventListener("click", logout);
     $("f-search").addEventListener("input", renderJournal);
     $("f-doctor").addEventListener("change", renderJournal);
-    document.querySelectorAll("#mis-tabs button").forEach(b =>
-      b.addEventListener("click", () => switchView(b.dataset.view)));
-    document.querySelectorAll("#card-tabs button").forEach(b =>
+    document.querySelectorAll(".nav-item[data-view]").forEach(b => {
+      if (b.id !== "btn-alerts")
+        b.addEventListener("click", () => switchView(b.dataset.view));
+    });
+    document.querySelectorAll("#card-tabs .tab").forEach(b =>
       b.addEventListener("click", () => switchCardTab(b.dataset.tab)));
     $("btn-to-journal").addEventListener("click", () => switchView("journal"));
     $("btn-push-compass").addEventListener("click", pushToCompass);
+    $("btn-compass-fab").addEventListener("click", openCompass);
+    $("btn-compass-close").addEventListener("click", closeCompass);
     $("btn-import-analyze").addEventListener("click", importAndAnalyze);
     $("btn-save-inspect").addEventListener("click", () => {
       state.current.raw_text = $("insp-text").value;
@@ -377,7 +402,5 @@
       $("in-login").value = localStorage.getItem("mis_last_login") || $("in-login").value;
       enterApp(CompassAPI.session);
     }
-    $("form-login").addEventListener("submit", () =>
-      localStorage.setItem("mis_last_login", $("in-login").value.trim()), { once: true });
   });
 })();

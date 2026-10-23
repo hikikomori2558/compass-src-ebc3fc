@@ -1,273 +1,444 @@
-/* frontend_mis_mock/styles.css — жанр типовой российской поликлинической МИС.
- * Утилитарная рабочая лошадка: системные шрифты, плотные таблицы, серо-синяя
- * палитра, жёлтые/зелёные статусы приёма. Ноль градиентов/стекла/тёмных тем.
- * Контраст: справа сайдбар COMPASS в духе IBM Carbon — «современное поверх привычного». */
+/* frontend_mis_mock/styles.css — МИС-стенд в дизайн-системе Ghost (TryGhost/Ghost,
+ * фреймворк Shade), адаптированной под клинику «без фанатизма»:
+ *   • тёмная левая навигация #15171a — фирменный тёмный Ghost;
+ *   • белый контент на сером фоне, волосяные границы gray-200;
+ *   • чёрные primary-кнопки — сигнатура нового Ghost Admin;
+ *   • зелёный #30cf43 — фирменный green-500 Ghost — только акценты (live, активная
+ *     навигация, успех); светофор сохраняет клиническую семантику green/yellow/red;
+ *   • геометрия из токенов Shade: контролы 32/40px, радиус 9px, шрифтовой стек Inter;
+ *   • COMPASS-сайдбар — слой ПОВЕРХ ЭМК: паттерн панели настроек редактора Ghost
+ *     (выезд справа, 450ms cubic-bezier(.22,1,.36,1) — их собственный easing).
+ * Источник токенов: apps/shade/theme-variables.css + tailwind.theme.css (OKLCH→hex).
+ */
+
+:root {
+  --black: #15171a;
+  --white: #ffffff;
+  --gray-50: #fafafb;
+  --gray-100: #f4f5f6;
+  --gray-200: #ebeef0;
+  --gray-300: #dde1e5;
+  --gray-400: #ced4d9;
+  --gray-500: #aeb7c1;
+  --gray-600: #95a1ad;
+  --gray-700: #7c8b9a;
+  --gray-800: #646d77;
+  --gray-900: #3a4046;
+  --green-100: #e1f9e4;  --green-600: #2ab23a;  --green-700: #218a2d;  --green: #30cf43;
+  --red-50: #fff0f0;    --red-100: #ffe0e0;    --red-600: #dc091e;    --red-700: #b00a1c;
+  --yellow-50: #fff9ea; --yellow-100: #fff1d6; --yellow-500: #ffb41f;
+  --blue-50: #effaff;   --blue-600: #00a4eb;
+  --radius-control: 9px;      /* --input-group-radius Shade */
+  --radius-card: 10px;
+  --radius-modal: 12px;
+  --control-h: 32px;          /* --control-height */
+  --control-h-lg: 40px;       /* --control-height-lg */
+  --shadow-control: inset 0 1px 2px 0 rgba(0,0,0,.07);
+  --shadow-outline: 0 0 0 .5px rgba(0,0,0,.1), 0 3px 6px -2px rgba(0,0,0,.02), 0 1px 1px rgba(0,0,0,.04);
+  --shadow-lg: 0 13px 22px -4px rgba(0,0,0,.12), 0 6px 10px -5px rgba(0,0,0,.10);
+  --shadow-xl: 0 22px 34px -6px rgba(0,0,0,.16), 0 10px 16px -8px rgba(0,0,0,.10);
+  --modal-backdrop: rgba(98,109,121,.2);           /* --modal-backdrop Shade */
+  --ease-panel: cubic-bezier(.22,1,.36,1);          /* editor-settings-motion */
+  --font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, sans-serif;
+}
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 body {
-  font: 13px/1.45 Tahoma, "Segoe UI", Verdana, sans-serif;
-  color: #1c2530; background: #eef1f5;
+  font: 400 13.5px/1.6 var(--font);
+  letter-spacing: .01em;                       /* html-токен Ghost */
+  color: var(--black); background: var(--gray-50);
+  -webkit-tap-highlight-color: rgba(0,0,0,.05);
+}
+button { font: inherit; letter-spacing: inherit; }
+
+/* ------------------------------------------------------------ кнопки */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px; justify-content: center;
+  height: var(--control-h); padding: 0 13px; cursor: pointer; white-space: nowrap;
+  border-radius: var(--radius-control); border: 1px solid transparent;
+  background: var(--white); color: var(--black);
+  box-shadow: var(--shadow-outline);
+  transition: background .12s, border-color .12s, box-shadow .12s;
+}
+.btn:hover { background: var(--gray-100); }
+.btn:active { box-shadow: var(--shadow-outline), var(--shadow-control); }
+.btn-primary { background: var(--black); color: var(--white); }        /* сигнатура Ghost */
+.btn-primary:hover { background: #2e2e30; }
+.btn-secondary { border-color: var(--gray-300); }
+.btn-ghost { background: transparent; box-shadow: none; }
+.btn-ghost:hover { background: var(--gray-100); }
+.btn-block { width: 100%; }
+.btn-compass { background: var(--black); color: var(--white); }
+.btn-compass:hover { background: #2e2e30; }
+.btn-white-sm { background: var(--white); color: var(--red-700); height: 26px; padding: 0 10px; font-size: 12px; }
+
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; cursor: pointer; border: none; background: transparent;
+  border-radius: 7px; color: inherit;
+}
+.icon-btn:hover { background: var(--gray-100); }
+.icon-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn-dark:hover { background: rgba(255,255,255,.12); }
+
+.dot-live {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+  box-shadow: 0 0 0 3px rgba(48,207,67,.18);
+}
+
+.logo-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 8px; flex: none;
+  background: var(--green); color: var(--black); font-weight: 800; font-size: 17px;
+}
+.demo-mark {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: #7a4d00; background: var(--yellow-100); border: 1px solid #eddfae;
+  padding: 0 4px; border-radius: 4px; vertical-align: 1px; white-space: nowrap;
 }
 
 /* ------------------------------------------------------------ вход */
-.mis-login-screen {
+.login-screen {
   min-height: 100%; display: flex; align-items: center; justify-content: center;
-  background: #dfe7ef; padding: 24px;
+  background: var(--black); padding: 24px;
 }
-.mis-login-box {
-  width: 480px; background: #fff; border: 1px solid #a9b7c6; padding: 28px 32px;
+.login-card {
+  width: 400px; max-width: 100%; background: var(--white);
+  border-radius: var(--radius-modal); box-shadow: var(--shadow-xl);
+  padding: 30px 32px 22px;
 }
-.mis-login-org { font-size: 12px; color: #44525f; text-transform: uppercase; letter-spacing: .3px; }
-.mis-login-title { font-size: 20px; font-weight: bold; margin: 10px 0 2px; color: #10305c; }
-.mis-login-sub { font-size: 12px; color: #5a6a78; margin-bottom: 18px; }
-.mis-demo-mark {
-  font-size: 10px; font-weight: bold; color: #7a4d00; background: #fff3c9;
-  border: 1px solid #e0c56e; padding: 1px 5px; vertical-align: 2px; white-space: nowrap;
-}
-.mis-field { display: block; margin: 10px 0; font-size: 12px; color: #33414e; }
-.mis-field input, .mis-field select, .mis-textarea {
-  width: 100%; padding: 6px 8px; font: 13px Tahoma, sans-serif;
-  border: 1px solid #a9b7c6; background: #fff; color: #1c2530;
-}
-.mis-textarea { resize: vertical; }
-.mis-login-err { color: #a01212; font-size: 12px; margin: 6px 0; }
-.mis-login-hint { font-size: 11px; color: #7c8894; margin-top: 8px; }
-.mis-login-foot { font-size: 10.5px; color: #8b96a1; margin-top: 18px; border-top: 1px solid #dde4ea; padding-top: 10px; }
+.login-logo { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+.login-title { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.login-sub { font-size: 11.5px; color: var(--gray-700); }
+.login-err { color: var(--red-600); font-size: 12px; margin: 6px 0; }
+.login-hint { font-size: 11px; color: var(--gray-500); margin-top: 10px; }
+.login-foot { font-size: 10.3px; color: var(--gray-500); margin-top: 18px; border-top: 1px solid var(--gray-200); padding-top: 12px; line-height: 1.5; }
 
-.mis-btn {
-  font: 12px Tahoma, sans-serif; padding: 6px 14px; cursor: pointer;
-  background: #f4f6f9; color: #1c2530; border: 1px solid #a9b7c6;
+/* ------------------------------------------------------------ поля */
+.field { display: block; margin: 0 0 12px; font-size: 12px; font-weight: 600; color: var(--gray-900); }
+.field input, .input, .select, .textarea {
+  width: 100%; margin-top: 4px; height: var(--control-h); padding: 0 10px;
+  font: 400 13px/1.4 var(--font); color: var(--black);
+  background: var(--white); border: 1px solid var(--gray-200);
+  border-radius: var(--radius-control); outline: none;
+  transition: border-color .12s, box-shadow .12s;
 }
-.mis-btn:hover { background: #e7edf4; }
-.mis-btn-primary { background: #2b5f9e; border-color: #244f85; color: #fff; }
-.mis-btn-primary:hover { background: #234f83; }
-.mis-btn-white { background: #fff; color: #8e0f0f; border-color: #f3c4c4; }
+.field input:focus, .input:focus, .select:focus, .textarea:focus {
+  border-color: var(--gray-500);
+  box-shadow: 0 0 0 3px rgba(149,161,173,.18);
+}
+.textarea { height: auto; padding: 8px 10px; resize: vertical; line-height: 1.55; }
+.textarea-wide { font-size: 12.5px; }
+.select { width: auto; }
 
-/* ------------------------------------------------------------ шапка */
-.mis-header {
-  display: flex; align-items: stretch; flex-wrap: wrap; gap: 0 16px;
-  background: #f6f8fa; border-bottom: 2px solid #10305c; padding: 8px 14px 0;
+/* ============================================================ ОБОЛОЧКА: nav + main */
+#app { display: flex; min-height: 100vh; }
+
+.nav {
+  flex: none; width: 236px; background: var(--black); color: var(--white);
+  display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
 }
-.mis-header-org { display: flex; gap: 10px; align-items: center; padding-bottom: 8px; }
-.mis-logo {
-  width: 44px; height: 44px; background: #10305c; color: #fff; font-size: 12px; font-weight: bold;
-  display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.1;
+.nav-head {
+  display: flex; gap: 10px; align-items: center; padding: 16px 14px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.09);
 }
-.mis-org-name { font-size: 13px; font-weight: bold; color: #10305c; }
-.mis-app-name { font-size: 11px; color: #5a6a78; }
-.mis-tabs { display: flex; gap: 2px; align-items: flex-end; margin-left: 8px; }
-.mis-tabs button {
-  font: 12.5px Tahoma, sans-serif; padding: 8px 16px 7px; cursor: pointer;
-  background: #e2e8ee; color: #33414e; border: 1px solid #b9c5d1; border-bottom: none;
+.nav-head-text { min-width: 0; }
+.nav-site { font-size: 13px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+.nav-org { font-size: 10.5px; color: var(--gray-500); white-space: nowrap; }
+
+.nav-menu { flex: 1; padding: 10px 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  padding: 7px 10px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,.82);
+  background: transparent; border: none; border-radius: 7px; cursor: pointer;
+  transition: background .12s, color .12s;
 }
-.mis-tabs button.active { background: #fff; font-weight: bold; color: #10305c; border-top: 3px solid #2b5f9e; padding-top: 6px; }
-.mis-tab-badge {
-  background: #2b5f9e; color: #fff; font-size: 10px; padding: 1px 5px; margin-left: 4px;
+.nav-item svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.nav-item:hover { background: rgba(255,255,255,.07); color: var(--white); }
+.nav-item.active {
+  background: rgba(255,255,255,.09); color: var(--white); font-weight: 600;
+  box-shadow: inset 2.5px 0 0 var(--green);                 /* фирменный зелёный — маркер активного пункта */
 }
-.mis-header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; padding-bottom: 8px; }
-.mis-user { text-align: right; font-size: 11.5px; color: #33414e; display: flex; flex-direction: column; }
-.mis-user #user-name { font-weight: bold; }
-.mis-alerts-btn {
-  font: 12px Tahoma; padding: 6px 10px; cursor: pointer; background: #fff;
-  border: 1px solid #b9c5d1; position: relative;
+.nav-item-danger:hover { color: #ff8d99; }
+.nav-badge {
+  margin-left: auto; min-width: 18px; text-align: center; font-size: 10.5px; font-weight: 700;
+  background: rgba(255,255,255,.16); border-radius: 999px; padding: 1px 5px;
 }
-.mis-alerts-badge {
-  background: #c62828; color: #fff; font-weight: bold; font-size: 11px;
-  padding: 1px 6px; margin-left: 5px;
+.nav-badge-danger { background: var(--red-600); color: var(--white); }
+
+.nav-foot { padding: 12px 14px; border-top: 1px solid rgba(255,255,255,.09); }
+.nav-ws { font-size: 10px; color: var(--gray-500); margin-bottom: 10px; }
+.nav-ws.on { color: var(--green); }
+.nav-ws.off { color: #ff6b6b; }
+.nav-user { display: flex; gap: 10px; align-items: center; color: var(--white); }
+.avatar {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--green); color: var(--black); font-size: 11.5px; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center;
 }
-.mis-ws-state { font-size: 10.5px; color: #7c8894; }
-.mis-ws-state.on { color: #1d7a34; }
-.mis-ws-state.off { color: #a01212; }
+.nav-user-text { min-width: 0; flex: 1; }
+.nav-user-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-user-role { font-size: 10px; color: var(--gray-500); }
+.nav .icon-btn { color: rgba(255,255,255,.75); }
+
+/* ------------------------------------------------------------ main */
+.main { flex: 1; min-width: 0; padding: 26px 28px 48px; max-width: 1280px; }
+
+.view { display: none; }
+.view.active { display: block; }
+
+.view-head {
+  display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.view-title { font-size: 21px; font-weight: 700; letter-spacing: -.015em; line-height: 1.25; }
+.view-sub { font-size: 12px; color: var(--gray-700); margin-top: 3px; }
+.view-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.view-actions .input { width: 240px; }
+
+.card {
+  background: var(--white); border: 1px solid var(--gray-200);
+  border-radius: var(--radius-card); box-shadow: 0 1px 2px rgba(0,0,0,.03);
+}
+
+/* ------------------------------------------------------------ журнал: список Ghost */
+.list-head, .list-row {
+  display: grid;
+  grid-template-columns: 52px minmax(200px, 1.4fr) 90px minmax(140px, 1fr) 96px 96px;
+  gap: 10px; align-items: center;
+}
+.list-head {
+  padding: 9px 16px; border-bottom: 1px solid var(--gray-200);
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--gray-700);
+}
+.list-row {
+  padding: 10px 16px; border-bottom: 1px solid var(--gray-100); cursor: pointer;
+  transition: background .1s;
+}
+.list-row:last-child { border-bottom: none; }
+.list-row:hover { background: var(--gray-50); }
+.list-row .t { font-variant-numeric: tabular-nums; color: var(--gray-700); font-size: 12.5px; }
+.list-row .fio { font-weight: 600; font-size: 13.5px; }
+.list-row .meta { font-size: 11px; color: var(--gray-500); margin-top: 1px; }
+.list-row .icd { font-size: 12.5px; font-weight: 600; color: var(--gray-900); }
+
+.pill {
+  display: inline-block; font-size: 10.5px; font-weight: 600; padding: 2px 8px;
+  border-radius: 999px; border: 1px solid var(--gray-200); background: var(--white);
+  color: var(--gray-800); white-space: nowrap;
+}
+.pill.webinar { border-color: rgba(48,207,67,.45); background: var(--green-100); color: var(--green-700); }
+.pill.contra  { border-color: rgba(220,9,30,.3); background: var(--red-50); color: var(--red-700); }
+.pill-diag { background: var(--yellow-100); border-color: #eddfae; color: #7a4d00; font-weight: 700; }
+.pill-tag { color: var(--gray-700); }
+
+.st { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.st-wait   { background: var(--yellow-100); color: #7a4d00; }
+.st-active { background: var(--green-100); color: var(--green-700); }
+.st-done   { background: var(--gray-100); color: var(--gray-700); }
+
+/* ------------------------------------------------------------ карта */
+.tabs { display: flex; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; }
+.tab {
+  padding: 7px 12px 8px; font-size: 12.5px; font-weight: 500; color: var(--gray-700);
+  background: none; border: none; cursor: pointer; border-radius: 7px 7px 0 0;
+}
+.tab:hover { color: var(--black); background: var(--gray-50); }
+.tab.active { color: var(--black); font-weight: 700; box-shadow: inset 0 -2.5px 0 var(--black); }
+
+.card-tab { display: none; padding: 18px 20px; }
+.card-tab.active { display: block; }
+.form-title { font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--gray-700); margin-bottom: 14px; }
+.static {
+  background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-control);
+  padding: 9px 11px; min-height: 36px; font-size: 12.5px; line-height: 1.6; white-space: pre-wrap;
+  font-weight: 400;
+}
+.form-note { font-size: 12px; color: var(--gray-700); margin-bottom: 12px; line-height: 1.55; }
+.form-actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+.sign-line { margin-top: 20px; font-size: 11.5px; color: var(--gray-700); border-top: 1px dashed var(--gray-300); padding-top: 12px; }
+.sign-box {
+  display: inline-block; min-width: 90px; text-align: center; border: 1px dashed var(--gray-400);
+  border-radius: 6px; padding: 1px 10px; color: var(--gray-500); font-size: 10px; letter-spacing: .08em;
+}
+
+.table { border-collapse: collapse; width: 100%; }
+.table th {
+  text-align: left; font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--gray-700); padding: 8px 10px;
+  border-bottom: 1px solid var(--gray-200); white-space: nowrap;
+}
+.table td { padding: 9px 10px; border-bottom: 1px solid var(--gray-100); font-size: 12.5px; vertical-align: top; }
+.table tbody tr:last-child td { border-bottom: none; }
 
 /* ------------------------------------------------------------ алерт-баннер */
-.mis-alert-banner {
-  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
-  background: #c62828; color: #fff; border-bottom: 2px solid #8e1616;
+.alert-banner {
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px; margin-bottom: 18px;
+  background: var(--red-600); color: var(--white);
+  border-radius: var(--radius-card); box-shadow: var(--shadow-lg);
 }
-.mis-alert-icon { font-size: 20px; }
-.mis-alert-text { display: flex; flex-direction: column; flex: 1; font-size: 12.5px; }
-.mis-alert-text strong { font-size: 13.5px; }
+.alert-icon { font-size: 19px; }
+.alert-text { display: flex; flex-direction: column; flex: 1; font-size: 12px; }
+.alert-text strong { font-size: 13px; }
 
-/* ------------------------------------------------------------ каркас */
-.mis-main { padding: 14px; }
-.mis-view { display: none; }
-.mis-view.active { display: block; }
-.mis-filter-row {
-  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-  background: #fff; border: 1px solid #c4ced8; border-bottom: none;
-  padding: 8px 12px; font-size: 12px; color: #33414e;
+/* ============================================================ COMPASS: слой ПОВЕРХ ЭМК
+ * Паттерн панели настроек редактора Ghost: фиксирована справа, выезжает целиком
+ * поверх контента ЭМК; ЭМК продолжает жить под ней своей жизнью. Скрим + жирная
+ * тень делают перекрытие осознанным, а не похожим на баг рендера. */
+.compass {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 40;
+  width: 440px; max-width: 92vw;
+  background: var(--white);
+  border-left: 1px solid var(--gray-400);
+  box-shadow: -30px 0 60px -12px rgba(21,23,26,.38), -6px 0 18px -6px rgba(21,23,26,.22);
+  transform: translateX(0);
+  transition: transform 450ms var(--ease-panel);      /* editor-settings-motion Ghost */
+  display: flex; flex-direction: column;
 }
-.mis-filter-row input, .mis-filter-row select {
-  padding: 4px 6px; font: 12px Tahoma; border: 1px solid #a9b7c6;
-}
-.mis-filter-stat { margin-left: auto; color: #7c8894; font-size: 11.5px; }
-.mis-table-wrap { background: #fff; border: 1px solid #c4ced8; overflow-x: auto; }
-.mis-table { border-collapse: collapse; width: 100%; }
-.mis-table th {
-  background: #e2e8ee; color: #33414e; font-size: 11.5px; text-align: left;
-  padding: 7px 10px; border: 1px solid #d4dde5; white-space: nowrap;
-}
-.mis-table td {
-  padding: 6px 10px; border: 1px solid #e3e9ef; font-size: 12.5px; vertical-align: top;
-}
-.mis-table tbody tr:hover { background: #f0f5fa; cursor: pointer; }
-.mis-table-form tbody tr:hover { background: #fff; cursor: default; }
+.compass.closed { transform: translateX(calc(100% + 24px)); }
 
-.st-wait  { color: #7a4d00; background: #fff3c9; border: 1px solid #e0c56e; padding: 1px 7px; font-size: 11px; white-space: nowrap; }
-.st-active{ color: #14562a; background: #dff2e3; border: 1px solid #8fc79c; padding: 1px 7px; font-size: 11px; white-space: nowrap; }
-.st-done  { color: #5a6a78; background: #eef1f5; border: 1px solid #c4ced8; padding: 1px 7px; font-size: 11px; white-space: nowrap; }
-.mis-chip {
-  display: inline-block; font-size: 10.5px; padding: 1px 6px; margin: 0 4px 2px 0;
-  border: 1px solid #b9c5d1; background: #f6f8fa; color: #44525f;
+/* лёгкий скрим поверх ЭМК, пока панель открыта: перекрытие читается как замысел */
+body.compass-open .main::after {
+  content: ""; position: fixed; inset: 0; right: 440px; z-index: 30;
+  background: rgba(21,23,26,.07); pointer-events: none;
+  animation: scrim-in 450ms var(--ease-panel);
 }
-.mis-chip.webinar { border-color: #2b5f9e; color: #1c477e; background: #eaf1fa; font-weight: bold; }
-.mis-chip.contra  { border-color: #c62828; color: #8e1616; background: #fdecec; }
+@keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 960px) { body.compass-open .main::after { right: 0; } }
 
-/* ------------------------------------------------------------ карта пациента */
-.mis-card-banner {
-  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-  background: #fff; border: 1px solid #c4ced8; padding: 12px 14px; margin-bottom: 12px;
-}
-.mis-card-fio { display: flex; flex-direction: column; }
-.mis-card-fio #cb-fio { font-size: 17px; font-weight: bold; color: #10305c; }
-.mis-card-meta { font-size: 12px; color: #5a6a78; }
-.mis-card-tags { display: flex; gap: 8px; flex-wrap: wrap; }
-.mis-tag { font-size: 11.5px; border: 1px solid #b9c5d1; background: #f6f8fa; padding: 3px 8px; color: #33414e; }
-.mis-tag-diag { background: #fff3c9; border-color: #e0c56e; color: #7a4d00; font-weight: bold; }
+.csb-head { padding: 14px 16px 12px; border-bottom: 1px solid var(--gray-200); }
+.csb-head-row { display: flex; align-items: center; gap: 8px; }
+.csb-title { font-size: 15px; font-weight: 800; letter-spacing: -.01em; }
+.csb-title span { font-weight: 500; color: var(--gray-500); font-size: 11.5px; margin-left: 6px; }
+.csb-head .icon-btn { margin-left: auto; color: var(--gray-900); width: 32px; height: 32px; }
+.csb-head .icon-btn svg { width: 17px; height: 17px; stroke-width: 2; }
+.csb-head .icon-btn:hover { background: var(--gray-100); }
+.csb-sub { font-size: 10.5px; color: var(--gray-700); margin-top: 3px; display: flex; gap: 8px; align-items: baseline; }
+.csb-live { color: var(--green-700); font-weight: 700; }
+.csb-latency { color: var(--gray-500); margin-left: auto; font-variant-numeric: tabular-nums; }
 
-.mis-card-body { display: flex; gap: 12px; align-items: flex-start; }
-.mis-card-left { flex: 1 1 auto; min-width: 0; background: #fff; border: 1px solid #c4ced8; }
-.mis-tabs2 { display: flex; flex-wrap: wrap; border-bottom: 1px solid #c4ced8; background: #f6f8fa; }
-.mis-tabs2 button {
-  font: 12px Tahoma; padding: 8px 13px; background: none; border: none;
-  border-right: 1px solid #dde4ea; cursor: pointer; color: #33414e;
-}
-.mis-tabs2 button.active { background: #fff; font-weight: bold; color: #10305c; box-shadow: inset 0 -3px 0 #2b5f9e; }
-.mis-card-tab { display: none; padding: 14px 16px; }
-.mis-card-tab.active { display: block; }
-.mis-form-title { font-size: 12px; letter-spacing: .4px; color: #44525f; margin-bottom: 12px; }
-.mis-static {
-  background: #f6f8fa; border: 1px solid #d4dde5; padding: 8px 10px; min-height: 34px;
-  font-size: 12.5px; white-space: pre-wrap;
-}
-.mis-form-note { font-size: 11.5px; color: #5a6a78; margin-bottom: 10px; }
-.mis-form-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
-.mis-textarea-wide { font-size: 12.5px; }
-.mis-sign-line {
-  margin-top: 18px; font-size: 11.5px; color: #44525f; border-top: 1px dashed #b9c5d1;
-  padding-top: 10px;
-}
-.mis-sign-box { border-bottom: 1px solid #33414e; }
+.csb-empty { padding: 40px 24px; color: var(--gray-600); font-size: 12.5px; line-height: 1.65; }
+.csb-body { padding: 14px 16px 18px; overflow-y: auto; flex: 1; }
 
-/* ------------------------------------------------------------ модалки */
-.mis-modal {
-  position: fixed; inset: 0; background: rgba(28,37,48,.45);
-  display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px;
-}
-/* атрибут hidden обязан побеждать display:flex выше, иначе модалки висят всегда */
-.mis-modal[hidden] { display: none; }
-.mis-modal-box {
-  width: 560px; max-width: 100%; max-height: 90vh; overflow: auto;
-  background: #fff; border: 1px solid #a9b7c6; padding: 20px 24px;
-}
-.mis-modal-box h3 { font-size: 14px; color: #10305c; margin-bottom: 12px; }
-.mis-modal-057 { width: 720px; }
-.mis-f057 { border: 1px solid #33414e; padding: 16px 18px; font-size: 12.5px; }
-.mis-f057 h4 { text-align: center; font-size: 13px; margin-bottom: 4px; }
-.mis-f057 .f057-org { text-align: center; font-size: 11px; color: #5a6a78; margin-bottom: 12px; }
-.mis-f057 table { width: 100%; border-collapse: collapse; margin: 8px 0; }
-.mis-f057 td { border: 1px solid #8b96a1; padding: 5px 8px; }
-.mis-f057 td.k { width: 200px; background: #f6f8fa; color: #44525f; }
+.csb-svetofor { padding: 12px 14px; border-radius: var(--radius-control); border: 1px solid var(--gray-200); background: var(--gray-50); margin-bottom: 14px; }
+.csb-svetofor.green  { background: var(--green-100); border-color: rgba(33,138,45,.25); }
+.csb-svetofor.amber  { background: var(--yellow-50); border-color: rgba(122,77,0,.22); }
+.csb-svetofor.red    { background: var(--red-50); border-color: rgba(176,10,28,.25); }
+.csb-svetofor-head { font-size: 13px; font-weight: 800; letter-spacing: -.01em; }
+.csb-svetofor.green .csb-svetofor-head { color: var(--green-700); }
+.csb-svetofor.amber .csb-svetofor-head { color: #7a4d00; }
+.csb-svetofor.red .csb-svetofor-head { color: var(--red-700); }
+.csb-svetofor-text { font-size: 12px; margin-top: 4px; line-height: 1.55; color: var(--gray-900); }
 
-/* ============================================================ COMPASS САЙДБАР
- * Контрастный «современный слой»: IBM Carbon-жанр (белый, синий акцент #0f62fe),
- * читается как новое поверх привычной утилитарной МИС. */
-.compass-sidebar {
-  flex: 0 0 420px; background: #fff; border: 1px solid #c4ced8;
-  /* естественная высота: карта и сайдбар скроллятся одной страницей, как в МИС —
-     никакого невидимого внутреннего скролла, режущего панели на экране */
-}
-.csb-head {
-  padding: 12px 16px; background: #161616; color: #fff;
-  display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline;
-  position: sticky; top: 0; z-index: 2;
-}
-.csb-title { font: 600 15px "IBM Plex Sans", "Segoe UI", Tahoma, sans-serif; }
-.csb-title span { font-weight: 400; opacity: .75; font-size: 12px; }
-.csb-sub { font-size: 10.5px; opacity: .8; flex-basis: 100%; }
-.csb-live { color: #42be65; font-weight: bold; }
-.csb-latency { margin-left: auto; font-size: 11px; color: #82cfff; }
-
-.csb-empty { padding: 28px 20px; color: #697077; font-size: 12.5px; }
-.csb-body { padding: 14px 16px 18px; }
-
-.csb-svetofor { padding: 12px 14px; border-left: 6px solid #8d8d8d; background: #f4f4f4; margin-bottom: 12px; }
-.csb-svetofor.green  { border-color: #24a148; background: #e8f5eb; }
-.csb-svetofor.amber  { border-color: #f1c21b; background: #fdf6dd; }
-.csb-svetofor.red    { border-color: #da1e28; background: #fdeaea; }
-.csb-svetofor-head { font: 700 13px "Segoe UI", Tahoma; letter-spacing: .3px; }
-.csb-svetofor.green .csb-svetofor-head { color: #0e6027; }
-.csb-svetofor.amber .csb-svetofor-head { color: #8a6d00; }
-.csb-svetofor.red   .csb-svetofor-head { color: #a51616; }
-.csb-svetofor-text { font-size: 11.8px; margin-top: 4px; color: #1c2530; }
-
-.csb-section { margin-bottom: 14px; }
+.csb-section { margin-bottom: 16px; }
 .csb-sec-title {
-  font: 600 11.5px "Segoe UI", Tahoma; text-transform: uppercase; letter-spacing: .5px;
-  color: #525252; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; margin-bottom: 8px;
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--gray-700); border-bottom: 1px solid var(--gray-200);
+  padding-bottom: 5px; margin-bottom: 9px;
 }
-.csb-badge-amber { background: #f1c21b; color: #161616; font-size: 10px; padding: 1px 6px; margin-left: 6px; }
-.csb-note { font-size: 10.8px; color: #6f6f6f; margin-bottom: 8px; }
+.badge-amber { background: var(--yellow-500); color: var(--black); font-size: 10px; font-weight: 700; border-radius: 999px; padding: 1px 7px; margin-left: 6px; }
+.csb-note { font-size: 11px; color: var(--gray-600); margin-bottom: 9px; line-height: 1.5; }
 
 .csb-confirm-item {
-  display: flex; align-items: center; gap: 8px; padding: 6px 8px; margin-bottom: 4px;
-  border: 1px solid #e0e0e0; background: #fff; font-size: 12px;
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px; margin-bottom: 5px;
+  border: 1px solid var(--gray-200); border-radius: var(--radius-control);
+  background: var(--white); font-size: 12px;
 }
-.csb-confirm-item .lbl { flex: 1; }
-.csb-confirm-item.done { background: #f0fdf2; border-color: #a7e0b4; color: #0e6027; }
+.csb-confirm-item .lbl { flex: 1; line-height: 1.4; }
+.csb-confirm-item.done { background: var(--green-50, var(--gray-50)); border-color: rgba(33,138,45,.35); }
 .csb-confirm-item .csb-mini {
-  font: 11px Tahoma; cursor: pointer; padding: 3px 8px; border: 1px solid #0f62fe;
-  background: #0f62fe; color: #fff;
+  flex: none; font-size: 11px; font-weight: 600; cursor: pointer; padding: 3px 10px;
+  border: 1px solid var(--gray-300); border-radius: 7px; background: var(--white);
+  transition: background .1s, border-color .1s;
 }
-.csb-confirm-item.done .csb-mini { border-color: #a7e0b4; background: #fff; color: #0e6027; }
+.csb-confirm-item .csb-mini:hover { background: var(--gray-100); }
+.csb-confirm-item.done .csb-mini { border-color: rgba(33,138,45,.4); background: var(--white); color: var(--green-700); }
 
-.csb-datareq-item { font-size: 11.8px; padding: 5px 8px; border-left: 3px solid #f1c21b; background: #fffdf4; margin-bottom: 4px; }
-.csb-datareq-item b { font-size: 11.5px; }
+.csb-datareq-item {
+  font-size: 11.5px; padding: 8px 10px; border-radius: 7px; line-height: 1.5;
+  border-left: 3px solid var(--yellow-500); background: var(--yellow-50); margin-bottom: 6px;
+}
+.csb-datareq-item b { font-size: 11px; }
+.csb-datareq-item div { margin: 3px 0 1px; }
 
-.csb-pk-legend { display: flex; gap: 16px; font-size: 11px; color: #393939; margin: 6px 0 4px; }
-.sw { display: inline-block; width: 10px; height: 3px; margin-right: 4px; vertical-align: 2px; }
-.sw-parent { background: #0f62fe; }
-.sw-m1 { background: #9f1853; }
-.csb-pk-nums { font-size: 11px; color: #393939; }
+.csb-pk-legend { display: flex; gap: 16px; font-size: 11px; color: var(--gray-800); margin: 6px 0 4px; }
+.sw { display: inline-block; width: 10px; height: 3px; margin-right: 5px; vertical-align: 2px; border-radius: 2px; }
+.sw-parent { background: var(--black); }
+.sw-m1 { background: var(--green); }
+.csb-pk-nums { font-size: 11px; color: var(--gray-800); }
 
 .csb-table { border-collapse: collapse; width: 100%; }
-.csb-table td, .csb-table th { border: 1px solid #e0e0e0; padding: 3px 6px; font-size: 11px; }
-.csb-table th { background: #f4f4f4; text-align: left; }
+.csb-table td, .csb-table th { border-bottom: 1px solid var(--gray-100); padding: 5px 6px; font-size: 11px; text-align: left; }
+.csb-table th { color: var(--gray-700); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.csb-table td:last-child, .csb-table th:last-child { white-space: nowrap; }
 
-.csb-cbr-item { border: 1px solid #e0e0e0; padding: 7px 9px; margin-bottom: 6px; font-size: 11.5px; }
-.csb-cbr-item .sim { float: right; background: #e8f5eb; color: #0e6027; border: 1px solid #a7e0b4; padding: 0 6px; font-weight: bold; }
-.csb-cbr-item .cite { color: #525252; font-size: 10.5px; }
+.csb-cbr-item { border: 1px solid var(--gray-200); border-radius: var(--radius-control); padding: 8px 10px; margin-bottom: 6px; font-size: 11.5px; line-height: 1.5; }
+.csb-cbr-item .sim { float: right; background: var(--green-100); color: var(--green-700); border: 1px solid rgba(33,138,45,.3); border-radius: 999px; padding: 0 7px; font-weight: 700; }
+.csb-cbr-item .cite { color: var(--gray-600); font-size: 10.3px; display: block; margin-top: 3px; }
 
-.csb-passport { font-size: 10.8px; color: #393939; background: #f4f4f4; padding: 8px 10px; }
-.csb-passport div { margin-bottom: 3px; }
+.csb-passport { font-size: 10.8px; color: var(--gray-900); background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 7px; padding: 9px 11px; line-height: 1.55; }
+.csb-passport div { margin-bottom: 2px; }
 
-.csb-warnbox { font-size: 10.8px; max-height: 110px; overflow-y: auto; }
-.csb-warnbox div { padding: 2px 0 2px 10px; border-left: 2px solid #f1c21b; margin-bottom: 3px; }
+.csb-warnbox { font-size: 11px; max-height: 130px; overflow-y: auto; line-height: 1.5; }
+.csb-warnbox div { padding: 3px 0 3px 10px; border-left: 2px solid var(--yellow-500); margin-bottom: 4px; }
 
-.csb-actions { margin: 14px 0 8px; }
-.csb-btn {
-  width: 100%; font: 600 12.5px "Segoe UI", Tahoma; padding: 9px 12px; cursor: pointer;
-  background: #0f62fe; color: #fff; border: none;
+.csb-actions { margin: 16px 0 10px; }
+.csb-foot { font-size: 10px; color: var(--gray-600); text-align: center; line-height: 1.6; }
+
+/* Кнопка-фаб, когда панель скрыта */
+.compass-fab {
+  position: fixed; right: 20px; bottom: 20px; z-index: 39;
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 38px; padding: 0 16px; cursor: pointer;
+  background: var(--black); color: var(--white); border: none; border-radius: 999px;
+  box-shadow: var(--shadow-xl); font-size: 13px; font-weight: 700;
 }
-.csb-btn:hover { background: #0043ce; }
-.csb-foot { font-size: 9.8px; color: #6f6f6f; text-align: center; }
+.compass-fab:hover { background: #2e2e30; }
+
+/* ------------------------------------------------------------ модалки */
+.modal {
+  position: fixed; inset: 0; background: var(--modal-backdrop);
+  display: flex; align-items: center; justify-content: center; z-index: 60; padding: 20px;
+}
+.modal[hidden] { display: none; }
+.modal-box {
+  width: 560px; max-width: 100%; max-height: 90vh; overflow-y: auto;
+  background: var(--white); border-radius: var(--radius-modal);
+  box-shadow: var(--shadow-xl); padding: 22px 24px;
+}
+.modal-box h3 { font-size: 15px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 14px; }
+.modal-057 { width: 720px; }
+.f057 { border: 1px solid var(--gray-900); border-radius: 4px; padding: 16px 18px; font-size: 12.5px; }
+.f057 h4 { text-align: center; font-size: 13px; margin-bottom: 4px; }
+.f057 .f057-org { text-align: center; font-size: 11px; color: var(--gray-700); margin-bottom: 12px; }
+.f057 table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+.f057 td { border: 1px solid var(--gray-400); padding: 5px 8px; }
+.f057 td.k { width: 220px; background: var(--gray-50); color: var(--gray-900); font-weight: 600; }
+
+/* скрытые элементы: атрибут всегда побеждает */
+[hidden] { display: none !important; }
+
+/* ------------------------------------------------------------ адаптив */
+@media (max-width: 960px) {
+  #app { flex-direction: column; }
+  .nav { width: 100%; height: auto; position: static; flex-direction: row; align-items: center; }
+  .nav-menu { flex-direction: row; flex: 1; overflow-x: auto; }
+  .nav-item { width: auto; white-space: nowrap; }
+  .nav-foot { border-top: none; border-left: 1px solid rgba(255,255,255,.09); }
+  .nav-ws { display: none; }
+  .main { padding: 18px 14px 40px; }
+  .list-head { display: none; }
+  .list-row { grid-template-columns: 1fr auto; }
+  .compass { width: 100vw; max-width: 100vw; }
+}
 
 /* ------------------------------------------------------------ печать 057/у */
 @media print {
   body * { visibility: hidden; }
-  .mis-modal-057, .mis-modal-057 * { visibility: visible; }
-  .mis-modal { position: absolute; inset: 0; background: #fff; padding: 0; }
-  .mis-modal-box { border: none; width: 100%; }
-  .mis-form-actions { display: none; }
+  .modal-057, .modal-057 * { visibility: visible; }
+  .modal { position: absolute; inset: 0; background: #fff; padding: 0; }
+  .modal-box { border: none; box-shadow: none; width: 100%; }
+  .form-actions { display: none; }
 }
