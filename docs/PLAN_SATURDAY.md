@@ -86,10 +86,14 @@ XAI/CBR-панель. Все вызовы — к живому API (Bearer-лог
 - [x] E2E замкнутый цикл проверен: login → analyze AMBER → 6 подтверждений →
       AMBER_REVIEW → invite → bind → checkin C-SSRS=4 → красный алерт врачу (WS
       пустой пинг + REST) → confirm. Локально (TestClient + браузер) и на Debian.
-- [ ] `tailscale serve`: нужен ОДИН клик владельца tailnet (разрешить Serve):
-      **https://login.tailscale.com/f/serve?node=nYKNCpdrX621CNTRL**
-      — после него на Debian: `tailscale serve --bg --https=443 http://localhost:8000`.
-      Запасной вариант без клика: `http://100.104.45.89:8000` из tailnet (без TLS).
+- [x] `tailscale serve` + **funnel** — включены 23.10, HTTPS и публичный доступ работают:
+      * внутри tailnet: `https://debian-server.tailb27284.ts.net/`
+      * **публично (телефон трекера без установки чего-либо): тот же URL** —
+        `tailscale funnel --bg http://localhost:8000`;
+      * QR-приглашения ведут на `…/static/pwa/?token=…` (PATIENT_APP_URL в .env на сервере);
+      * PWA по умолчанию ходит в API своего origin (коммит 178b407);
+      * публичный замкнутый цикл проверен: login → invite → bind → checkin C-SSRS=4 →
+        алерт врачу → confirm. Тестовые алерты закрыты (banner чистый).
 
 **Пятница 24.10 (я + Миша):**
 - [ ] (я) Замкнутый демо-цикл QR→чек-ин→алерт→подтверждение→057/у-04
