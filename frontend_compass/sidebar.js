@@ -354,7 +354,45 @@
   });
   $("btn-qr-close").addEventListener("click", function () { $("sb-qr").hidden = true; });
 
+  /* ================================================================ standalone-режим: живое демо и проверки */
+  var DEMO_SCREEN = {
+    ib: "4111/26",
+    fio: "Крылов Артём Сергеевич (демо)",
+    screenText: "Осмотр невролога (экранные данные ЭМК, ф. 025/у). Мужчина, 34 года. " +
+      "Диагноз по МКБ-10: F41.1. Жалобы: постоянное напряжение, тревожное ожидание, " +
+      "трудности концентрации, нарушение сна. Заключение: Руководитель проектов, " +
+      "часто за рулем, поездки на встречи; опасается заторможенности на терапии. " +
+      "Лабораторные данные: Креатинин сыворотки: 82 мкмоль/л. " +
+      "Шкалы: GAD-7 = 15 б., PHQ-9 = 6 б., C-SSRS = 0.",
+  };
+  $("btn-demo").addEventListener("click", function () {
+    if (!state.session) { $("sb-login").hidden = false; $("sb-app").hidden = true; return; }
+    state.confirmations = {};
+    $("sb-src").hidden = false;
+    $("sb-src-patient").textContent = DEMO_SCREEN.fio + " • ИБ № " + DEMO_SCREEN.ib;
+    analyze(DEMO_SCREEN.screenText);
+  });
+  $("btn-open-emc").addEventListener("click", function () {
+    window.open(BASE + "/emc/", "_blank");
+  });
+
+  /* самопроверка соединения: API + ЭМК */
+  function checkConn() {
+    var el = $("sb-conn");
+    var out = [];
+    Promise.all([
+      fetch(BASE + "/healthz").then(function (r) { return r.ok; }).catch(function () { return false; }),
+      fetch(BASE + "/api/emc/version").then(function (r) { return r.ok; }).catch(function () { return false; }),
+    ]).then(function (res) {
+      out.push(res[0] ? "API ✓" : "API ✗");
+      out.push(res[1] ? "ЭМК ✓" : "ЭМК ✗");
+      el.textContent = "соединение: " + out.join(" • ");
+      el.className = "sb-conn" + (res[0] ? " ok" : " err");
+    });
+  }
+
   /* ================================================================ init */
   ensureLogin();
+  checkConn();
   if (state.session) { connectWS(); refreshAlerts(); setInterval(refreshAlerts, 20000); }
 })();

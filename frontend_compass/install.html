@@ -3,64 +3,114 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>COMPASS-HYBRID v2.6 — установка сайдбара врача</title>
+<title>COMPASS-HYBRID v2.6 — запуск сайдбара врача</title>
 <link rel="stylesheet" href="compass.css">
+<style>
+  /* вёрстка мастера — только для этой страницы */
+  .wz-checks { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0 4px; }
+  .wz-check { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600;
+    border: 1px solid #e0e0e0; border-radius: 999px; padding: 6px 13px; background: #fff; color: #57606a; }
+  .wz-check .dot { width: 9px; height: 9px; border-radius: 50%; background: #c9c9c9; }
+  .wz-check.ok { color: #047817; border-color: #9fd8ac; }
+  .wz-check.ok .dot { background: #19a438; }
+  .wz-check.err { color: #a51616; border-color: #f0b1b1; }
+  .wz-check.err .dot { background: #da1e28; }
+  .wz-ready { display: none; margin-top: 14px; padding: 12px 14px; border-radius: 9px;
+    background: #e8f5eb; border: 1px solid #9fd8ac; color: #047817; font-weight: 700; font-size: 13px; }
+  .wz-ready.show { display: block; }
+  .wz-faq { margin-top: 20px; border-top: 1px solid #f0f0f0; padding-top: 14px; }
+  .wz-faq h2 { font-size: 13.5px; margin-bottom: 8px; }
+  .wz-faq details { font-size: 12.5px; color: #393939; margin-bottom: 8px; }
+  .wz-faq summary { cursor: pointer; font-weight: 600; }
+  .wz-kbd { font: 600 11px monospace; background: #f4f4f4; border: 1px solid #d0d7de;
+    border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; }
+</style>
 </head>
 <body class="cp-page">
 
 <header class="cp-head">
   <div class="cp-brand"><span class="cp-mark">К</span> COMPASS&ndash;HYBRID <span class="cp-ver">v2.6</span></div>
-  <div class="cp-sub">CDSS команды 20-П «Rapira» &bull; слой поверх вашей ЭМК</div>
+  <div class="cp-sub">CDSS команды 20-П «Rapira» &bull; сайдбар врача поверх ЭМК</div>
 </header>
 
 <main class="cp-main">
 
   <section class="cp-card">
-    <h1>Рабочее место врача: 3 шага</h1>
+    <h1>Запуск: 3 шага</h1>
+
+    <div class="wz-checks" id="checks">
+      <span class="wz-check" id="chk-api"><span class="dot"></span>API COMPASS</span>
+      <span class="wz-check" id="chk-emc"><span class="dot"></span>ЭМК поликлиники</span>
+      <span class="wz-check" id="chk-session"><span class="dot"></span>Вход врача</span>
+    </div>
+    <div class="wz-ready" id="ready">✓ Всё готово: откройте ЭМК и работайте. На карте пациента нажимайте закладку «COMPASS ▸».</div>
 
     <div class="cp-step">
       <div class="cp-step-num">1</div>
-      <div>
-        <b>Войдите как врач COMPASS</b> (ЖИВОЙ API, JWT):
+      <div style="flex:1">
+        <b>Войдите как врач</b> — панель будет работать под вашей учёткой:
         <form id="form-login" class="cp-login" autocomplete="off">
           <input id="in-login" class="cp-input" value="neuro.ivlanov" spellcheck="false" aria-label="Логин">
           <input id="in-password" class="cp-input" type="password" value="compass-demo-2026" aria-label="Пароль">
           <button type="submit" class="cp-btn cp-btn-primary" id="btn-login">Войти</button>
         </form>
-        <div class="cp-status" id="login-status">Сессия не найдена — войдите.</div>
+        <div class="cp-status" id="login-status">проверка сессии…</div>
       </div>
     </div>
 
     <div class="cp-step">
       <div class="cp-step-num">2</div>
-      <div>
-        <b>Перетащите кнопку на панель закладок браузера</b> — это агент COMPASS
-        (мини-версия расширения; в проде ставится как extension/iframe-виджет):
+      <div style="flex:1">
+        <b>Установите агент</b>: перетащите синюю кнопку на панель закладок браузера.
+        Не видите панель закладок? Нажмите <span class="wz-kbd">Ctrl</span>+<span class="wz-kbd">Shift</span>+<span class="wz-kbd">B</span> (Windows) или <span class="wz-kbd">Cmd</span>+<span class="wz-kbd">Shift</span>+<span class="wz-kbd">B</span> (Mac).
         <div class="cp-bookmark-row">
-          <a id="bookmarklet" class="cp-bookmark" href="#"> COMPASS ▸ </a>
-          <span class="cp-hint">← зажмите и перетащите на панель закладок</span>
+          <a id="bookmarklet" class="cp-bookmark" href="#" draggable="true"> COMPASS ▸ </a>
+          <span class="cp-hint">← зажмите мышью и перетащите наверх, на панель закладок</span>
         </div>
+        <div class="cp-hint" style="margin-top:8px">Агент — это мини-версия браузерного расширения: он
+          читает данные <b>с экрана</b> карты пациента и открывает эту панель поверх ЭМК.
+          Файлы ЭМК не изменяются.</div>
       </div>
     </div>
 
     <div class="cp-step">
       <div class="cp-step-num">3</div>
-      <div>
-        <b>Откройте ЭМК</b>, войдите, откройте карту пациента и нажмите закладку
-        «COMPASS ▸»: агент считает данные <b>с экрана карты</b> (ЭМК не
-        модифицируется) и поверх неё выедет сайдбар с разбором.
+      <div style="flex:1">
+        <b>Работайте в ЭМК</b>: войдите любым врачом, откройте «Журнал приёма» →
+        карта пациента → нажмите закладку <b>«COMPASS ▸»</b>. Справа поверх ЭМК
+        появится панель с разбором.
         <div class="cp-emc-row">
-          <a id="emc-link" class="cp-btn cp-btn-outline" href="/emc/">Открыть ЭМК «АИС Поликлиника» →</a>
-          <span class="cp-hint">демо-вход в ЭМК: любой врач из списка, пароль не требуется</span>
+          <a id="emc-link" class="cp-btn cp-btn-primary" href="/emc/" target="_blank" rel="noopener">Открыть ЭМК «АИС Поликлиника» →</a>
+          <a class="cp-btn cp-btn-outline" href="/static/compass/sidebar.html" target="_blank" rel="noopener">Посмотреть панель отдельно</a>
         </div>
       </div>
     </div>
 
+    <div class="wz-faq">
+      <h2>Если ничего не происходит</h2>
+      <details>
+        <summary>Нажал закладку — ничего не случилось</summary>
+        Агент работает только на <b>открытой карте пациента</b> (не на журнале). Откройте
+        пациента кнопкой «Открыть карту» и нажмите закладку ещё раз — внизу экрана
+        появится подсказка о состоянии.
+      </details>
+      <details>
+        <summary>Панель открылась, но пишет «Ожидание данных»</summary>
+        Панель получает данные только от агента в ЭМК. Убедитесь, что нажали закладку
+        именно на странице карты пациента ЭМК, а сессия врача введена (шаг 1).
+      </details>
+      <details>
+        <summary>Хочу увидеть панель без ЭМК</summary>
+        «Посмотреть панель отдельно» → кнопка «Проверить панель на демо-пациенте» —
+        панель прогонит демо-экран через живой API.
+      </details>
+    </div>
+
     <p class="cp-note">
-      Архитектура = реальные условия внедрения: ЭМК — отдельная проприетарная
-      система (отдельный процесс и порт, свой API, ноль кода COMPASS внутри).
-      Сайдбар врача — внешний слой, читающий экран и говорящий с API COMPASS.
-      Все пациенты синтетические (152-ФЗ).
+      Архитектура = реальные условия внедрения: ЭМК — отдельная проприетарная система
+      (свой процесс и порт, свой API, ноль кода COMPASS). Сайдбар — внешний слой:
+      агент читает экран, панель говорит с API COMPASS по JWT. Все пациенты
+      синтетические (152-ФЗ).
     </p>
   </section>
 
@@ -77,34 +127,60 @@
     "document.body.appendChild(s);s.onerror=function(){alert('COMPASS: агент недоступен')};})()";
   document.getElementById("bookmarklet").href = BK;
 
-  function session() {
-    try { return JSON.parse(localStorage.getItem("compass_session") || "null"); } catch (e) { return null; }
+  function setCheck(id, ok) {
+    var el = document.getElementById(id);
+    el.className = "wz-check " + (ok === null ? "" : (ok ? "ok" : "err"));
   }
-  function showStatus() {
-    var s = session(), el = document.getElementById("login-status");
-    el.textContent = s ? "Сессия врача активна (" + (localStorage.getItem("compass_login") || "") + "). Шаг 1 выполнен." : "Сессия не найдена — войдите.";
-    el.className = "cp-status" + (s ? " ok" : "");
+  function maybeReady() {
+    var r = document.getElementById("ready");
+    var all = ["chk-api", "chk-emc", "chk-session"].every(function (id) {
+      return document.getElementById(id).classList.contains("ok");
+    });
+    r.className = "wz-ready" + (all ? " show" : "");
+  }
+  function checkAll() {
+    setCheck("chk-api", null); setCheck("chk-emc", null);
+    fetch(BASE + "/healthz").then(function (r) { return r.ok; }).catch(function () { return false; })
+      .then(function (ok) { setCheck("chk-api", ok); maybeReady(); });
+    fetch(BASE + "/api/emc/version").then(function (r) { return r.ok; }).catch(function () { return false; })
+      .then(function (ok) { setCheck("chk-emc", ok); maybeReady(); });
+    checkSession();
+  }
+  function checkSession() {
+    var s = null;
+    try { s = JSON.parse(localStorage.getItem("compass_session") || "null"); } catch (e) {}
+    var el = document.getElementById("login-status");
+    var ok = !!s;
+    setCheck("chk-session", ok);
+    el.textContent = ok
+      ? "Сессия врача активна (" + (localStorage.getItem("compass_login") || "") + ")."
+      : "Сессии нет — войдите (логин/пароль подставлены).";
+    el.className = "cp-status" + (ok ? " ok" : "");
+    maybeReady();
   }
   document.getElementById("form-login").addEventListener("submit", function (e) {
     e.preventDefault();
+    var btn = document.getElementById("btn-login");
+    btn.disabled = true; btn.textContent = "Вход…";
     fetch(BASE + "/api/v1/auth/login", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ login: document.getElementById("in-login").value.trim(),
                              password: document.getElementById("in-password").value }),
     }).then(function (r) {
-      if (!r.ok) throw new Error("HTTP " + r.status);
+      if (!r.ok) throw new Error("HTTP " + r.status + (r.status === 503 ? " — поднимите docker compose" : ""));
       return r.json();
     }).then(function (t) {
       localStorage.setItem("compass_session", JSON.stringify(t));
       localStorage.setItem("compass_login", document.getElementById("in-login").value.trim());
-      showStatus();
+      checkSession();
     }).catch(function (err) {
       var el = document.getElementById("login-status");
       el.textContent = "Ошибка входа: " + err.message;
       el.className = "cp-status err";
-    });
+      setCheck("chk-session", false);
+    }).finally(function () { btn.disabled = false; btn.textContent = "Войти"; });
   });
-  showStatus();
+  checkAll();
 })();
 </script>
 </body>

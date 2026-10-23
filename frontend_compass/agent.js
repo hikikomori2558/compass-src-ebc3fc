@@ -124,16 +124,47 @@
     bubble.style.display = show ? "none" : "block";
   }
 
+  /* -------- тост-подсказка поверх ЭМК (вместо системного alert) ---------- */
+  function toast(title, lines, ms) {
+    var old = document.getElementById("compass-agent-toast");
+    if (old) old.remove();
+    var t = document.createElement("div");
+    t.id = "compass-agent-toast";
+    t.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:24px;" +
+      "z-index:2147483002;max-width:430px;background:#fff;border:1px solid #d0d7de;" +
+      "border-left:4px solid #0f62fe;border-radius:10px;box-shadow:0 16px 40px -12px rgba(9,22,40,.3);" +
+      "padding:12px 16px;font:13px/1.5 system-ui,sans-serif;color:#161616;text-align:left;";
+    var h = document.createElement("div");
+    h.style.cssText = "font-weight:700;margin-bottom:4px;";
+    h.textContent = title;
+    t.appendChild(h);
+    (lines || []).forEach(function (l) {
+      var d = document.createElement("div");
+      d.style.cssText = "color:#57606a;font-size:12px;";
+      d.textContent = l;
+      t.appendChild(d);
+    });
+    document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, ms || 4200);
+  }
+
   /* -------- точка входа: window.__compassAgent(baseUrl) --------------------- */
   window.__compassAgent = function (base) {
     var payload = readScreen();
     if (!payload) {
-      alert("COMPASS: откройте карту пациента в ЭМК — агент читает данные с экрана карты.");
+      toast("COMPASS: карта пациента не открыта", [
+        "1. Откройте пациента в «Журнале приёма» (кнопка «Открыть карту»).",
+        "2. Нажмите закладку «COMPASS ▸» ещё раз — агент читает экран карты.",
+      ], 6000);
       return;
     }
     lastPayload = { type: "COMPASS_SCREEN", emcOrigin: location.origin, ts: Date.now(), payload: payload };
     flashScanned();
     ensureFrame(base);
     if (ready && frame) frame.contentWindow.postMessage(lastPayload, "*");
+    toast("COMPASS: экран считан", [
+      "Пациент: " + payload.fio + " • ИБ № " + payload.ib,
+      "Разбор открывается в панели справа. Подтвердите пункты врача в ней.",
+    ], 4000);
   };
 })();

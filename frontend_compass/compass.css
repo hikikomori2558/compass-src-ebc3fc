@@ -90,7 +90,15 @@ textarea.cp-input { height: auto; padding: 8px 11px; resize: vertical; }
 .sb-alert { margin: 12px 14px 0; padding: 10px 12px; border-radius: 8px; background: #da1e28; color: #fff; }
 .sb-alert-sub { font-size: 11.5px; opacity: .9; margin: 3px 0 8px; }
 
-.sb-empty { padding: 60px 26px; text-align: center; color: #525252; font-size: 13px; line-height: 1.7; }
+.sb-empty { padding: 34px 22px 26px; text-align: center; color: #525252; font-size: 13px; line-height: 1.7; }
+.sb-empty-title { font-size: 15px; font-weight: 800; color: #161616; margin-bottom: 14px; }
+.sb-steps { text-align: left; display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+.sb-step { padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa; font-size: 12px; line-height: 1.55; }
+.sb-step b { color: #0f62fe; }
+.sb-empty .cp-btn { margin-bottom: 8px; }
+.sb-conn { margin-top: 12px; font-size: 11px; color: #8d8d8d; }
+.sb-conn.ok { color: #047817; }
+.sb-conn.err { color: #a51616; }
 .sb-dim { color: #8d8d8d; font-size: 11.5px; }
 .sb-body-content { padding: 14px 16px 18px; overflow-y: auto; flex: 1; }
 

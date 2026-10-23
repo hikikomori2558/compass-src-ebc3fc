@@ -40,8 +40,17 @@
   </div>
 
   <div class="sb-empty" id="sb-empty">
-    Ожидание данных с экрана ЭМК…<br>
-    <span class="sb-dim">Откройте карту пациента в ЭМК и нажмите закладку «COMPASS ▸».</span>
+    <div class="sb-empty-title">Панель врача COMPASS</div>
+    <div class="sb-steps">
+      <div class="sb-step"><b>1.</b> Работайте в ЭМК как обычно: журнал приёма → карта пациента.</div>
+      <div class="sb-step"><b>2.</b> Нажмите закладку <b>«COMPASS ▸»</b> в панели закладок —
+        агент считает данные с экрана карты (ЭМК не изменяется).</div>
+      <div class="sb-step"><b>3.</b> Здесь появится светофор безопасности, подтверждения,
+        фармакокинетика и объяснение решения.</div>
+    </div>
+    <button type="button" class="cp-btn cp-btn-primary cp-btn-block" id="btn-demo">▸ Проверить панель на демо-пациенте</button>
+    <button type="button" class="cp-btn cp-btn-outline cp-btn-block" id="btn-open-emc">Открыть ЭМК в новой вкладке</button>
+    <div class="sb-conn" id="sb-conn">соединение: проверка…</div>
   </div>
 
   <div class="sb-body-content" id="sb-content" hidden>
