@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 scripts/gen_mis_journal.py — генератор «журнала приёма на сегодня» для МИС-стенда
-(frontend_mis_mock/data/patients_today.json).
+(backend_emc/data/patients_today.json — «БД» вендорского сервера ЭМК).
 
 Источники (все пациенты синтетические/обезличенные):
   1. clinical_data/webinar_patient_profiles.json — 5 персон с вебинара организаторов
@@ -136,7 +136,7 @@ def build_journal() -> list[dict]:
 
 def main() -> None:
     journal = build_journal()
-    out = ROOT / "frontend_mis_mock" / "data" / "patients_today.json"
+    out = ROOT / "backend_emc" / "data" / "patients_today.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(journal, ensure_ascii=False, indent=1), "utf-8")
     by_src = {}

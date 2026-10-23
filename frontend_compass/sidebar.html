@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COMPASS — сайдбар врача</title>
+<link rel="stylesheet" href="compass.css">
+</head>
+<body class="sb-body">
+
+<!-- вход, если сессии врача нет -->
+<div id="sb-login" class="sb-login" hidden>
+  <div class="sb-login-box">
+    <b>Вход врача COMPASS</b>
+    <form id="form-login" autocomplete="off">
+      <input id="in-login" class="cp-input" value="neuro.ivlanov" spellcheck="false" aria-label="Логин">
+      <input id="in-password" class="cp-input" type="password" value="compass-demo-2026" aria-label="Пароль">
+      <button type="submit" class="cp-btn cp-btn-primary cp-btn-block">Войти</button>
+    </form>
+    <div class="sb-login-err" id="login-err" hidden></div>
+  </div>
+</div>
+
+<div id="sb-app" class="sb-app">
+
+  <header class="sb-head">
+    <div class="sb-title">COMPASS<span>v2.6</span></div>
+    <div class="sb-sub">CDSS 20-П «Rapira» &bull; <span class="sb-live">живой API</span>
+      <span class="sb-latency" id="sb-latency">—</span></div>
+    <div class="sb-src" id="sb-src" hidden>Источник: <b>экран ЭМК</b> &bull; <span id="sb-src-patient"></span></div>
+    <button type="button" class="sb-close" id="btn-close" title="Свернуть (панель вернётся кнопкой COMPASS)">
+      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </header>
+
+  <div class="sb-alert" id="sb-alert" hidden>
+    <b id="sb-alert-title"></b>
+    <div class="sb-alert-sub" id="sb-alert-sub"></div>
+    <button type="button" class="cp-btn cp-btn-sm" id="btn-alert-confirm">Подтвердить реакцию…</button>
+  </div>
+
+  <div class="sb-empty" id="sb-empty">
+    Ожидание данных с экрана ЭМК…<br>
+    <span class="sb-dim">Откройте карту пациента в ЭМК и нажмите закладку «COMPASS ▸».</span>
+  </div>
+
+  <div class="sb-body-content" id="sb-content" hidden>
+
+    <div class="sb-svetofor" id="sb-svetofor">
+      <div class="sb-svetofor-head" id="sb-status-title">—</div>
+      <div class="sb-svetofor-text" id="sb-status-text">—</div>
+    </div>
+
+    <section class="sb-sec" id="sec-confirm">
+      <div class="sb-sec-t">Подтверждения врача <span class="sb-badge-amber" id="confirm-count">0</span></div>
+      <div class="sb-note">Неизвестное не даёт зелёного статуса: подтвердите отсутствие — разбор повторится.</div>
+      <div id="confirm-list"></div>
+    </section>
+
+    <section class="sb-sec" id="sec-datareq" hidden>
+      <div class="sb-sec-t">Недостающие данные</div>
+      <div id="datareq-list"></div>
+    </section>
+
+    <section class="sb-sec" id="sec-findings" hidden>
+      <div class="sb-sec-t">Предупреждения ОХЛП (движок правил)</div>
+      <div id="findings-list"></div>
+    </section>
+
+    <section class="sb-sec">
+      <div class="sb-sec-t">Фармакокинетика 168 ч (RK45, C-ядро)</div>
+      <canvas id="pk-chart" width="412" height="150"></canvas>
+      <div class="sb-pk-legend">
+        <span><i class="sw sw-p"></i>маритупирдин</span>
+        <span><i class="sw sw-m"></i>метаболит M1</span>
+      </div>
+      <div class="sb-pk-nums" id="pk-nums">—</div>
+    </section>
+
+    <section class="sb-sec" id="sec-routing">
+      <div class="sb-sec-t">Маршрутизация</div>
+      <div id="routing-body">—</div>
+    </section>
+
+    <section class="sb-sec" id="sec-xai" hidden>
+      <div class="sb-sec-t">XAI: топ-факторы (SHAP, ГОСТ Р 59921)</div>
+      <table class="sb-table" id="xai-table"></table>
+    </section>
+
+    <section class="sb-sec" id="sec-cbr" hidden>
+      <div class="sb-sec-t">Похожие когорты РКИ (CBR)</div>
+      <div id="cbr-list"></div>
+    </section>
+
+    <section class="sb-sec" id="sec-passport" hidden>
+      <div class="sb-sec-t">Паспорт провенанса решения</div>
+      <div class="sb-passport" id="passport-body"></div>
+    </section>
+
+    <section class="sb-sec" id="sec-warn" hidden>
+      <div class="sb-sec-t">Предупреждения и допущения</div>
+      <div class="sb-warnbox" id="warn-body"></div>
+    </section>
+
+    <div class="sb-actions">
+      <button type="button" class="cp-btn cp-btn-primary cp-btn-block" id="btn-057">Сформировать ф. 057/у-04</button>
+      <button type="button" class="cp-btn cp-btn-outline cp-btn-block" id="btn-qr">QR-приглашение пациенту</button>
+    </div>
+    <div class="sb-foot">Решение принимает врач. Система предупреждает и оформляет.<br>
+      <span id="sb-telemetry">телеметрия: —</span> &bull; <span id="sb-ws">WS: —</span></div>
+  </div>
+
+  <!-- QR приглашение -->
+  <div class="sb-qr" id="sb-qr" hidden>
+    <div class="sb-sec-t">QR-привязка пациента (TTL 24 ч)</div>
+    <img id="qr-img" alt="QR приглашения" class="sb-qr-img">
+    <div class="sb-dim">Пациент сканирует → PWA → чек-ины; критические ответы прилетят в эту панель.</div>
+    <div class="sb-qr-link" id="qr-link"></div>
+    <button type="button" class="cp-btn cp-btn-sm" id="btn-qr-close">Закрыть</button>
+  </div>
+</div>
+
+<!-- модалки (внутри iframe) -->
+<div class="sb-modal" id="modal-057" hidden>
+  <div class="sb-modal-box">
+    <h3>НАПРАВЛЕНИЕ ф. 057/у-04</h3>
+    <div class="f057" id="f057-body"></div>
+    <div class="sb-modal-actions">
+      <button type="button" class="cp-btn cp-btn-primary" id="btn-057-print">Печать</button>
+      <button type="button" class="cp-btn" id="btn-057-close">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<div class="sb-modal" id="modal-confirm" hidden>
+  <div class="sb-modal-box">
+    <h3>Подтверждение реакции на алерт</h3>
+    <p class="sb-note" id="confirm-info"></p>
+    <textarea id="confirm-action" class="cp-input" rows="3">Телефонный контакт, рекомендован очный приём психиатра сегодня.</textarea>
+    <div class="sb-modal-actions">
+      <button type="button" class="cp-btn cp-btn-primary" id="btn-confirm-ok">Подтвердить</button>
+      <button type="button" class="cp-btn" id="btn-confirm-cancel">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<script src="sidebar.js"></script>
+</body>
+</html>

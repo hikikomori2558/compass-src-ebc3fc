@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>АИС «Поликлиника» v1.0.7 — РМ врача (демо-стенд вендора)</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============================================================ ВХОД (система вендора) -->
+<div id="screen-login" class="emc-login-screen">
+  <div class="emc-login-box">
+    <div class="emc-login-org">ГБУЗ «Городская поликлиника № 158 ДЗМ»<br>Департамент здравоохранения города Москвы</div>
+    <div class="emc-login-title">АИС «ПОЛИКЛИНИКА» <span class="emc-ver">v1.0.7</span></div>
+    <div class="emc-login-sub">Единая медицинская информационная система &bull; Рабочее место врача</div>
+    <form id="form-login" autocomplete="off">
+      <label class="emc-field">Учётная запись
+        <select id="in-doctor">
+          <option value="Иванов Алексей Викторович (невролог)">Иванов А.В. — невролог</option>
+          <option value="Петрова Мария Сергеевна (психиатр)">Петрова М.С. — психиатр</option>
+          <option value="Соколов Дмитрий Петрович (терапевт)">Соколов Д.П. — терапевт</option>
+        </select>
+      </label>
+      <label class="emc-field">Пароль домена
+        <input id="in-password" type="password" value="********" disabled>
+      </label>
+      <div class="emc-login-err" id="login-err" hidden></div>
+      <button type="submit" class="emc-btn emc-btn-primary" id="btn-login">Войти в систему</button>
+      <div class="emc-login-hint">Демо-стенд ЭМК. Все пациенты синтетические/обезличенные (152-ФЗ).</div>
+    </form>
+    <div class="emc-login-foot">
+      ООО «МедИнформСистемы» &bull; техподдержка 8-800-000-00-00 &bull; рег. № 01234-ЭМК
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ ОБОЛОЧКА -->
+<div id="app" hidden>
+  <header class="emc-header">
+    <div class="emc-header-org">
+      <div class="emc-logo">ГП<br>№158</div>
+      <div>
+        <div class="emc-org-name">ГБУЗ «Городская поликлиника № 158 ДЗМ»</div>
+        <div class="emc-app-name">АИС «ПОЛИКЛИНИКА» v1.0.7 &bull; Рабочее место врача</div>
+      </div>
+    </div>
+    <nav class="emc-tabs" id="emc-tabs">
+      <button type="button" data-view="journal" class="active">Журнал приёма</button>
+      <button type="button" data-view="card" id="tab-card" hidden>Карта пациента</button>
+      <button type="button" data-view="reports">Отчёты</button>
+    </nav>
+    <div class="emc-header-right">
+      <div class="emc-user">
+        <span id="user-name">—</span>
+        <span id="user-date">—</span>
+      </div>
+      <button type="button" class="emc-btn" id="btn-logout">Выход</button>
+    </div>
+  </header>
+
+  <main class="emc-main">
+
+    <!-- ================================================== ЖУРНАЛ -->
+    <section class="emc-view active" id="view-journal">
+      <div class="emc-filter-row">
+        <label>Дата приёма: <input type="date" id="f-date" disabled></label>
+        <label>Врач:
+          <select id="f-doctor">
+            <option value="">все</option>
+            <option value="невролог">невролог</option>
+            <option value="психиатр">психиатр</option>
+            <option value="терапевт">терапевт</option>
+          </select>
+        </label>
+        <label>Поиск: <input id="f-search" placeholder="ФИО / ИБ / диагноз" size="28"></label>
+        <span class="emc-filter-stat" id="journal-stat">—</span>
+      </div>
+      <div class="emc-table-wrap">
+        <table class="emc-table" id="journal-table">
+          <thead>
+            <tr>
+              <th>№</th><th>Время</th><th>ФИО пациента</th><th>Дата рожд.</th>
+              <th>Диагноз МКБ-10</th><th>Отметки</th><th>Статус приёма</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="journal-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================== КАРТА -->
+    <section class="emc-view" id="view-card">
+      <div class="emc-card-banner" id="card-banner">
+        <div class="emc-card-fio">
+          <span id="cb-fio">—</span>
+          <span class="emc-card-meta" id="cb-sex-age">—</span>
+        </div>
+        <div class="emc-card-tags">
+          <span class="emc-tag" id="cb-ib">ИБ № —</span>
+          <span class="emc-tag" id="cb-oms">ОМС —</span>
+          <span class="emc-tag emc-tag-diag" id="cb-icd">—</span>
+          <span class="emc-tag" id="cb-source">—</span>
+        </div>
+        <button type="button" class="emc-btn emc-btn-primary" id="btn-to-journal">← Журнал</button>
+      </div>
+
+      <div class="emc-card-body">
+        <div class="emc-card-left">
+          <nav class="emc-tabs2" id="card-tabs">
+            <button type="button" data-tab="inspect" class="active">Осмотр (ф. 025/у)</button>
+            <button type="button" data-tab="labs">Лаборатория</button>
+            <button type="button" data-tab="meds">Назначения</button>
+            <button type="button" data-tab="scales">Шкалы</button>
+          </nav>
+
+          <div class="emc-card-tab active" id="card-tab-inspect">
+            <h3 class="emc-form-title">МЕДИЦИНСКАЯ КАРТА АМБУЛАТОРНОГО ПАЦИЕНТА &mdash; ф. 025/у</h3>
+            <div class="emc-field"><label>Жалобы</label>
+              <div class="emc-static" id="insp-complaints">—</div></div>
+            <div class="emc-field"><label>Анамнез заболевания / статус</label>
+              <div class="emc-static" id="insp-anamnesis">—</div></div>
+            <div class="emc-field"><label>Заключение (данные осмотра)</label>
+              <textarea class="emc-textarea" id="insp-text" rows="9" spellcheck="false"></textarea>
+              <div class="emc-form-actions">
+                <button type="button" class="emc-btn emc-btn-primary" id="btn-save-note">Сохранить заключение</button>
+              </div>
+            </div>
+            <div class="emc-sign-line">
+              Врач: <span id="insp-doctor">—</span> &bull; Подпись (ЭЦП):
+              <span class="emc-sign-box">подписано ЭЦП вендора</span>
+              &bull; Дата: <span id="insp-date">—</span>
+            </div>
+          </div>
+
+          <div class="emc-card-tab" id="card-tab-labs">
+            <h3 class="emc-form-title">РЕЗУЛЬТАТЫ ЛАБОРАТОРНЫХ ИССЛЕДОВАНИЙ</h3>
+            <table class="emc-table emc-table-form" id="labs-table">
+              <thead><tr><th>Показатель</th><th>Значение</th><th>Ед.</th><th>Реф. интервал</th></tr></thead>
+              <tbody id="labs-tbody"></tbody>
+            </table>
+          </div>
+
+          <div class="emc-card-tab" id="card-tab-meds">
+            <h3 class="emc-form-title">ТЕКУЩИЕ НАЗНАЧЕНИЯ</h3>
+            <table class="emc-table emc-table-form">
+              <thead><tr><th>Препарат</th><th>Режим</th><th>Начало</th><th>Назначил</th></tr></thead>
+              <tbody id="meds-tbody"></tbody>
+            </table>
+          </div>
+
+          <div class="emc-card-tab" id="card-tab-scales">
+            <h3 class="emc-form-title">ПСИХОМЕТРИЧЕСКИЕ ШКАЛЫ</h3>
+            <table class="emc-table emc-table-form">
+              <thead><tr><th>Шкала</th><th>Баллы</th><th>Интерпретация</th></tr></thead>
+              <tbody id="scales-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================== ОТЧЁТЫ (мёртвая вкладка вендора — реализм) -->
+    <section class="emc-view" id="view-reports">
+      <div class="emc-card-banner">Формы отчётности ДЗМ</div>
+      <div class="emc-table-wrap">
+        <table class="emc-table">
+          <thead><tr><th>Форма</th><th>Период</th><th>Статус</th></tr></thead>
+          <tbody>
+            <tr><td>ф. № 14-дс (обращаемость)</td><td>октябрь 2026</td><td><span class="st-done">сдана</span></td></tr>
+            <tr><td>ф. № 395-у (диспансеризация)</td><td>IV кв. 2026</td><td><span class="st-wait">формируется</span></td></tr>
+            <tr><td>СЭМД: исходы визитов</td><td>23.10.2026</td><td><span class="st-wait">в очереди</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+<script src="app.js"></script>
+</html>

@@ -7,7 +7,7 @@ from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -27,6 +27,8 @@ async def lifespan(app: FastAPI):
     # биоэндпоинтами (полезно для быстрых прогонов без docker compose).
     app.state.pg_pool = None
     app.state.redis = None
+    # Клиент к «проприетарному» серверу ЭМК вендора (порт 8100, отдельный процесс)
+    app.state.emc_client = httpx.AsyncClient(timeout=10.0)
     dsn = os.getenv(
         "DATABASE_URL",
         # 5433 — локальная конвенция репо (docker-compose.override.yml): 5432 на
@@ -64,6 +66,8 @@ async def lifespan(app: FastAPI):
     yield
     if getattr(app.state, "alert_relay", None):
         await app.state.alert_relay.stop()
+    if getattr(app.state, "emc_client", None):
+        await app.state.emc_client.aclose()
     if app.state.pg_pool:
         await app.state.pg_pool.close()
     if app.state.redis:
@@ -148,23 +152,62 @@ app.include_router(ws_router)
 app.include_router(cdss_router)
 
 # ------------------------------------------------------------------ стека демо
-# Статика демо-стенда: МИС-имитатор (точка входа демо), АРМ врача (OpenMRS/Carbon),
-# PWA пациента. Один origin с API — сайдбар COMPASS ходит в бэкенд без CORS-танцев,
-# а tailscale serve проксирует наружу только этот порт (план субботы, PLAN_SATURDAY.md).
+# Архитектура «в реальных условиях» (по требованию условия кейса):
+#   * ЭМК — ПРОПРИЕТАРНАЯ система вендора: отдельный процесс backend_emc/server.py
+#     (порт 8100, свой API /api/emc/*, своя стatica frontend_emc/). Ноль кода COMPASS.
+#   * COMPASS — внешний слой: frontend_compass/ (install-хаб + agent.js + сайдбар),
+#     читает данные С ЭКРАНА ЭМК и говорит с нашим API.
+#   * Ниже: стatica COMPASS + прозрачный прокси к вендорскому серверу ЭМК, чтобы
+#     публичный домен (cloudflared -> 8000) обслуживал обе системы одним портом.
+import httpx
+
+EMC_UPSTREAM = os.getenv("EMC_UPSTREAM", "http://127.0.0.1:8100")
 _ROOT = Path(__file__).resolve().parent.parent
-for _mount, _dir in (
-    ("/static/mis", "frontend_mis_mock"),
-    ("/static/arm", "frontend_doctor"),
-    ("/static/pwa", "frontend_patient"),
-):
-    _p = _ROOT / _dir
-    if _p.is_dir():
-        app.mount(_mount, StaticFiles(directory=str(_p), html=True), name=_dir)
+_COMPASS_STATIC = _ROOT / "frontend_compass"
+if _COMPASS_STATIC.is_dir():
+    app.mount("/static/compass", StaticFiles(directory=str(_COMPASS_STATIC), html=True), name="compass")
+
+_PWA_STATIC = _ROOT / "frontend_patient"
+if _PWA_STATIC.is_dir():
+    app.mount("/static/pwa", StaticFiles(directory=str(_PWA_STATIC)), name="pwa")
+
+
+async def _emc_proxy(request: Request, path: str) -> Response:
+    """Прозрачный прокси к серверу ЭМК вендора (публичный доступ одним доменом)."""
+    url = f"{EMC_UPSTREAM}/{path}"
+    if request.url.query:
+        url += "?" + request.url.query
+    headers = {k: v for k, v in request.headers.items()
+               if k.lower() not in ("host", "content-length", "connection")}
+    client = request.app.state.emc_client
+    upstream = await client.request(request.method, url, headers=headers,
+                                    content=await request.body())
+    return Response(content=upstream.content, status_code=upstream.status_code,
+                    headers={k: v for k, v in upstream.headers.items()
+                             if k.lower() not in ("content-encoding", "transfer-encoding",
+                                                  "content-length", "connection")},
+                    media_type=upstream.headers.get("content-type"))
+
+
+@app.api_route("/api/emc/{path:path}", methods=["GET", "POST", "PUT", "DELETE"], include_in_schema=False)
+async def emc_api_proxy(path: str, request: Request) -> Response:
+    return await _emc_proxy(request, f"api/emc/{path}")
+
+
+@app.api_route("/emc/{path:path}", methods=["GET"], include_in_schema=False)
+async def emc_static_proxy(path: str, request: Request) -> Response:
+    # префикс /emc срезается: у вендора статика смонтирована в корне
+    return await _emc_proxy(request, path)
+
+
+@app.api_route("/emc", methods=["GET"], include_in_schema=False)
+async def emc_root_proxy(request: Request) -> Response:
+    return await _emc_proxy(request, "")
 
 
 @app.get("/", include_in_schema=False)
 async def root_redirect():
-    return RedirectResponse("/static/mis/index.html")
+    return RedirectResponse("/static/compass/install.html")
 
 
 if __name__ == "__main__":

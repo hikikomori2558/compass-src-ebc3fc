@@ -54,6 +54,9 @@ services:
       # QR-приглашение пациента ведёт на PWA; для показа с телефона укажи LAN-IP:
       # PATIENT_APP_URL=http://<LAN-IP>:5501/ (в .env или окружении docker compose)
       PATIENT_APP_URL: ${PATIENT_APP_URL:-http://127.0.0.1:5501/}
+      # «Проприетарная» ЭМК вендора — отдельный сервис (см. backend_emc/server.py);
+      # COMPASS-шлюз проксирует /emc и /api/emc туда, публичный домен один.
+      EMC_UPSTREAM: ${EMC_UPSTREAM:-http://emc:8100}
     ports:
       - "8000:8000"
     depends_on:
@@ -69,6 +72,21 @@ services:
       timeout: 5s
       retries: 12
       start_period: 15s
+
+  # «Проприетарная» ЭМК вендора: отдельный процесс, свой API (/api/emc/*),
+  # своя статика (frontend_emc/). Ноль кода COMPASS внутри — сайдбар врача
+  # работает ПОВЕРХ, читая данные с экрана (frontend_compass/agent.js).
+  emc:
+    build:
+      context: .
+      network: host
+    container_name: compass_emc
+    command: python3 -m backend_emc.server
+    environment:
+      EMC_BIND: "0.0.0.0"
+    expose:
+      - "8100"
+    restart: unless-stopped
 
 volumes:
   pg_data:

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COMPASS-HYBRID v2.6 — установка сайдбара врача</title>
+<link rel="stylesheet" href="compass.css">
+</head>
+<body class="cp-page">
+
+<header class="cp-head">
+  <div class="cp-brand"><span class="cp-mark">К</span> COMPASS&ndash;HYBRID <span class="cp-ver">v2.6</span></div>
+  <div class="cp-sub">CDSS команды 20-П «Rapira» &bull; слой поверх вашей ЭМК</div>
+</header>
+
+<main class="cp-main">
+
+  <section class="cp-card">
+    <h1>Рабочее место врача: 3 шага</h1>
+
+    <div class="cp-step">
+      <div class="cp-step-num">1</div>
+      <div>
+        <b>Войдите как врач COMPASS</b> (ЖИВОЙ API, JWT):
+        <form id="form-login" class="cp-login" autocomplete="off">
+          <input id="in-login" class="cp-input" value="neuro.ivlanov" spellcheck="false" aria-label="Логин">
+          <input id="in-password" class="cp-input" type="password" value="compass-demo-2026" aria-label="Пароль">
+          <button type="submit" class="cp-btn cp-btn-primary" id="btn-login">Войти</button>
+        </form>
+        <div class="cp-status" id="login-status">Сессия не найдена — войдите.</div>
+      </div>
+    </div>
+
+    <div class="cp-step">
+      <div class="cp-step-num">2</div>
+      <div>
+        <b>Перетащите кнопку на панель закладок браузера</b> — это агент COMPASS
+        (мини-версия расширения; в проде ставится как extension/iframe-виджет):
+        <div class="cp-bookmark-row">
+          <a id="bookmarklet" class="cp-bookmark" href="#"> COMPASS ▸ </a>
+          <span class="cp-hint">← зажмите и перетащите на панель закладок</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cp-step">
+      <div class="cp-step-num">3</div>
+      <div>
+        <b>Откройте ЭМК</b>, войдите, откройте карту пациента и нажмите закладку
+        «COMPASS ▸»: агент считает данные <b>с экрана карты</b> (ЭМК не
+        модифицируется) и поверх неё выедет сайдбар с разбором.
+        <div class="cp-emc-row">
+          <a id="emc-link" class="cp-btn cp-btn-outline" href="/emc/">Открыть ЭМК «АИС Поликлиника» →</a>
+          <span class="cp-hint">демо-вход в ЭМК: любой врач из списка, пароль не требуется</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="cp-note">
+      Архитектура = реальные условия внедрения: ЭМК — отдельная проприетарная
+      система (отдельный процесс и порт, свой API, ноль кода COMPASS внутри).
+      Сайдбар врача — внешний слой, читающий экран и говорящий с API COMPASS.
+      Все пациенты синтетические (152-ФЗ).
+    </p>
+  </section>
+
+</main>
+
+<footer class="cp-foot">Решение принимает врач. Система предупреждает и оформляет.</footer>
+
+<script>
+(function () {
+  var BASE = location.origin;
+  var BK = "javascript:(function(){var b='" + BASE + "';var s=document.createElement('script');" +
+    "s.src=b+'/static/compass/agent.js?ts='+Date.now();" +
+    "s.onload=function(){window.__compassAgent&&window.__compassAgent(b)};" +
+    "document.body.appendChild(s);s.onerror=function(){alert('COMPASS: агент недоступен')};})()";
+  document.getElementById("bookmarklet").href = BK;
+
+  function session() {
+    try { return JSON.parse(localStorage.getItem("compass_session") || "null"); } catch (e) { return null; }
+  }
+  function showStatus() {
+    var s = session(), el = document.getElementById("login-status");
+    el.textContent = s ? "Сессия врача активна (" + (localStorage.getItem("compass_login") || "") + "). Шаг 1 выполнен." : "Сессия не найдена — войдите.";
+    el.className = "cp-status" + (s ? " ok" : "");
+  }
+  document.getElementById("form-login").addEventListener("submit", function (e) {
+    e.preventDefault();
+    fetch(BASE + "/api/v1/auth/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ login: document.getElementById("in-login").value.trim(),
+                             password: document.getElementById("in-password").value }),
+    }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function (t) {
+      localStorage.setItem("compass_session", JSON.stringify(t));
+      localStorage.setItem("compass_login", document.getElementById("in-login").value.trim());
+      showStatus();
+    }).catch(function (err) {
+      var el = document.getElementById("login-status");
+      el.textContent = "Ошибка входа: " + err.message;
+      el.className = "cp-status err";
+    });
+  });
+  showStatus();
+})();
+</script>
+</body>
+</html>
