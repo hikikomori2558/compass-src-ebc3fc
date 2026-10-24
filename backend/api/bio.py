@@ -293,6 +293,169 @@ async def patient_timeline(patient_hash: str, request: Request,
     }
 
 
+# ------------------------------------------------------------------ дневник, шкалы, инсайты
+from backend.domain.insights import build_insights
+from backend.domain.scales_mz import SCALES, score_answers
+from backend.domain.side_effects import CHOICES, guidance_for
+
+
+class DiaryPayload(BaseModel):
+    """Дневник дня: приём + побочки + самочувствие. Одна запись на сутки (UPSERT)."""
+    intake_time: Optional[str] = None          # "20:30"
+    taken: bool = True
+    before_meal_30min: Optional[bool] = None
+    side_effects: List[Dict[str, Any]] = Field(default_factory=list)  # [{code, severity, note}]
+    mood_score: Optional[int] = None
+    anxiety_score: Optional[int] = None
+    sleep_score: Optional[int] = None
+    notes: Optional[str] = None
+
+
+@bio_router.get("/patient/diary/choices",
+                summary="[Пациент] Легенда побочек для кнопок дневника")
+def diary_choices() -> Dict[str, Any]:
+    return {"choices": CHOICES}
+
+
+@bio_router.post("/patient/diary", summary="[Пациент] Запись дня + МГНОВЕННЫЕ пояснения побочек")
+async def patient_diary_upsert(payload: DiaryPayload, request: Request,
+                               patient: Principal = Depends(get_principal)) -> Dict[str, Any]:
+    """Принимает запись дня. В ответе — карточки пояснений по каждой отмеченной
+    побочке (в момент возникновения, не «памятка в целом») + красные флаги."""
+    import json as _json
+    import uuid as _uuid
+
+    from backend.db.context import db_conn
+
+    from fastapi import HTTPException
+    pool = getattr(request.app.state, "pg_pool", None)
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    try:
+        ph = _uuid.UUID(patient.sub)
+    except ValueError:
+        raise HTTPException(400, "bad patient hash")
+
+    intake = None
+    if payload.intake_time:
+        from datetime import datetime as _dt
+        intake = _dt.strptime(payload.intake_time, "%H:%M").time()
+    async with db_conn(pool, role="PATIENT", user_id=patient.sub) as conn:
+        await conn.execute(
+            "INSERT INTO patient_diary_entries "
+            "(patient_hash_id, entry_date, intake_time, taken, before_meal_30min, "
+            " side_effects, mood_score, anxiety_score, sleep_score, notes) "
+            "VALUES ($1, current_date, $2::time, $3, $4, $5::jsonb, $6, $7, $8, $9) "
+            "ON CONFLICT (patient_hash_id, entry_date) DO UPDATE SET "
+            " intake_time=EXCLUDED.intake_time, taken=EXCLUDED.taken, "
+            " before_meal_30min=EXCLUDED.before_meal_30min, side_effects=EXCLUDED.side_effects, "
+            " mood_score=EXCLUDED.mood_score, anxiety_score=EXCLUDED.anxiety_score, "
+            " sleep_score=EXCLUDED.sleep_score, notes=EXCLUDED.notes, created_at=now()",
+            ph, intake, payload.taken, payload.before_meal_30min,
+            _json.dumps(payload.side_effects, ensure_ascii=False),
+            payload.mood_score, payload.anxiety_score, payload.sleep_score, payload.notes)
+
+    codes = [str(se.get("code", "")) for se in payload.side_effects]
+    guidance = guidance_for(codes)
+    return {
+        "saved": True,
+        "guidance": guidance,   # <-- ПОЯСНЕНИЯ В МОМЕНТ ВОЗНИКНОВЕНИЯ
+        "critical_flag": any(g.get("always_critical") for g in guidance),
+        "human_note": "Пояснения — информационные, решение о терапии принимает врач.",
+    }
+
+
+class ScaleSubmit(BaseModel):
+    answers: List[int]
+
+
+@bio_router.get("/scales/{code}", summary="[Опросник] Полная шкала по КР МЗ РФ (item-level)")
+def get_scale(code: str) -> Dict[str, Any]:
+    from fastapi import HTTPException
+    s = SCALES.get(code) or SCALES.get(code.upper())
+    if not s:
+        raise HTTPException(404, f"шкала {code} не найдена: доступные {list(SCALES)}")
+    return s
+
+
+@bio_router.post("/scales/{code}/submit",
+                 summary="[Пациент] Ответы по пунктам -> балл + градация КР МЗ + флаги")
+async def submit_scale(code: str, payload: ScaleSubmit, request: Request,
+                       patient: Principal = Depends(get_principal)) -> Dict[str, Any]:
+    import json as _json
+    import uuid as _uuid
+
+    from backend.db.context import db_conn
+
+    result = score_answers(code.upper(), payload.answers)
+    from fastapi import HTTPException
+    if "error" in result:
+        raise HTTPException(400, result["error"])
+
+    pool = getattr(request.app.state, "pg_pool", None)
+    if pool is not None:
+        ph = _uuid.UUID(patient.sub)
+        items = _json.dumps({"answers": payload.answers}, ensure_ascii=False)
+        async with db_conn(pool, role="PATIENT", user_id=patient.sub) as conn:
+            await conn.execute(
+                "INSERT INTO patient_scale_assessments (patient_hash_id, scale_code, total_score, items, taken_at) "
+                "VALUES ($1,$2,$3,$4::jsonb, now())",
+                ph, result["scale_code"], result["total_score"], items)
+    result["stored"] = pool is not None
+    return result
+
+
+@bio_router.get("/patient/{patient_hash}/insights",
+                summary="[Врач] Аналитика дневника: как препарат действует на ЭТОГО пациента")
+async def patient_insights(patient_hash: str, request: Request,
+                           principal: Principal = Depends(get_principal)) -> Dict[str, Any]:
+    import uuid as _uuid
+
+    from backend.db.context import db_conn
+    from fastapi import HTTPException
+
+    pool = getattr(request.app.state, "pg_pool", None)
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    try:
+        ph = _uuid.UUID(patient_hash)
+    except ValueError:
+        raise HTTPException(400, "patient_hash должен быть UUID")
+
+    async with db_conn(pool, role=principal.role, user_id=principal.sub) as conn:
+        diary = await conn.fetch(
+            "SELECT entry_date, intake_time, taken, before_meal_30min, side_effects, "
+            "mood_score, anxiety_score, sleep_score, notes, "
+            "(entry_date - (SELECT MIN(entry_date) FROM patient_diary_entries WHERE patient_hash_id=$1) + 1) AS therapy_day "
+            "FROM patient_diary_entries WHERE patient_hash_id=$1 ORDER BY entry_date", ph)
+        scales = await conn.fetch(
+            "SELECT scale_code, total_score, taken_at FROM patient_scale_assessments "
+            "WHERE patient_hash_id=$1 ORDER BY taken_at", ph)
+        alerts = await conn.fetch(
+            "SELECT alert_id, critical, created_at, doctor_reaction_at "
+            "FROM clinical_alerts_and_routing WHERE patient_hash_id=$1 "
+            "ORDER BY created_at DESC LIMIT 10", ph)
+        adherence = await conn.fetchval(
+            "SELECT pdc_pct FROM medication_adherence_logs WHERE patient_hash_id=$1 "
+            "ORDER BY taken_at DESC LIMIT 1", ph)
+    diary_rows = []
+    for d in diary:
+        r = dict(d)
+        r["side_effects"] = _json_loads(d.get("side_effects")) if d.get("side_effects") else []
+        diary_rows.append(r)
+    insights = build_insights(therapy_day=None, diary=diary_rows,
+                              scales=[dict(s) for s in scales],
+                              alerts=[dict(a) for a in alerts],
+                              adherence_pct=adherence)
+    insights["patient_hash"] = patient_hash
+    return insights
+
+
+def _json_loads(v):
+    import json as _json
+    return _json.loads(v)
+
+
 @bio_router.get("/telemetry/full-benchmark-report", summary="[Телеметрия Жюри] Прогон 100 синтетических ЭМК (Метрики №1, 2, 3, 4)")
 def get_live_benchmark_telemetry() -> Dict[str, Any]:
     return {

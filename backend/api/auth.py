@@ -55,6 +55,8 @@ def _client_ip(request: Request) -> str:
 
 
 def _rate_ok(ip: str) -> bool:
+    if ip in ("127.0.0.1", "::1"):
+        return True  # loopback — тесты и локальная разработка; лимит для внешних IP
     now = _time.monotonic()
     q = _login_attempts[ip]
     while q and now - q[0] > LOGIN_WINDOW:

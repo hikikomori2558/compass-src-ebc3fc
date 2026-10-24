@@ -1,324 +1,149 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#007d79" />
-  <title>Клинический компас — дневник терапии</title>
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#007d79">
+  <title>Клинический компас — дневник пациента</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- ================= ЭКРАН: ПРИВЯЗКА ================= -->
+  <!-- ПРИВЯЗКА -->
   <section id="view-bind" class="screen">
-    <div class="hero">
-      <div class="hero-badge">
-        <svg viewBox="0 0 32 32" width="30" height="30" fill="none" aria-hidden="true">
-          <path d="M16 2L4 8v16l12 6 12-6V8L16 2zm0 4.2l8 4v11.6l-8 4-8-4V10.2l8-4z" fill="#fff" opacity=".9"/>
-          <path d="M15 10h2v5h5v2h-5v5h-2v-5h-5v-2h5v-5z" fill="#fff"/>
-        </svg>
-      </div>
-      <h1>Клинический компас</h1>
-      <p class="hero-sub">Дневник терапии — ваш врач на связи</p>
+    <div class="brand-row">
+      <svg width="34" height="34" viewBox="0 0 32 32" fill="none"><path d="M16 2L4 8v16l12 6 12-6V8L16 2zm0 4.2l8 4v11.6l-8 4-8-4V10.2l8-4z" fill="#007d79"/><path d="M15 10h2v5h5v2h-5v5h-2v-5h-5v-2h5v-5z" fill="#007d79"/></svg>
+      <div><h1>Клинический компас</h1><p>Дневник терапии пациента</p></div>
     </div>
-    <div class="duo-card">
-      <h2>Привязка к врачу</h2>
-      <p class="duo-lead">Отсканируйте QR-код, показанный врачом, — код подставится сам.</p>
-      <input type="text" id="bind-token" class="duo-input" placeholder="Код связи" spellcheck="false" />
-      <div class="error" id="bind-error"></div>
-      <button type="button" id="btn-bind" class="duo-cta" disabled>Привязаться</button>
-      <p class="hint">Код одноразовый, живёт 24 часа. Данные — только между вами и вашей
-        медицинской организацией (152-ФЗ).</p>
-    </div>
-  </section>
-
-  <!-- ================= ONBOARDING: Домой + напоминания ================== -->
-  <section id="view-onboard" class="screen" style="display:none;">
-    <div class="duo-top">
-      <span class="duo-streak" id="ob-streak" hidden>
-        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2c1 4-4 5-4 10a4 4 0 0 0 8 0c0-2-1-3-1-5 2 1 4 3 4 6a7 7 0 1 1-14 0c0-6 6-7 7-11z" fill="currentColor"/></svg>
-        <b id="ob-streak-n">1</b> день подряд
-      </span>
-      <button type="button" class="duo-quit" id="btn-ob-done">Готово</button>
-    </div>
-    <div class="duo-card">
-      <div class="duo-qicon">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M7 4h10a2 2 0 0 1 2 2v14l-7-3-7 3V6a2 2 0 0 1 2-2z" fill="none" stroke="#007d79" stroke-width="2" stroke-linejoin="round"/></svg>
-      </div>
-      <h2 class="duo-q">Добавьте дневник на экран «Домой»</h2>
-      <p class="duo-lead">Так он откроется одним касанием — как приложение.</p>
-      <ol class="duo-steps">
-        <li><b>iPhone (Safari):</b> кнопка «Поделиться» внизу → «На экран „Домой“».</li>
-        <li><b>Android (Chrome):</b> меню справа сверху → «Добавить на главный экран».</li>
+    <div class="card">
+      <h2>Привязка к вашему лечащему врачу</h2>
+      <ol class="steps">
+        <li>Врач показывает вам QR-код в вашей карточке.</li>
+        <li>Отсканируйте камерой — код подставится автоматически.</li>
+        <li>Нажмите «Привязаться» — канал «пациент → врач» без третьих лиц.</li>
       </ol>
+      <label class="field-label" for="bind-token">Код связи из QR</label>
+      <input type="text" id="bind-token" class="input" placeholder="вставьте код, если открыли вручную">
+      <div class="error" id="bind-error"></div>
+      <button type="button" id="btn-bind" class="btn btn--primary">Привязаться к врачу</button>
+      <p class="hint">Код одноразовый, живёт 24 часа. Данные — только между вами и вашей МО.</p>
     </div>
-    <div class="duo-card">
-      <div class="duo-qicon">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" fill="none" stroke="#007d79" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <h2 class="duo-q">Напоминание каждый вечер</h2>
-      <p class="duo-lead">Мягкое уведомление в 20:00 — заполнение займёт полминуты.</p>
-      <button type="button" id="btn-notify" class="duo-cta">Включить напоминание</button>
-      <div class="error" id="notify-status"></div>
-      <p class="hint">Если браузер спросит про уведомления — разрешите. Настройку можно
-        изменить в любой момент.</p>
-    </div>
-    <button type="button" id="btn-ob-start" class="duo-cta">Начать</button>
   </section>
 
-  <!-- ================= СЕГОДНЯ ========================================== -->
-  <section id="view-home" class="screen" style="display:none;">
-    <header class="duo-top">
-      <span class="duo-streak" id="streak" hidden>
-        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2c1 4-4 5-4 10a4 4 0 0 0 8 0c0-2-1-3-1-5 2 1 4 3 4 6a7 7 0 1 1-14 0c0-6 6-7 7-11z" fill="currentColor"/></svg>
-        <b id="streak-n">1</b> день подряд
-      </span>
-      <button type="button" id="btn-logout" class="duo-quit">Выйти</button>
+  <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
+  <section id="view-diary" class="screen" style="display:none;">
+    <header class="diary-header">
+      <div><h1>Дневник терапии</h1><p id="streak-badge" class="streak">🔥 стрик: 0 дней</p></div>
+      <button type="button" id="btn-logout" class="btn btn--ghost btn--sm">Выйти</button>
     </header>
-    <nav class="duo-tabs">
-      <button type="button" class="duo-tab duo-tab--active" data-go="home">Сегодня</button>
-      <button type="button" class="duo-tab" data-go="progress">Прогресс</button>
-      <button type="button" class="duo-tab" data-go="info">Терапия</button>
-    </nav>
 
-    <div class="duo-card" id="card-today">
-      <h2 class="duo-q">Как прошёл день?</h2>
-      <p class="duo-lead">Три коротких шага — врач увидит сегодня.</p>
+    <div class="tabbar" role="tablist">
+      <button class="tab tab--active" data-tab="today">Сегодня</button>
+      <button class="tab" data-tab="scales">Шкалы</button>
+      <button class="tab" data-tab="progress">Прогресс</button>
+      <button class="tab" data-tab="more">Ещё</button>
+    </div>
 
-      <div class="qstep">
-        <div class="qnum">Шаг 1 из 3</div>
-        <div class="qtitle">Таблетку сегодня приняли?</div>
-        <div class="choice-row">
-          <button type="button" class="choice" data-dose="yes"><span class="choice-mark choice-mark--ok">✓</span>Да</button>
-          <button type="button" class="choice" data-dose="no"><span class="choice-mark">—</span>Нет</button>
+    <!-- СЕГОДНЯ -->
+    <div id="tab-today">
+      <div class="card">
+        <h2>Приём «Авиандр®» сегодня</h2>
+        <div class="field-block">
+          <div class="field-title">Время приёма (за 30 минут до еды)</div>
+          <input type="time" id="input-intake" class="input" value="08:00">
+        </div>
+        <div class="field-block">
+          <div class="field-title">Дозу принял(а)?</div>
+          <div class="segmented">
+            <button type="button" id="btn-dose-yes" class="seg seg--active">Да</button>
+            <button type="button" id="btn-dose-no" class="seg">Нет</button>
+          </div>
+        </div>
+        <div class="field-block">
+          <div class="field-title">До еды (за 30 мин)?</div>
+          <div class="segmented">
+            <button type="button" id="btn-meal-yes" class="seg seg--active">Да, выдержал</button>
+            <button type="button" id="btn-meal-no" class="seg">Нет</button>
+          </div>
         </div>
       </div>
 
-      <div class="qstep" id="step-mood" hidden>
-        <div class="qnum">Шаг 2 из 3</div>
-        <div class="qtitle">Как настроение сегодня?</div>
-        <div class="mood-row" id="mood-row"></div>
+      <div class="card">
+        <h2>Как самочувствие? Что беспокоит?</h2>
+        <p class="card-sub">Отметьте — и сразу получите объяснение: что это, почему и что делать.</p>
+        <div id="se-chips" class="chips"></div>
+        <div id="se-guidance"></div>
       </div>
 
-      <div class="qstep" id="step-send" hidden>
-        <div class="qnum">Шаг 3 из 3</div>
-        <div class="qtitle">Готово к отправке</div>
-        <p class="duo-lead" id="send-summary">—</p>
-        <button type="button" id="btn-checkin" class="duo-cta">Отправить врачу</button>
-        <button type="button" class="duo-cta duo-cta--ghost" id="btn-full-survey">Опросник недели (2 мин)</button>
-        <p class="hint">Шкалы GAD-7 и PHQ-9 — самоотчёт-скрининг, допустимый клиническими
-          рекомендациями МЗ РФ по тревожным расстройствам; тяжесть по HAM-A/SIGH-A оценивает
-          врач на приёме (точки контроля: 0/2/4/8 недель).</p>
-        <button type="button" class="duo-cta duo-cta--ghost" id="btn-diary-full">Подробный дневник состояния</button>
+      <div class="card">
+        <h2>Самочувствие по шкале 0–10</h2>
+        <div class="field-block"><div class="field-title">Настроение: <span id="lbl-mood">5</span></div>
+          <input type="range" id="input-mood" class="range" min="0" max="10" value="5"></div>
+        <div class="field-block"><div class="field-title">Тревога: <span id="lbl-anx">5</span></div>
+          <input type="range" id="input-anx" class="range" min="0" max="10" value="5"></div>
+        <div class="field-block"><div class="field-title">Сон (0 — ужасный, 10 — отличный): <span id="lbl-sleep">5</span></div>
+          <input type="range" id="input-sleep" class="range" min="0" max="10" value="5"></div>
+        <textarea id="input-notes" class="input" rows="2" placeholder="Заметка врачу (необязательно)"></textarea>
       </div>
-      <div class="error" id="checkin-error"></div>
+
+      <div class="error" id="diary-error"></div>
+      <button type="button" id="btn-diary" class="btn btn--primary">Сохранить день и отправить врачу</button>
+      <div id="diary-result"></div>
     </div>
 
-    <div class="duo-card" id="card-feedback" hidden>
-      <div id="feedback-ok">
-        <div class="fb-strip fb-strip--ok"><b>Отправлено</b> — врач увидит сегодня</div>
-        <p class="fb-main" id="fb-main"></p>
-        <p class="fb-insight" id="fb-insight"></p>
-        <p class="fb-week" id="fb-week"></p>
-        <div class="duo-actions">
-          <button type="button" class="duo-cta" data-go="progress">Посмотреть прогресс</button>
-          <button type="button" class="duo-cta duo-cta--ghost" id="btn-care-ok">Закрыть</button>
-        </div>
+    <!-- ШКАЛЫ -->
+    <div id="tab-scales" style="display:none;">
+      <div class="card"><h2>Валидированные опросники (КР Минздрава РФ)</h2>
+        <p class="card-sub">Настоящие опросники по пунктам. Результат сразу виден вам и уходит врачу.</p>
+        <div id="scales-list"></div>
       </div>
-      <div id="feedback-care" hidden>
-        <div class="fb-strip fb-strip--care"><b>Спасибо за доверие</b> — это важно</div>
-        <p class="fb-main">Ваш врач уже получил уведомление и свяжется с вами.</p>
-        <p class="fb-insight">Если нужно поговорить прямо сейчас — круглосуточный телефон
-          психологической помощи: <b>8-800-333-44-34</b> (бесплатно, анонимно).</p>
-        <button type="button" class="duo-cta" id="btn-care-ok2">Понятно</button>
+      <div class="card" id="quiz-card" style="display:none;">
+        <h2 id="quiz-title"></h2>
+        <div id="quiz-items"></div>
+        <div class="error" id="quiz-error"></div>
+        <button type="button" id="btn-quiz-submit" class="btn btn--primary">Завершить и отправить</button>
+      </div>
+      <div class="card" id="quiz-result" style="display:none;"></div>
+    </div>
+
+    <!-- ПРОГРЕСС -->
+    <div id="tab-progress" style="display:none;">
+      <div class="card"><h2>Динамика опросников</h2>
+        <canvas id="progress-canvas" width="480" height="240" style="width:100%"></canvas>
+        <p class="hint">Пунктир — ваши результаты; зелёная зона — улучшение. Врач видит те же данные.</p>
+      </div>
+      <div class="card"><h2>История</h2><ul id="progress-list" class="history-list"></ul></div>
+    </div>
+
+    <!-- ЕЩЁ -->
+    <div id="tab-more" style="display:none;">
+      <div class="card notice--critical"><h2>Экстренная помощь</h2>
+        <p>Если думаете о причинении себе вреда — не ждите планового приёма:</p>
+        <button type="button" class="btn btn--primary" onclick="location.href='tel:112'">Позвонить 112</button>
+        <button type="button" class="btn" style="margin-top:8px" onclick="location.href='tel:0523'">0523 — психиатрическая помощь</button>
+        <p class="hint">Не отменяйте препарат самостоятельно — врач скорректирует схему.</p>
+      </div>
+      <div class="card"><h2>Напоминания о приёме</h2>
+        <p class="card-sub">Уведомление придёт за 30 минут до выбранного времени приёма (пока приложение открыто).</p>
+        <button type="button" id="btn-notify" class="btn btn--primary">Включить напоминания</button>
+        <div id="notify-status" class="hint"></div>
+      </div>
+      <div class="card"><h2>О приложении</h2>
+        <p class="hint">Компас — сопровождение терапии, а не замена врача. Офлайн-записи сохраняются
+        и уйдут врачу при появлении сети. Препарат — не гипнотик и не формирует зависимость.</p>
       </div>
     </div>
 
-    <div class="quick-row">
-      <button type="button" class="quick" id="btn-show-onboard">
-        <svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="9" fill="none" stroke="#6e8f86" stroke-width="2"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.7-.9 1.4v.6M12 16.5h.01" stroke="#6e8f86" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
-        Инструкция: на экран Домой и напоминания
-      </button>
-      <button type="button" class="quick" id="btn-diary-quick">
-        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 4h14v16H5zM5 9h14M9 4v5" fill="none" stroke="#007d79" stroke-width="2" stroke-linecap="round"/></svg>
-        Подробный дневник
-      </button>
-      <button type="button" class="quick" data-go="info">
-        <svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="9" fill="none" stroke="#007d79" stroke-width="2"/><path d="M12 8h.01M11 12h1v4h1" stroke="#007d79" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
-        Что ожидать от терапии
-      </button>
-    </div>
+    <p class="footer-note">Система сопровождает терапию и не заменяет консультацию врача.</p>
   </section>
 
-  <!-- ================= ОПРОСНИК / ДНЕВНИК (Duolingo-механика) ============ -->
-  <section id="view-survey" class="screen" style="display:none;">
-    <header class="survey-head">
-      <button type="button" class="duo-quit" id="btn-survey-exit" title="Выйти — прогресс сохранится">
-        <svg viewBox="0 0 24 24" width="15" height="15"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-      </button>
-      <div class="survey-progress"><div id="survey-bar"></div></div>
-      <span class="duo-streak" id="survey-streak" hidden>
-        <svg viewBox="0 0 24 24" width="13" height="13"><path d="M12 2c1 4-4 5-4 10a4 4 0 0 0 8 0c0-2-1-3-1-5 2 1 4 3 4 6a7 7 0 1 1-14 0c0-6 6-7 7-11z" fill="currentColor"/></svg>
-        <b id="survey-streak-n">1</b>
-      </span>
-    </header>
-    <div class="duo-card survey-card">
-      <p class="survey-lead" id="survey-lead"></p>
-      <h2 class="duo-q" id="survey-question">—</h2>
-      <div class="survey-choices" id="survey-choices"></div>
-      <div class="survey-foot" id="survey-foot" hidden></div>
-    </div>
-    <div class="duo-cta-bar">
-      <button type="button" id="btn-survey-next" class="duo-cta" disabled>Продолжить</button>
-    </div>
-  </section>
-
-  <!-- ================= ПРОГРЕСС ========================================= -->
-  <section id="view-progress" class="screen" style="display:none;">
-    <header class="duo-top">
-      <span class="duo-streak" id="streak2" hidden>
-        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2c1 4-4 5-4 10a4 4 0 0 0 8 0c0-2-1-3-1-5 2 1 4 3 4 6a7 7 0 1 1-14 0c0-6 6-7 7-11z" fill="currentColor"/></svg>
-        <b id="streak2-n">1</b> день подряд
-      </span>
-    </header>
-    <nav class="duo-tabs">
-      <button type="button" class="duo-tab" data-go="home">Сегодня</button>
-      <button type="button" class="duo-tab duo-tab--active" data-go="progress">Прогресс</button>
-      <button type="button" class="duo-tab" data-go="info">Терапия</button>
-    </nav>
-    <div class="duo-card">
-      <h2 class="duo-q">Тревога (GAD-7)</h2>
-      <canvas id="chart-gad7" height="150"></canvas>
-      <p class="duo-lead" id="gad7-trend">Пока мало данных — пройдите опросник дважды.</p>
-    </div>
-    <div class="duo-card">
-      <h2 class="duo-q">Настроение по дням</h2>
-      <div class="mood-strip" id="mood-strip"></div>
-      <p class="duo-lead">Последние 14 дней ваших чек-инов.</p>
-    </div>
-    <div class="duo-card">
-      <h2 class="duo-q">История отправок</h2>
-      <ul id="history-list" class="history-list"></ul>
-      <div id="offline-queue-note" class="offline-note" style="display:none;"></div>
-    </div>
-  </section>
-
-  <!-- ================= ТЕРАПИЯ (ожидания + жалоба) ======================= -->
-  <section id="view-info" class="screen" style="display:none;">
-    <nav class="duo-tabs">
-      <button type="button" class="duo-tab" data-go="home">Сегодня</button>
-      <button type="button" class="duo-tab" data-go="progress">Прогресс</button>
-      <button type="button" class="duo-tab duo-tab--active" data-go="info">Терапия</button>
-    </nav>
-
-    <div class="duo-card">
-      <h2 class="duo-q">Дорожная карта терапии</h2>
-      <p class="duo-lead">Заранее знать, что будет происходить, — лучший способ спокойно
-        проходить первые недели. Вот как обычно разворачивается лечение.</p>
-
-      <div class="roadmap">
-        <div class="rm-item">
-          <div class="rm-week">Дни 1–7</div>
-          <div class="rm-title">Организм привыкает</div>
-          <div class="rm-text">Могут быть сонливость днём, лёгкая тошнота, головокружение
-            при вставании. Это не «плохая реакция» — так препарат встраивается в работу.
-            У большинства это проходит само.</div>
-        </div>
-        <div class="rm-item">
-          <div class="rm-week">Дни 7–14</div>
-          <div class="rm-title">Сон выравнивается первым</div>
-          <div class="rm-text">Ночной сон часто становится глубже раньше, чем улучшается
-            настроение, — это хороший ранний признак.</div>
-        </div>
-        <div class="rm-item">
-          <div class="rm-week">Недели 2–4</div>
-          <div class="rm-title">«Поворотный момент»</div>
-          <div class="rm-text">Обычно здесь появляется первый заметный эффект: тревога
-            отступает не скачком, а «пятнами» — хорошие дни чередуются с обычными.</div>
-        </div>
-        <div class="rm-item">
-          <div class="rm-week">Недели 5–12</div>
-          <div class="rm-title">Закрепление</div>
-          <div class="rm-text">Эффект стабилизируется. В исследованиях к 8-й неделе
-            тревога снижалась в среднем на 40–70% — ваша динамика видна врачу в графиках.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="duo-card">
-      <h2 class="duo-q">Частые ощущения — и что они значат</h2>
-      <p class="duo-lead">Каждый пункт: почему это бывает и когда это просто адаптация.</p>
-
-      <div class="sx">
-        <div class="sx-name">Сонливость днём</div>
-        <div class="sx-why">Препарат действует на рецепторы, которые участвуют и в
-          настороженности. Первые дни мозг «перенастраивается».</div>
-        <div class="sx-tag sx-tag--ok">Обычно проходит к 5-му дню</div>
-      </div>
-      <div class="sx">
-        <div class="sx-name">Лёгкая тошнота</div>
-        <div class="sx-why">Слизистая желудка чувствует новый препарат. Приём до еды
-          заметно смягчает это.</div>
-        <div class="sx-tag sx-tag--ok">Проходит за несколько дней</div>
-      </div>
-      <div class="sx">
-        <div class="sx-name">Головокружение при вставании</div>
-        <div class="sx-why">Сосуды реагируют на изменение дозы. Вставайте медленнее —
-          буквально «сначала сядь, потом встань».</div>
-        <div class="sx-tag sx-tag--ok">Адаптационное</div>
-      </div>
-      <div class="sx">
-        <div class="sx-name">Головная боль</div>
-        <div class="sx-why">Часто связана с изменением сна — уходит по мере
-          нормализации ритма.</div>
-        <div class="sx-tag sx-tag--ok">Наблюдаемое</div>
-      </div>
-    </div>
-
-    <div class="duo-card">
-      <h2 class="duo-q">Чего у Авиандр&reg; нет</h2>
-      <p class="duo-lead">Это важно знать заранее — чтобы не бояться напрасно.</p>
-      <ul class="expect-list">
-        <li><b>Нет дневной заторможенности на постоянной основе</b> — в отличие от
-          классических анксиолитиков, по данным РКИ скорость реакции не снижалась
-          <span class="expect-why">поэтому можно водить автомобиль и работать</span></li>
-        <li><b>Нет зависимости и синдрома отмены</b> — по данным 36-недельного
-          исследования отмена прошла без синдрома отмены
-          <span class="expect-why">но отмену всё равно согласовывайте с врачом</span></li>
-        <li><b>Не «заглушает» эмоции</b> — механизм работает иначе, чем у
-          серотониновых препаратов; ясность мышления сохраняется</li>
-      </ul>
-    </div>
-
-    <div class="duo-card duo-card--note">
-      <h2 class="duo-q">Написать врачу сейчас, если:</h2>
-      <ul class="expect-list">
-        <li>Сыпь, отёк лица, сильное сердцебиение</li>
-        <li>Тревога или подавленность резко усилились</li>
-        <li>Появилось состояние, которое «явно не ваш нормальный день»</li>
-      </ul>
-      <p class="hint" style="margin-top:12px">Это не для тревоги — а чтобы вы знали:
-        врач хочет знать о таких вещах сразу. Остальное можно отметить в дневнике.</p>
-    </div>
-
-    <div class="duo-card">
-      <h2 class="duo-q">Что-то беспокоит?</h2>
-      <p class="duo-lead">Опишите своими словами — уйдёт врачу вместе с дневником.</p>
-      <textarea id="side-effect-text" class="duo-input duo-input--area" rows="4"
-        placeholder="Например: вторую ночь плохо сплю, днём очень сонный(ая)..."></textarea>
-      <div class="error" id="se-error"></div>
-      <button type="button" id="btn-send-side" class="duo-cta">Отправить врачу</button>
-      <div id="se-result"></div>
-    </div>
-  </section>
-
-  <p class="footer-note">Система сопровождает терапию и не заменяет консультацию врача.
-    При острых состояниях — врач или экстренные службы.</p>
-
-  <script src="survey.js?v=5"></script>
-  <script src="app.js?v=5"></script>
+  <div id="js-banner" class="js-banner" style="display:none"></div>
+  <script>
+  window.addEventListener("error", e => { const b=document.getElementById("js-banner");
+    b.style.display="block"; b.textContent += "JS: "+e.message+"\n"; });
+  </script>
+  <script src="app.js"></script>
 </body>
 </html>

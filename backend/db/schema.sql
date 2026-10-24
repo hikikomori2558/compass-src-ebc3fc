@@ -467,3 +467,37 @@ INSERT INTO rbac_roles (role_code, title_ru) VALUES
   ('ADMIN_METHODOLOGIST',  'Администратор-методист (врач-методист, No-Code конструктор)'),
   ('AUTH_SERVICE',         'Служебная роль сервиса аутентификации')
 ON CONFLICT (role_code) DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- Дневник пациента (контур сопровождения, День 7+): время приёма, побочки
+-- с пояснениями в момент возникновения, настроение/сон, заметки.
+-- Одна запись на пациента в сутки (UNIQUE) — правки перезаписывают, история честная.
+-- ----------------------------------------------------------------------------
+CREATE TABLE patient_diary_entries (
+  entry_id          bigserial PRIMARY KEY,
+  patient_hash_id   uuid NOT NULL,
+  entry_date        date NOT NULL DEFAULT current_date,
+  intake_time       time,                          -- когда принял (фенотип + RMSE «за 30 мин до еды»)
+  taken             boolean NOT NULL DEFAULT true, -- принял ли дозу
+  before_meal_30min boolean,                       -- выдержал правило «за 30 мин до еды»
+  side_effects      jsonb NOT NULL DEFAULT '[]',   -- [{"code","severity","note"}]
+  mood_score        int CHECK (mood_score BETWEEN 0 AND 10),
+  anxiety_score     int CHECK (anxiety_score BETWEEN 0 AND 10),
+  sleep_score       int CHECK (sleep_score BETWEEN 0 AND 10),
+  notes             text,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (patient_hash_id, entry_date)
+);
+CREATE INDEX idx_diary_patient_date ON patient_diary_entries (patient_hash_id, entry_date DESC);
+ALTER TABLE medication_adherence_logs ADD COLUMN IF NOT EXISTS intake_time time;
+ALTER TABLE medication_adherence_logs ADD COLUMN IF NOT EXISTS notes text;
+ALTER TABLE medication_adherence_logs ADD COLUMN IF NOT EXISTS diary jsonb DEFAULT '{}';
+GRANT SELECT, INSERT, UPDATE, DELETE ON patient_diary_entries TO compass_api;
+-- роли врачей/пациента/методиста (RLS-контексты SET ROLE) тоже работают с дневником
+DO $$ DECLARE r text;
+BEGIN
+  FOR r IN SELECT rolname FROM pg_roles WHERE rolname LIKE 'DOCTOR%' OR rolname IN ('PATIENT','ADMIN_METHODOLOGIST')
+  LOOP EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON patient_diary_entries TO %I', r);
+  END LOOP;
+END $$;
+GRANT USAGE, SELECT ON SEQUENCE patient_diary_entries_entry_id_seq TO compass_api;

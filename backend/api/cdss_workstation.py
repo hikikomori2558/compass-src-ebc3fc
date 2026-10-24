@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 
 from backend.api.auth import get_principal
 from backend.bridges.lexers import C11PopPKAndBitapEngine
+from backend.domain.trajectory import TrajectoryClusterEngine24D
 from backend.domain.phenotypes import detect_phenotypes
 from backend.paths import KB_PATH
 from backend.bridges.ot_xai import C11TrajectoryOTAndXAIOrchestrator, DEFAULT_HEALTHY_BASELINE_24D
@@ -147,6 +148,33 @@ def evaluate_clinical_encounter(req: EncounterEvaluationRequest) -> Dict[str, An
 
     owen_xai = _ot_xai_orchestrator.explain_with_exact_owen_and_counterfactual(pat_24d)
 
+    # 4b. КЛАСТЕРИЗАЦИЯ К1–К5: та же траекторная модель, что и в safe-пути
+    # (детерминированные правила + DTW до коридора РКИ). Строим 24D из доступных
+    # на эндпоинте данных; оси без входов берут дефолты домена честно.
+    _traj = TrajectoryClusterEngine24D()
+    _z24 = _traj.build_24d_state_vector(
+        psychometrics={
+            "hads_a": min(21.0, req.hama_score),
+            "hads_d": min(21.0, req.madrs_score * 0.7),
+            "gad7": req.gad7_score, "phq9": req.phq9_score,
+            "suicidal_composite": req.phq9_item9_suicidal,
+        },
+        dynamics={"therapy_day": 3.0},
+        pk_adherence={"m1_ctrough_pg_ml": pk_sol.c_trough_ss_ng_ml * 1000.0},
+        biomarkers={},
+        biometrics_endocrine={
+            "endocrine_somatic_mask_flag": 1.0 if hard_stops else 0.0,
+            "qtc_cardio_safety_margin_ms": 35.0,
+        },
+    )
+    cluster_24d = _traj.assign_cluster(
+        z_24=_z24,
+        patient_sigh_a_history=[req.hama_score, max(0.0, req.hama_score - 5.0)],
+        reported_transient_drowsiness=(req.madrs_score >= 20),
+        icd10_code=req.ehr_note_text[:64],
+    )
+    cluster_24d["clinical_use"] = "SUPPORT_FOR_DOCTOR_DECISION"
+
     # 5. Вычисление категории направления к психиатру ("ОБЯЗАТЕЛЬНО" / "ЖЕЛАТЕЛЬНО" / "ПЛАНОВО")
     is_mandatory_psych = (
         req.phq9_item9_suicidal >= 1
@@ -180,6 +208,7 @@ def evaluate_clinical_encounter(req: EncounterEvaluationRequest) -> Dict[str, An
         "poppk_rk45": pk_sol.to_dict(),
         "bio_and_micronets": bio_ctrl,
         "owen_xai": owen_xai.to_dict(),
+        "cluster_24d_analysis": cluster_24d,
         # Карточки клинических фенотипов (6 целевых профилей): подсказки врачу,
         # детекция детерминированная по тексту ЭМК (backend/domain/phenotypes.py).
         "phenotype_guidance": detect_phenotypes(req.ehr_note_text, {}, _kb),

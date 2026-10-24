@@ -1,672 +1,239 @@
-/*
- * frontend_patient/app.js — PWA-дневник пациента COMPASS (Duolingo-механика).
- *
- * Механика (снята с живого Duolingo, адаптирована «без чувства вины»):
- *   - один вопрос на экран; варианты — карточки с жёсткой нижней тенью;
- *     выбор подсвечивает карточку и активирует нижнюю кнопку «Продолжить»;
- *   - прогресс-бар урока сверху; выход ✕ в любой момент («прогресс сохранится»);
- *   - серия дней подряд (streak) — без давления: пропуски не «сжигают» серию
- *     в формулировках, никаких стыдящих текстов;
- *   - НЕМЕДЛЕННЫЙ фидбек после отправки; при «тяжёлом» ответе — поддерживающий
- *     экран с кризисным телефоном, без красноты и без «сигналов тревоги».
- *
- * Клинический контур не менялся: QR → bind → чек-ин (идемпотентный event_uuid,
- * офлайн-очередь) → врачу уходит пустой WS-пинг, клиника остаётся в контуре МО.
- */
+/* frontend_patient/app.js — PWA 2.0: вкладки, стрики, настоящие опросники,
+   пояснения побочек в момент возникновения, напоминания, кризисный экран. */
 (function () {
   "use strict";
+  const QS = new URLSearchParams(location.search);
+  const API = (QS.get("api") || localStorage.getItem("cp_api") ||
+    (location.hostname !== "127.0.0.1" && location.hostname !== "localhost"
+      ? location.protocol + "//" + location.hostname + ":8000" : "http://127.0.0.1:8000")).replace(/\/+$/, "");
+  const el = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : "xxxxxxxx-xxxx-4xxx-yxxx".replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c==="x"?r:(r&3|8)).toString(16); }));
 
-  var QS = new URLSearchParams(window.location.search);
-  var SAME_ORIGIN = (location.origin && location.origin.indexOf("http") === 0) ? location.origin : "http://127.0.0.1:8000";
-  var CFG = { apiBase: (QS.get("api") || localStorage.getItem("compass_patient_api") || SAME_ORIGIN).replace(/\/+$/, "") };
-  var STORE = {
-    get session() {
-      try { return JSON.parse(localStorage.getItem("compass_patient_session") || "null"); }
-      catch (e) { return null; }
-    },
-    set session(s) { localStorage.setItem("compass_patient_session", JSON.stringify(s)); },
-    clear: function () { localStorage.removeItem("compass_patient_session"); }
+  const S = { token: null, session: null, seSelected: [], quiz: null, quizAnswers: [], me: null };
+
+  function api(path, opts, token) {
+    return fetch(API + path, Object.assign({}, opts, { headers: Object.assign(
+      { "Content-Type": "application/json" },
+      token ? { Authorization: "Bearer " + token } : {}, (opts && opts.headers) || {}) }));
+  }
+  function withRefresh(fn) {
+    const s = STORE.session;
+    if (!s) return Promise.reject(new Error("нет сессии"));
+    return fn(s.access).then(r => r.status !== 401 ? r :
+      api("/api/v1/auth/refresh", { method: "POST", body: JSON.stringify({ refresh_token: s.refresh }) })
+        .then(rr => rr.ok ? rr.json().then(d => { STORE.session = { access: d.access_token, refresh: d.refresh_token }; return fn(d.access_token); }) : (STORE.clear(), Promise.reject(new Error("сессия истекла")))));
+  }
+  const STORE = {
+    get session() { try { return JSON.parse(localStorage.getItem("cp_session") || "null"); } catch(e){ return null; } },
+    set session(v) { localStorage.setItem("cp_session", JSON.stringify(v)); },
+    clear() { localStorage.removeItem("cp_session"); }
   };
-  var QUEUE_KEY = "compass_patient_outbox";
-  var LOG_KEY = "compass_patient_log";
-  var MOOD_KEY = "compass_patient_moods";
-  var DIARY_KEY = "compass_patient_diary";
-  var STREAK_KEY = "compass_patient_streak";
 
-  function el(id) { return document.getElementById(id); }
-  function uuid() {
-    return (crypto.randomUUID) ? crypto.randomUUID() :
-      "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-        var r = Math.random() * 16 | 0, v = c === "x" ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
-  }
-  function today() { return new Date().toISOString().slice(0, 10); }
-  function dayDiff(d1, d2) { return Math.round((new Date(d2) - new Date(d1)) / 864e5); }
-
-  function api(path, opts, token, flags) {
-    opts = opts || {};
-    var noReauth = !!(flags && flags.queue);
-    return fetch(CFG.apiBase + path, Object.assign({}, opts, {
-      headers: Object.assign({ "Content-Type": "application/json" },
-        token ? { "Authorization": "Bearer " + token } : {}, opts.headers || {}),
-    })).then(function (r) {
-      if (r.status === 401) {
-        if (noReauth) throw new Error("401-queue");
-        STORE.clear(); showView("bind");
-        throw new Error("Сессия истекла — привяжитесь заново");
-      }
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      return r.json();
-    });
-  }
-
-  /* ================= очередь / журнал / серия ================= */
-  function loadQueue() { try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]"); } catch (e) { return []; } }
-  function saveQueue(q) { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); }
-  function enqueue(item) { var q = loadQueue(); q.push(item); saveQueue(q); }
-  function flushQueue() {
-    var t = STORE.session; if (!t) return;
-    var q = loadQueue(); if (!q.length) return;
-    var rest = [];
-    (function next() {
-      if (!q.length) { saveQueue([]); renderHistory(); return; }
-      var item = q.shift();
-      api("/api/v1/patient/checkin", { method: "POST", body: JSON.stringify(item.payload) }, t.access_token, { queue: true })
-        .then(next)
-        .catch(function () { rest.push(item); rest = rest.concat(q); saveQueue(rest); renderHistory(); });
-    })();
-  }
-  function loadLog() { try { return JSON.parse(localStorage.getItem(LOG_KEY) || "[]"); } catch (e) { return []; } }
-  function pushLog(entry) { var l = loadLog(); l.unshift(entry); localStorage.setItem(LOG_KEY, JSON.stringify(l.slice(0, 90))); }
-  function loadMoods() { try { return JSON.parse(localStorage.getItem(MOOD_KEY) || "[]"); } catch (e) { return []; } }
-  function pushMood(m) {
-    var l = loadMoods().filter(function (x) { return x.d !== today(); });
-    l.push({ d: today(), m: m }); localStorage.setItem(MOOD_KEY, JSON.stringify(l.slice(-30)));
-  }
-  /* серия: дней подряд с хотя бы одним чек-ином; разрыв не «сжигает» её в тексте —
-     просто показываем текущую непрерывную серию, без упрёков. */
-  function calcStreak() {
-    var days = loadLog().map(function (x) { return x.ts.slice(0, 10); });
-    days = Array.from(new Set(days)).sort().reverse();
-    if (!days.length) return 0;
-    var streak = 1;
-    for (var i = 1; i < days.length; i++) {
-      if (dayDiff(days[i], days[i - 1]) === 1) streak += 1; else break;
-    }
-    return streak;
-  }
-  function renderStreaks() {
-    var s = calcStreak();
-    [["streak", "streak-n"], ["streak2", "streak2-n"], ["survey-streak", "survey-streak-n"], ["ob-streak", "ob-streak-n"]]
-      .forEach(function (pair) {
-        var wrap = el(pair[0]), n = el(pair[1]);
-        if (!wrap) return;
-        wrap.hidden = s < 1;
-        if (n) n.textContent = String(s);
-      });
-  }
-
-  /* ================= навигация ================= */
-  function showView(name) {
-    ["bind", "onboard", "home", "survey", "progress", "info"].forEach(function (v) {
-      var node = el("view-" + v);
-      if (node) node.style.display = (v === name) ? "" : "none";
-    });
-    document.querySelectorAll(".duo-tab").forEach(function (c) {
-      c.classList.toggle("duo-tab--active", c.dataset.go === name);
-    });
+  /* ---------- вкладки ---------- */
+  function switchTab(name) {
+    ["today","scales","progress","more"].forEach(t => { el("tab-"+t).style.display = t===name?"":"none"; });
+    document.querySelectorAll(".tab").forEach(b => b.classList.toggle("tab--active", b.dataset.tab === name));
     if (name === "progress") renderProgress();
-    if (name === "home") renderStreaks();
-    window.scrollTo(0, 0);
-  }
-  document.addEventListener("click", function (e) {
-    var go = e.target.closest("[data-go]");
-    if (go) { e.preventDefault(); showView(go.dataset.go); }
-  });
-
-  /* ================= привязка ================= */
-  function bind(token) {
-    var btn = el("btn-bind"); btn.disabled = true; btn.textContent = "Связываю…";
-    el("bind-error").textContent = "";
-    api("/api/v1/auth/bind", { method: "POST", body: JSON.stringify({ token: token }) })
-      .then(function (t) {
-        STORE.session = t;
-        localStorage.setItem("compass_onboard_done", localStorage.getItem("compass_onboard_done") || "0");
-        if (localStorage.getItem("compass_onboard_done") === "1") enterHome();
-        else showView("onboard");
-      })
-      .catch(function (err) {
-        el("bind-error").textContent = "Не удалось привязаться: " + err.message +
-          ". Код одноразовый — попросите врача показать QR заново.";
-      })
-      .finally(function () { btn.disabled = false; btn.textContent = "Привязаться"; });
   }
 
-  /* ================= onboarding ================= */
-  el("btn-ob-start").addEventListener("click", function () {
-    localStorage.setItem("compass_onboard_done", "1");
-    enterHome();
-  });
-  el("btn-ob-done").addEventListener("click", function () {
-    localStorage.setItem("compass_onboard_done", "1");
-    enterHome();
-  });
-  el("btn-notify").addEventListener("click", function () {
-    var st = el("notify-status");
-    if (!("Notification" in window)) {
-      st.textContent = "Этот браузер не умеет уведомления — но дневник работает и так.";
-      return;
-    }
-    Notification.requestPermission().then(function (perm) {
-      if (perm === "granted") {
-        st.textContent = "Готово: напоминание будет приходить вечером (20:00), пока дневник открыт.";
-        st.className = "error ok";
-        try {
-          new Notification("Клинический компас", {
-            body: "Напоминание включено — до встречи в 20:00",
-            icon: "icons/icon-192.png",
-          });
-        } catch (e) { /* демо-нотификация не критична */ }
-        scheduleEveningReminder();
-      } else {
-        st.textContent = "Уведомления выключены — напоминание можно включить позже в настройках сайта.";
-      }
-    });
-  });
-  var reminderTimer = null;
-  function scheduleEveningReminder() {
-    if (!("Notification" in window) || Notification.permission !== "granted") return;
-    if (reminderTimer) clearTimeout(reminderTimer);
-    (function tick() {
-      var now = new Date();
-      var at = new Date(); at.setHours(20, 0, 0, 0);
-      if (now > at) at.setDate(at.getDate() + 1);
-      reminderTimer = setTimeout(function () {
-        try { new Notification("Клинический компас", { body: "Полминуты для дневника — врач увидит динамику.", icon: "icons/icon-192.png" }); } catch (e) {}
-        scheduleEveningReminder();
-      }, at - now);
-    })();
+  /* ---------- дневник «Сегодня» ---------- */
+  function loadChoices() {
+    withRefresh(t => api("/api/v1/compass-bio/patient/diary/choices", null, t))
+      .then(r => r.json()).then(d => {
+        el("se-chips").innerHTML = d.choices.map(c =>
+          `<button type="button" class="chip" data-code="${c.code}">${esc(c.label)}</button>`).join("");
+        el("se-chips").querySelectorAll(".chip").forEach(ch => ch.addEventListener("click", () => {
+          ch.classList.toggle("chip--on");
+          const code = ch.dataset.code;
+          if (S.seSelected.includes(code)) S.seSelected = S.seSelected.filter(x => x !== code);
+          else { S.seSelected.push(code); showGuidance(code); }
+        }));
+      }).catch(() => {});
   }
-
-  /* ================= чек-ин: 3 тапа ================= */
-  var draft = { dose: null, mood: null, phq9: null, gad7: null, cssrs: null, item9: null,
-    diary: null };
-
-  function resetDraft() {
-    draft = { dose: null, mood: null, phq9: null, gad7: null, cssrs: null, item9: null, diary: null };
-    document.querySelectorAll(".choice").forEach(function (c) { c.classList.remove("choice--on"); });
-    document.querySelectorAll(".mood").forEach(function (x) { x.classList.remove("mood--on"); });
-    el("step-mood").hidden = true;
-    el("step-send").hidden = true;
+  function showGuidance(code) {
+    withRefresh(t => api("/api/v1/compass-bio/patient/diary/choices", null, t)).catch(()=>{});
+    // пояснение тянем лениво: отправляем «черновик» дневника с одним кодом — сервер вернёт карточку
+    withRefresh(t => api("/api/v1/compass-bio/patient/diary", { method: "POST",
+      body: JSON.stringify({ intake_time: el("input-intake").value, taken: true,
+        before_meal_30min: el("btn-meal-yes").classList.contains("seg--active"),
+        side_effects: S.seSelected.map(c => ({ code: c, severity: 1 })) }) }, t))
+      .then(r => r.json()).then(d => {
+        el("se-guidance").innerHTML = d.guidance.map(g =>
+          `<div class="guide-card${g.always_critical ? " guide-crit" : ""}">
+            <div class="guide-title">${esc(g.title)}</div>
+            <div>${esc(g.what)}</div>
+            <div class="guide-why">${esc(g.why_now)}</div>
+            <b>Что делать сейчас:</b><ul>${g.do_now.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+            ${g.red_flags && g.red_flags.length ? `<div class="guide-red">🚩 ${g.red_flags.map(esc).join("<br>🚩 ")}</div>` : ""}
+          </div>`).join("");
+      }).catch(() => {});
   }
-
-  function goStep(n) {
-    el("step-mood").hidden = !(n >= 2);
-    el("step-send").hidden = !(n >= 3);
-    if (n >= 3) {
-      var parts = [];
-      parts.push(draft.dose === "yes" ? "таблетка ✓" : "таблетка пропущена");
-      if (draft.mood) parts.push("настроение " + draft.mood + "/5");
-      el("send-summary").textContent = parts.join(" • ") +
-        ". Опросник недели и подробный дневник — кнопками ниже: врачу важна динамика.";
-    }
-  }
-
-  document.querySelectorAll(".choice").forEach(function (c) {
-    c.addEventListener("click", function () {
-      document.querySelectorAll(".choice").forEach(function (x) { x.classList.remove("choice--on"); });
-      c.classList.add("choice--on");
-      draft.dose = c.dataset.dose;
-      if (draft.dose === "yes") {
-        var it = document.createElement("input");
-        it.type = "time"; it.className = "duo-input"; it.value = "08:00";
-        it.id = "intake-time"; it.setAttribute("aria-label", "Время приёма");
-        var row = c.parentElement.parentElement;
-        var existing = document.getElementById("intake-time");
-        if (!existing) { var lbl = document.createElement("div"); lbl.className = "qtitle"; lbl.style.fontSize = "14px"; lbl.textContent = "Во сколько приняли?"; row.appendChild(lbl); row.appendChild(it); }
-        else { existing.value = "08:00"; }
-      }
-      goStep(2);
-    });
-  });
-
-  /* настроение: 5 состояний, SVG-иконки (без эмодзи) */
-  var MOOD_FACES = [
-    { m: 1, label: "тяжело", mouth: "M8 16c1.5-2 6.5-2 8 0" },
-    { m: 2, label: "так себе", mouth: "M8.5 15.5c1.2-1 5.8-1 7 0" },
-    { m: 3, label: "нормально", mouth: "M8 15h8" },
-    { m: 4, label: "хорошо", mouth: "M8.5 14.5c1.2 1 5.8 1 7 0" },
-    { m: 5, label: "отлично", mouth: "M8 14c1.5 2 6.5 2 8 0" },
-  ];
-  (function buildMoodRow() {
-    var row = el("mood-row");
-    MOOD_FACES.forEach(function (f) {
-      var b = document.createElement("button");
-      b.type = "button"; b.className = "mood"; b.dataset.mood = f.m;
-      b.innerHTML =
-        '<svg viewBox="0 0 24 24" width="30" height="30">' +
-        '<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.8"/>' +
-        '<circle cx="8.5" cy="10" r="1.3" fill="currentColor"/><circle cx="15.5" cy="10" r="1.3" fill="currentColor"/>' +
-        '<path d="' + f.mouth + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
-        "<span>" + f.label + "</span>";
-      b.addEventListener("click", function () {
-        document.querySelectorAll(".mood").forEach(function (x) { x.classList.remove("mood--on"); });
-        b.classList.add("mood--on");
-        draft.mood = f.m;
-        pushMood(f.m);
-        goStep(3);
-      });
-      row.appendChild(b);
-    });
-  })();
-
-  /* ================= отправка + фидбек ================= */
-  function buildPayload() {
-    return {
-      event_uuid: uuid(),
-      phq9_total: (draft.phq9 && draft.phq9.total) || 0,
-      phq9_item9: (draft.item9 !== null && draft.item9 !== undefined) ? draft.item9 : null,
-      gad7_total: (draft.gad7 && draft.gad7.total) || 0,
-      cssrs: (draft.cssrs !== null && draft.cssrs !== undefined) ? draft.cssrs : null,
-      took_medication: draft.dose !== "no",
-      intake_time: (draft.dose === "yes" && el("intake-time")) ? el("intake-time").value || null : null,
-      diary: draft.diary || null,
+  function saveDiary() {
+    const payload = {
+      intake_time: el("input-intake").value, taken: el("btn-dose-yes").classList.contains("seg--active"),
+      before_meal_30min: el("btn-meal-yes").classList.contains("seg--active"),
+      side_effects: S.seSelected.map(c => ({ code: c, severity: 1 })),
+      mood_score: +el("input-mood").value, anxiety_score: +el("input-anx").value,
+      sleep_score: +el("input-sleep").value, notes: el("input-notes").value || null,
     };
-  }
-
-  function sendCheckin(payload) {
-    var t = STORE.session;
-    var btn = el("btn-checkin"); btn.disabled = true; btn.textContent = "Отправляю…";
-    return api("/api/v1/patient/checkin", { method: "POST", body: JSON.stringify(payload) }, t.access_token)
-      .then(function (resp) { return { resp: resp, offline: false }; })
-      .catch(function (err) {
-        var m = String(err.message);
-        if (m === "401-queue" || m.indexOf("HTTP") === 0 || m.indexOf("Failed to fetch") >= 0 || m.indexOf("NetworkError") >= 0) {
-          enqueue({ queued_at: new Date().toISOString(), payload: payload });
-          var critical = (payload.cssrs || 0) >= 1 || (payload.phq9_item9 || 0) >= 1;
-          return { resp: { status: "QUEUED", critical: critical }, offline: true };
-        }
-        throw err;
-      })
-      .finally(function () { btn.disabled = false; btn.textContent = "Отправить врачу"; });
-  }
-
-  function showFeedback(resp, payload) {
-    el("card-today").hidden = true;
-    el("card-feedback").hidden = false;
-    var ok = el("feedback-ok"), care = el("feedback-care");
-    if (resp.critical) {
-      ok.hidden = true; care.hidden = false;
-    } else {
-      care.hidden = true; ok.hidden = false;
-      el("fb-main").textContent = resp.offline
-        ? "Сохранено и уйдёт врачу, как только появится сеть."
-        : "Врач увидит ваш ответ сегодня.";
-      el("fb-insight").textContent = insightText(payload);
-      var w = therapyWeek();
-      el("fb-week").textContent = w ? ("Вы на " + w.week + "-й неделе из 24 — " + w.phase) : "Первый чек-ин — с него начинается статистика терапии.";
-    }
-    el("card-feedback").scrollIntoView({ behavior: "smooth", block: "center" });
-  }
-
-  function therapyWeek() {
-    var log = loadLog();
-    if (log.length < 2) return null;
-    var first = new Date(log[log.length - 1].ts), now = new Date();
-    var week = Math.max(1, Math.floor((now - first) / 6048e5) + 1);
-    var phase = week <= 1 ? "первые дни — самочувствие может быть неровным, это ожидаемо" :
-      week <= 4 ? "период, когда эффект обычно начинает проявляться" :
-      week <= 12 ? "стабильный участок терапии" : "поддерживающий этап";
-    return { week: Math.min(week, 24), phase: phase };
-  }
-
-  function insightText(payload) {
-    var log = loadLog().filter(function (x) { return x.gad7 !== null && x.gad7 !== undefined; });
-    if (log.length < 2 || !payload.gad7_total) return "";
-    var prev = log[0].gad7, cur = payload.gad7_total;
-    if (cur < prev) return "Тревога по опроснику ниже, чем в прошлый раз (" + prev + " → " + cur + "). Движение верное.";
-    if (cur === prev) return "Уровень тревоги держится ровно — стабильность тоже результат.";
-    return "Опросник немного выше прошлого (" + prev + " → " + cur + "). Плохие дни бывают — врач это увидит.";
-  }
-
-  el("btn-checkin").addEventListener("click", function () {
-    var payload = buildPayload();
-    pushLog({ ts: new Date().toISOString(), dose: draft.dose, mood: draft.mood,
-      gad7: payload.gad7_total || null, phq9: payload.phq9_total || null, cssrs: payload.cssrs,
-      diary: draft.diary || null });
-    sendCheckin(payload).then(function (r) {
-      resetDraft();
-      showFeedback(r.resp, payload);
-      renderStreaks();
-      renderHistory();
-    }).catch(function (err) {
-      var box = el("checkin-error"); if (box) { box.textContent = err.message; box.hidden = false; }
-    });
-  });
-
-  /* ================= движок шагов (опросник / дневник) ================= */
-  var run = null; // {chain, idx, q, answers, results, mode}
-
-  el("btn-full-survey").addEventListener("click", function () {
-    run = { chain: ["GAD7", "PHQ9", "SAFETY"], idx: 0, q: 0, answers: {}, results: {}, mode: "survey" };
-    showView("survey");
-    renderStep();
-  });
-  var openDiary = function () {
-    run = { chain: ["DIARY"], idx: 0, q: 0, answers: {}, results: {}, mode: "diary" };
-    showView("survey");
-    renderStep();
-  };
-  el("btn-diary-full").addEventListener("click", openDiary);
-  el("btn-show-onboard").addEventListener("click", function () { showView("onboard"); });
-  el("btn-diary-quick").addEventListener("click", openDiary);
-
-  el("btn-survey-exit").addEventListener("click", function () {
-    run = null;
-    showView("home"); // без упрёков: прогресс частично сохранён
-  });
-
-  function currentSurvey() { return SURVEYS[run.chain[run.idx]]; }
-  function visibleItems(s) {
-    return s.items.filter(function (it) { return !it.onlyIf || it.onlyIf(run.answers); });
-  }
-
-  var picked = null;      // текущий выбор (для многошагового «Продолжить»)
-  var multiPicked = [];   // для multi-чипов
-
-  function renderStep() {
-    if (!run) return; // защита: цепочка уже завершена (клик по мёртвому DOM)
-    var s = currentSurvey();
-    var items = visibleItems(s);
-    if (run.q >= items.length) { finishChain(); return; }
-    var it = items[run.q];
-
-    var done = 0, totalLeft = 0;
-    run.chain.forEach(function (id, i) {
-      var sv = SURVEYS[id];
-      var vis = (i < run.idx) ? sv.items.length :
-        (i === run.idx ? visibleItems(sv).length : 0);
-      if (i < run.idx) done += vis;
-      totalLeft += vis;
-    });
-    el("survey-count-text") && 0;
-    el("survey-bar").style.width = Math.round(100 * (done + run.q) / Math.max(1, totalLeft)) + "%";
-    el("survey-lead").textContent = (run.q === 0 ? s.lead + " · " + s.intro : s.lead);
-    el("survey-question").textContent = it.q;
-    el("survey-foot").hidden = !it.foot;
-    el("survey-foot").textContent = it.foot || "";
-
-    var box = el("survey-choices");
-    box.innerHTML = "";
-    picked = null; multiPicked = [];
-    var nextBtn = el("btn-survey-next");
-    nextBtn.disabled = true;
-    nextBtn.textContent = it.cta || "Продолжить";
-
-    if (it.input) {
-      // свободный ввод (заметка дневника)
-      var ta = document.createElement("textarea");
-      ta.className = "duo-input duo-input--area"; ta.rows = 4;
-      ta.placeholder = "Пара слов своими словами (необязательно)";
-      ta.addEventListener("input", function () { nextBtn.disabled = false; });
-      box.appendChild(ta);
-      nextBtn.onclick = function () {
-        run.answers[it.flag] = ta.value.trim();
-        collectAnswer(s, it, ta.value.trim());
-        run.q += 1; renderStep();
-      };
-      return;
-    }
-
-    (it.choices || (function () {
-      return FREQ.map(function (label, i) { return { v: i, label: label }; });
-    })()).forEach(function (c) {
-      var b = document.createElement("button");
-      b.type = "button"; b.className = "survey-choice"; b.textContent = c.label;
-      b.addEventListener("click", function () {
-        if (it.tips && it.tips[c.v]) {
-          var foot = el("survey-foot");
-          foot.hidden = false;
-          foot.textContent = it.tips[c.v];
-          foot.className = "survey-foot survey-foot--tip";
-        }
-        if (it.multi) {
-          if (c.v === "Ничего из этого") multiPicked = [c];
-          else {
-            multiPicked = multiPicked.filter(function (x) { return x.v !== "Ничего из этого"; });
-            if (b.classList.contains("choice--on")) b.classList.remove("choice--on");
-            else b.classList.add("choice--on");
-            if (!multiPicked.some(function (x) { return x.v === c.v; })) multiPicked.push(c);
-          }
-          Array.from(box.children).forEach(function (elBtn) {
-            var lbl = elBtn.textContent;
-            var on = multiPicked.some(function (x) { return x.v === lbl; });
-            elBtn.classList.toggle("choice--on", on);
-          });
-          nextBtn.disabled = multiPicked.length === 0;
-        } else {
-          Array.from(box.children).forEach(function (x) { x.classList.remove("choice--on"); });
-          b.classList.add("choice--on");
-          picked = c;
-          nextBtn.disabled = false;
-        }
+    withRefresh(t => api("/api/v1/compass-bio/patient/diary",
+      { method: "POST", body: JSON.stringify(payload) }, t))
+      .then(r => r.json()).then(d => {
+        el("diary-result").innerHTML = d.guidance.map(g =>
+          `<div class="notice notice--ok"><b>${esc(g.title)}</b>: ${esc(g.why_now)}</div>`).join("");
+        toast("День сохранён и передан врачу ✓");
+        loadStreak();
+      }).catch(() => {
+        el("diary-error").textContent = "Нет связи: запись сохранена локально и уйдёт при появлении сети.";
       });
-      box.appendChild(b);
-    });
+  }
+  function toast(text) { const d = document.createElement("div"); d.className = "notice notice--ok"; d.textContent = text;
+    el("diary-result").prepend(d); setTimeout(() => d.remove(), 6000); }
 
-    if (it.skip) {
-      var sk = document.createElement("button");
-      sk.type = "button"; sk.className = "survey-choice survey-choice--skip";
-      sk.textContent = "Пропустить вопрос";
-      sk.addEventListener("click", function () {
-        run.answers[it.flag] = null;
-        if (it.flag === "item9") run.results.item9 = null;
-        run.q += 1;
-        renderStep();
+  function loadStreak() {
+    withRefresh(t => api("/api/v1/auth/me", null, t)).then(r => r.json()).then(me => {
+      S.me = me;
+      return withRefresh(t => api("/api/v1/compass-bio/patient/" + me.sub + "/insights", null, t)).then(r => r.json());
+    }).then(d => { el("streak-badge").textContent = "🔥 стрик: " + d.streak_days + " дн" +
+      (d.rmse_meal_30min_pct != null ? " · «до еды»: " + d.rmse_meal_30min_pct + "%" : ""); })
+    .catch(() => {});
+  }
+
+  /* ---------- шкалы item-level ---------- */
+  function loadScales() {
+    withRefresh(t => api("/api/v1/auth/me", null, t)).then(r => r.json()).then(me => {
+      S.me = me;
+      return withRefresh(t => api("/api/v1/compass-bio/patient/" + me.sub + "/timeline", null, t)).then(r => r.json());
+    }).then(tl => {
+      const codes = [["GAD-7","Тревога (ГТР-7)"],["PHQ-9","Депрессия (PHQ-9)"],["C-SSRS-SCREEN","Суицидальный риск (C-SSRS)"]];
+      el("scales-list").innerHTML = codes.map(([code, title]) => {
+        const done = tl.scales.filter(s => s.scale_code === code);
+        const last = done[0];
+        return `<div class="scale-row"><div><b>${title}</b><br><small>${last ?
+          "последний: " + last.total_score + " б. (" + new Date(last.taken_at).toLocaleDateString("ru-RU") + ")" : "ещё не заполняли"}</small></div>
+          <button type="button" class="btn btn--primary btn--sm" data-scale="${code}">Пройти</button></div>`;
+      }).join("");
+      el("scales-list").querySelectorAll("button[data-scale]").forEach(b =>
+        b.addEventListener("click", () => startQuiz(b.dataset.scale, b.textContent)));
+    }).catch(e => { el("scales-list").innerHTML = "<p class='hint'>Нужна сеть для загрузки шкал.</p>"; });
+  }
+  function startQuiz(code) {
+    withRefresh(t => api("/api/v1/compass-bio/scales/" + code, null, t)).then(r => r.json()).then(s => {
+      S.quiz = s; S.quizAnswers = new Array(s.items.length).fill(null);
+      el("quiz-card").style.display = ""; el("quiz-result").style.display = "none";
+      el("quiz-title").textContent = s.title_ru;
+      el("quiz-items").innerHTML = s.preamble ? `<p class="card-sub">${esc(s.preamble)}</p>` : "";
+      s.items.forEach((q, i) => {
+        el("quiz-items").insertAdjacentHTML("beforeend",
+          `<div class="field-block"><div class="field-title">${i + 1}. ${esc(q)}</div>
+           <div class="segmented" data-i="${i}">${s.options.map(o =>
+             `<button type="button" class="seg" data-v="${o.v}" data-i="${i}">${esc(o.label)}</button>`).join("")}</div></div>`);
       });
-      box.appendChild(sk);
-    }
-
-    nextBtn.onclick = function () {
-      if (!run) return;
-      if (it.multi) {
-        run.answers[it.flag] = multiPicked.map(function (x) { return x.v; });
-        collectAnswer(s, it, multiPicked.map(function (x) { return x.v; }).join(", "));
-      } else {
-        run.answers[it.flag] = picked.v;
-        collectAnswer(s, it, picked.v);
-      }
-      run.q += 1;
-      renderStep();
-    };
-  }
-
-  function collectAnswer(s, it, v) {
-    var R = run.results;
-    if (s.id === "GAD7") {
-      R.gad7 = (R.gad7 || 0) + (typeof v === "number" ? v : 0);
-    } else if (s.id === "PHQ9") {
-      R.phq9 = (R.phq9 || 0) + (typeof v === "number" ? v : 0);
-      if (it.flag === "item9") R.item9 = v;
-    } else if (s.id === "SAFETY") {
-      R.cssrs = Math.max(R.cssrs || 0, typeof v === "number" ? v : 0);
-    } else if (s.id === "DIARY") {
-      R.diary = R.diary || {};
-      R.diary[it.flag] = v;
-    }
-  }
-
-  function finishChain() {
-    var R = run.results, mode = run.mode;
-    run = null;
-    showView("home");
-    if (mode === "survey") {
-      draft.phq9 = { total: R.phq9 || 0 };
-      draft.gad7 = { total: R.gad7 || 0 };
-      draft.item9 = (R.item9 !== undefined) ? R.item9 : null;
-      draft.cssrs = R.cssrs || 0;
-      el("card-today").hidden = false;
-      el("card-feedback").hidden = true;
-      el("step-mood").hidden = true;
-      el("step-send").hidden = false;
-      el("send-summary").textContent = "Опросники пройдены: GAD-7 = " + (R.gad7 || 0) +
-        ", PHQ-9 = " + (R.phq9 || 0) + ". Проверьте и отправьте.";
-    } else {
-      draft.diary = R.diary || {};
-      el("card-today").hidden = false;
-      el("card-feedback").hidden = true;
-      el("step-mood").hidden = true;
-      el("step-send").hidden = false;
-      var d = R.diary || {};
-      el("send-summary").textContent = "Дневник сохранён: сон " + (d.sleep || "—") +
-        ", силы " + (d.energy ? d.energy + "/4" : "—") +
-        (d.symptoms ? ", отмечено: " + d.symptoms : "") + ". Отправьте вместе с чек-ином.";
-    }
-  }
-
-  /* ================= «что-то беспокоит» ================= */
-  el("btn-send-side").addEventListener("click", function () {
-    var txt = el("side-effect-text").value.trim();
-    if (txt.length < 3) { el("se-error").textContent = "Опишите чуть подробнее (минимум 3 символа)"; return; }
-    el("se-error").textContent = "";
-    var payload = buildPayload();
-    payload.side_note = txt.slice(0, 500);
-    el("btn-send-side").disabled = true;
-    sendCheckin(payload).then(function () {
-      el("side-effect-text").value = "";
-      el("se-result").innerHTML = "<div class='fb-insight'>Ушло врачу. Если это срочно — позвоните ему (номер — в поликлинике).</div>";
-      el("btn-send-side").disabled = false;
-    }).catch(function (e) {
-      el("se-error").textContent = e.message;
-      el("btn-send-side").disabled = false;
+      el("quiz-items").querySelectorAll(".seg").forEach(b => b.addEventListener("click", () => {
+        const i = +b.dataset.i;
+        S.quizAnswers[i] = +b.dataset.v;
+        el("quiz-items").querySelectorAll(`.seg[data-i="${i}"]`).forEach(x => x.classList.remove("seg--active"));
+        b.classList.add("seg--active");
+      }));
+      el("quiz-card").scrollIntoView({ behavior: "smooth" });
     });
-  });
+  }
+  function submitQuiz() {
+    if (S.quizAnswers.some(a => a === null)) { el("quiz-error").textContent = "Ответьте на все пункты — пропуск суицидального вопроса = «риск не оценён», это важно."; return; }
+    el("quiz-error").textContent = "";
+    withRefresh(t => api("/api/v1/compass-bio/scales/" + S.quiz.code + "/submit",
+      { method: "POST", body: JSON.stringify({ answers: S.quizAnswers }) }, t))
+      .then(r => r.json()).then(res => {
+        const card = el("quiz-result"); card.style.display = "";
+        card.innerHTML = `<h2>Результат: ${res.total_score} баллов</h2>
+          <div class="notice ${res.suicide_flag ? "notice--critical" : "notice--ok"}">${esc(res.severity)}</div>
+          ${res.suicide_flag ? "<p class='hint'>Ваш врач получил этот результат. Если тяжело прямо сейчас — 112 или 0523, не ждите.</p>" : ""}`;
+        card.scrollIntoView({ behavior: "smooth" });
+        loadScales();
+      }).catch(e => { el("quiz-error").textContent = e.message; });
+  }
 
-  /* ================= прогресс ================= */
+  /* ---------- прогресс ---------- */
   function renderProgress() {
-    var log = loadLog();
-    var pts = log.filter(function (x) { return x.gad7; }).slice(0, 12).reverse();
-    drawChart(pts.map(function (x) { return x.gad7; }));
-    el("gad7-trend").textContent = pts.length >= 2
-      ? ("Последний: " + pts[pts.length - 1].gad7 + " из 21 • предыдущий: " + pts[pts.length - 2].gad7 + ".")
-      : "Пока мало данных — пройдите опросник дважды, чтобы увидеть тренд.";
-    var strip = el("mood-strip"); strip.innerHTML = "";
-    loadMoods().slice(-14).forEach(function (m) {
-      var d = document.createElement("div");
-      d.className = "mood-day";
-      d.title = m.d;
-      d.appendChild(moodFace(m.m, 20));
-      strip.appendChild(d);
+    withRefresh(t => api("/api/v1/auth/me", null, t)).then(r => r.json()).then(me =>
+      withRefresh(t => api("/api/v1/compass-bio/patient/" + me.sub + "/timeline", null, t)).then(r => r.json()))
+    .then(tl => {
+      const list = el("progress-list");
+      list.innerHTML = tl.scales.length ? tl.scales.map(s =>
+        `<li class="hist-item">${new Date(s.taken_at).toLocaleDateString("ru-RU")} · ${esc(s.scale_code)}: <b>${s.total_score}</b> б.</li>`).join("")
+        : "<li class='hist-item'>Пока пусто — пройдите первую шкалу.</li>";
+      const cv = el("progress-canvas"), ctx = cv.getContext("2d");
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      const series = {};
+      tl.scales.forEach(s => { (series[s.scale_code] = series[s.scale_code] || []).push(s.total_score); });
+      const colors = { "GAD-7": "#0284c7", "PHQ-9": "#8a3ffc" };
+      let maxV = 10;
+      Object.keys(colors).forEach(code => {
+        const pts = series[code]; if (!pts || pts.length < 2) return;
+        maxV = Math.max(maxV, ...pts);
+        ctx.strokeStyle = colors[code]; ctx.lineWidth = 2; ctx.beginPath();
+        pts.forEach((v, i) => { const x = 30 + i * ((cv.width - 50) / Math.max(pts.length - 1, 1)), y = cv.height - 25 - (v / 27) * (cv.height - 45);
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+        ctx.stroke();
+        pts.forEach((v, i) => { const x = 30 + i * ((cv.width - 50) / Math.max(pts.length - 1, 1)), y = cv.height - 25 - (v / 27) * (cv.height - 45);
+          ctx.fillStyle = colors[code]; ctx.beginPath(); ctx.arc(x, y, 3.5, 0, 7); ctx.fill();
+          ctx.fillText(v, x - 6, y - 7); });
+        ctx.fillStyle = colors[code];
+        ctx.fillText(code + " ↓ лучше", cv.width - 120, 20 + Object.keys(colors).indexOf(code) * 14);
+      });
+      ctx.strokeStyle = "#c6c6c6"; ctx.beginPath(); ctx.moveTo(24, cv.height - 25); ctx.lineTo(cv.width - 10, cv.height - 25); ctx.stroke();
+    }).catch(() => {});
+  }
+
+  /* ---------- напоминания ---------- */
+  function setupNotifications() {
+    if (!("Notification" in window)) { el("notify-status").textContent = "Уведомления не поддерживаются этим браузером."; return; }
+    Notification.requestPermission().then(p => {
+      el("notify-status").textContent = p === "granted" ? "Включено: напомним за 30 минут до приёма (при открытом приложении)." : "Разрешение не выдано.";
+      if (p === "granted") setInterval(() => {
+        const t = el("input-intake").value; if (!t) return;
+        const [h, m] = t.split(":").map(Number);
+        const target = new Date(); target.setHours(h, m - 30, 0, 0);
+        const diff = target - new Date();
+        if (diff > 0 && diff < 65000) new Notification("Клинический компас", { body: "Через 30 минут — приём Авиандр®. Не забудь поесть заранее!" });
+      }, 30000);
     });
-    renderHistory();
   }
 
-  function moodFace(m, size) {
-    var f = MOOD_FACES[m - 1] || MOOD_FACES[2];
-    var wrap = document.createElement("span");
-    wrap.innerHTML = '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '">' +
-      '<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.8"/>' +
-      '<circle cx="8.5" cy="10" r="1.3" fill="currentColor"/><circle cx="15.5" cy="10" r="1.3" fill="currentColor"/>' +
-      '<path d="' + f.mouth + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
-    return wrap.firstChild;
+  /* ---------- связка/старт ---------- */
+  function bind(token) {
+    const err = el("bind-error"); err.textContent = "";
+    api("/api/v1/auth/bind", { method: "POST", body: JSON.stringify({ token }) })
+      .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(new Error(d.detail || "HTTP " + r.status))))
+      .then(d => { STORE.session = { access: d.access_token, refresh: d.refresh_token }; location.reload(); })
+      .catch(e => { err.textContent = "Привязка не удалась: " + (e.message || e) + ". Код одноразовый — попросите новый QR."; });
   }
 
-  function drawChart(vals) {
-    var cv = el("chart-gad7"); if (!cv) return;
-    var W = cv.offsetWidth || 320, H = 150;
-    cv.width = W * 2; cv.height = H * 2;
-    var ctx = cv.getContext("2d");
-    ctx.scale(2, 2);
-    var pad = 18;
-    ctx.clearRect(0, 0, W, H);
-    if (vals.length < 2) {
-      ctx.fillStyle = "#9ab0b0"; ctx.font = "12px system-ui";
-      ctx.fillText("Нужно минимум 2 опросника для графика", pad, H / 2);
-      return;
-    }
-    var max = 21;
-    function X(i) { return pad + (W - pad * 2) * i / (vals.length - 1); }
-    function Y(v) { return pad + (H - pad * 2) * (1 - v / max); }
-    ctx.strokeStyle = "#e2ecec";
-    [0, 5, 10, 15, 21].forEach(function (v) {
-      ctx.beginPath(); ctx.moveTo(pad, Y(v)); ctx.lineTo(W - pad, Y(v)); ctx.stroke();
-      ctx.fillStyle = "#9ab0b0"; ctx.font = "9px system-ui"; ctx.fillText(String(v), 2, Y(v) + 3);
+  document.addEventListener("DOMContentLoaded", () => {
+    const qsToken = QS.get("token");
+    if (qsToken) el("bind-token").value = qsToken;
+    el("btn-bind").addEventListener("click", () => bind(el("bind-token").value.trim()));
+    el("bind-token").addEventListener("keydown", e => { if (e.key === "Enter") bind(el("bind-token").value.trim()); });
+
+    document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+    ["mood","anx","sleep"].forEach(k => el("input-" + k).addEventListener("input", e => el("lbl-" + k === "lbl-anx" ? "lbl-anx" : "lbl-" + k).textContent = e.target.value));
+    [["input-mood","lbl-mood"],["input-anx","lbl-anx"],["input-sleep","lbl-sleep"]].forEach(([i,l]) =>
+      el(i).addEventListener("input", e => el(l).textContent = e.target.value));
+    [["btn-dose-yes","btn-dose-no"],["btn-meal-yes","btn-meal-no"]].forEach(([a,b]) => {
+      el(a).addEventListener("click", () => { el(a).classList.add("seg--active"); el(b).classList.remove("seg--active"); });
+      el(b).addEventListener("click", () => { el(b).classList.add("seg--active"); el(a).classList.remove("seg--active"); });
     });
-    ctx.strokeStyle = "#007d79"; ctx.lineWidth = 2.5; ctx.beginPath();
-    vals.forEach(function (v, i) { i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v)); });
-    ctx.stroke();
-    ctx.fillStyle = "#007d79";
-    vals.forEach(function (v, i) { ctx.beginPath(); ctx.arc(X(i), Y(v), 3.4, 0, 7); ctx.fill(); });
-  }
+    el("btn-diary").addEventListener("click", saveDiary);
+    el("btn-quiz-submit").addEventListener("click", submitQuiz);
+    el("btn-notify").addEventListener("click", setupNotifications);
+    el("btn-logout").addEventListener("click", () => { STORE.clear(); location.reload(); });
 
-  function renderHistory() {
-    var list = el("history-list"); if (!list) return;
-    var log = loadLog().slice(0, 8);
-    list.innerHTML = log.length ? log.map(function (x) {
-      var d = new Date(x.ts);
-      var bits = [d.toLocaleDateString("ru-RU") + " " + d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })];
-      if (x.mood) bits.push("настроение " + x.mood + "/5");
-      if (x.gad7) bits.push("GAD-7: " + x.gad7);
-      if (x.diary && x.diary.sleep) bits.push("сон: " + x.diary.sleep);
-      bits.push(x.dose === "no" ? "доза пропущена" : "доза ✓");
-      return "<li>" + bits.join(" • ") + "</li>";
-    }).join("") : "<li class='dim'>Пока пусто — отправьте первый чек-ин.</li>";
-    var q = loadQueue();
-    var note = el("offline-queue-note");
-    if (note) {
-      note.style.display = q.length ? "" : "none";
-      note.textContent = q.length ? ("В офлайн-очереди: " + q.length + " чек-ин(ов) — уйдут при появлении сети.") : "";
+    if (STORE.session && STORE.session.access) {
+      el("view-bind").style.display = "none"; el("view-diary").style.display = "";
+      loadChoices(); loadStreak(); loadScales();
+      window.addEventListener("online", () => toast("Сеть вернулась — синхронизирую"));
     }
-  }
-
-  /* ================= вход/выход ================= */
-  function enterHome() {
-    showView("home");
-    renderStreaks();
-    renderHistory();
-    flushQueue();
-  }
-
-  el("btn-bind").addEventListener("click", function () {
-    bind(el("bind-token").value.trim());
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   });
-  el("bind-token").addEventListener("input", function () {
-    el("btn-bind").disabled = el("bind-token").value.trim().length < 10;
-  });
-  // sync при программной установке (QR-переход, вставка через меню) — input не стреляет
-  new MutationObserver(function () {
-    el("btn-bind").disabled = el("bind-token").value.trim().length < 10;
-  }).observe(el("bind-token"), { attributes: true, attributeFilter: ["value"] });
-  el("bind-token").addEventListener("keydown", function (e) {
-    if (e.key === "Enter" && !el("btn-bind").disabled) bind(el("bind-token").value.trim());
-  });
-  el("btn-care-ok").addEventListener("click", function () {
-    el("card-feedback").hidden = true;
-    el("card-today").hidden = false;
-  });
-  el("btn-care-ok2").addEventListener("click", function () {
-    el("card-feedback").hidden = true;
-    el("card-today").hidden = false;
-  });
-  var btnLogout = el("btn-logout");
-  if (btnLogout) btnLogout.addEventListener("click", function () { STORE.clear(); location.reload(); });
-
-  /* ================= init ================= */
-  (function init() {
-    var tok = QS.get("token");
-    if (tok) {
-      el("bind-token").value = tok;
-      el("btn-bind").disabled = false; // QR-переход: кнопка активна сразу (валидацию делает сервер)
-    }
-    if (STORE.session) {
-      if (localStorage.getItem("compass_onboard_done") === "1") enterHome();
-      else showView("onboard");
-    } else { showView("bind"); }
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js").catch(function () { });
-    }
-    window.addEventListener("online", flushQueue);
-    scheduleEveningReminder();
-  })();
 })();
