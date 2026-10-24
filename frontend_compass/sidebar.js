@@ -650,8 +650,8 @@
   function renderDash() {
     var d = state.lastResult;
     var sv = $("dash-sv"), dec = d && (d.compass_decision || {});
-    // История пациента из БД: таймлайн последнего алерта (шкалы/приверженность/алерты)
-    var alertPh = state.currentAlert && state.currentAlert.patient_hash;
+    // История пациента из БД: приоритет — пациент, выбранный из когорты; иначе из алерта
+    var alertPh = dashPatientHash || (state.currentAlert && state.currentAlert.patient_hash);
     var tlBox = $("dash-timeline");
     if (alertPh) {
       call("/api/v1/compass-bio/patient/" + alertPh + "/timeline")
@@ -659,6 +659,7 @@
         .then(function (tl) {
           if (!tl) return;
           var bits = [];
+          if (dashPatientLabel) bits.push("<div class='dash-tl'><b>Пациент:</b> " + dashPatientLabel + "</div>");
           (tl.scales || []).slice(0, 4).forEach(function (s) {
             bits.push("<div class='dash-tl'><b>" + s.scale_code + "</b> " + s.total_score +
               " <span class='when'>" + new Date(s.taken_at).toLocaleDateString("ru-RU") +
