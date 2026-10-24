@@ -195,6 +195,10 @@ body {
   border-color: var(--sage); background: var(--sage-soft);
   box-shadow: 0 4px 0 rgba(82,112,95,.4); color: var(--sage-deep);
 }
+.survey-choice--skip { color: var(--ink-3); font-weight: 600; background: transparent;
+  border-style: dashed; box-shadow: none; }
+.survey-choice--skip:hover { color: var(--ink-2); }
+
 .survey-foot { font-size: 12.5px; color: var(--amber); background: var(--amber-soft);
   border-radius: 12px; padding: 11px 13px; margin-top: 14px; line-height: 1.55; }
 

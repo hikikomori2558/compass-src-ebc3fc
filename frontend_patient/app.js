@@ -437,6 +437,19 @@
       box.appendChild(b);
     });
 
+    if (it.skip) {
+      var sk = document.createElement("button");
+      sk.type = "button"; sk.className = "survey-choice survey-choice--skip";
+      sk.textContent = "Пропустить вопрос";
+      sk.addEventListener("click", function () {
+        run.answers[it.flag] = null;
+        if (it.flag === "item9") run.results.item9 = null;
+        run.q += 1;
+        renderStep();
+      });
+      box.appendChild(sk);
+    }
+
     nextBtn.onclick = function () {
       if (!run) return;
       if (it.multi) {
