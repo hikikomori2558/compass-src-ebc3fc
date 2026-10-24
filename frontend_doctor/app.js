@@ -316,6 +316,13 @@
       recalculateClinicalState();
     }
 
+    // Enter в любом поле входа = нажать «Войти»
+    ["login-user", "login-pass", "login-api-base"].forEach(function (id) {
+      document.getElementById(id).addEventListener("keydown", function (e) {
+        if (e.key === "Enter") document.getElementById("btn-login-submit").click();
+      });
+    });
+
     document.getElementById("btn-login-submit").addEventListener("click", function () {
       const err = document.getElementById("login-error");
       err.textContent = "";

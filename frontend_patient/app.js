@@ -239,6 +239,9 @@
     if (tok) el("bind-token").value = tok;
 
     el("btn-bind").addEventListener("click", function () { bind(el("bind-token").value.trim()); });
+    el("bind-token").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") bind(el("bind-token").value.trim());
+    });
 
     el("btn-dose-yes").addEventListener("click", function () {
       el("btn-dose-yes").classList.add("seg--active");

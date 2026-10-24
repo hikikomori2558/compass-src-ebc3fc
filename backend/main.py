@@ -2,6 +2,7 @@
 # Запуск из корня репо:  python3 -m backend.main   (или: uvicorn backend.main:app)
 # Инфраструктура: docker compose up -d  (PostgreSQL 16 + Redis 7 AOF)
 import os
+import subprocess
 import time
 from collections import deque
 from contextlib import asynccontextmanager
@@ -16,6 +17,41 @@ from backend.api.alerts import alerts_router, ws_router
 from backend.api.auth import auth_router
 from backend.api.bio import bio_router
 from backend.api.cdss_workstation import router as cdss_router
+
+
+def _print_banner(pg_ok: bool, redis_ok: bool) -> None:
+    """Стартовая сводка: режим стенда, адреса и что доступно. Печатается один раз."""
+    full = pg_ok and redis_ok
+    mode = "\033[1;32mПОЛНЫЙ (БД + алерты + QR-привязка)\033[0m" if full \
+        else "\033[1;33mDEGRADED — без БД: вход/алерты недоступны, АРМ на офлайн-фоллбэке\033[0m"
+    lan = ""
+    try:
+        out = subprocess.run(["hostname", "-I"], capture_output=True, text=True, timeout=2)
+        lan = (out.stdout.split() or [""])[0]
+    except Exception:
+        pass
+
+    def row(label: str, local: str, lan_url: str = "") -> str:
+        line = f"\033[1;36m║\033[0m  {label:<14}\033[0m {local}"
+        if lan_url:
+            pad = max(1, 34 - len(label) - len(local))
+            line += " " * pad + f"\033[2m| с хоста: {lan_url}\033[0m"
+        return line + "\n"
+
+    print(
+        "\n\033[1;36m╔════════════════════════════════════════════════════════════════╗\033[0m\n"
+        "\033[1;36m║\033[0m  \033[1mCOMPASS-HYBRID v2.6\033[0m · CDSS «Клинический компас» (команда «Rapira»)\n"
+        "\033[1;36m║\033[0m  Режим: " + mode + "\n"
+        "\033[1;36m╠════════════════════════════════════════════════════════════════╣\033[0m\n"
+        + row("МИС-стенд:", "http://127.0.0.1:8000/", f"http://{lan}:8000/" if lan else "")
+        + row("АРМ врача:", "http://127.0.0.1:8000/static/arm/", f"http://{lan}:8000/static/arm/" if lan else "")
+        + row("PWA пациента:", "http://127.0.0.1:8000/static/pwa/", f"http://{lan}:8000/static/pwa/" if lan else "")
+        + row("Swagger API:", "http://127.0.0.1:8000/docs", f"http://{lan}:8000/docs" if lan else "")
+        + "\033[1;36m║\033[0m  Смоук API:    scripts/api_smoke.sh\n"
+        + ("\033[1;36m║\033[0m  \033[2mВход демо: neuro.ivlanov / compass-demo-2026 (после seed)\033[0m\n" if full else
+           "\033[1;36m║\033[0m  Полный режим:  docker compose up -d  ->  python3 -m backend.db.seed\n")
+        + "\033[1;36m╚════════════════════════════════════════════════════════════════╝\033[0m"
+    )
 
 TELEMETRY_RING = deque(maxlen=500)
 START_TS = time.time()
@@ -63,6 +99,8 @@ async def lifespan(app: FastAPI):
     if app.state.pg_pool is not None and app.state.redis is not None:
         await app.state.alert_relay.start(app.state.pg_pool, app.state.redis)
         print("[main] Alert relay: запущен (outbox -> Redis Streams)")
+
+    _print_banner(pg_ok=app.state.pg_pool is not None, redis_ok=app.state.redis is not None)
     yield
     if getattr(app.state, "alert_relay", None):
         await app.state.alert_relay.stop()
