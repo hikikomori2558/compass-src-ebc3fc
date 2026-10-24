@@ -90,7 +90,7 @@
     host.style.cssText = "position:fixed;top:0;right:0;bottom:0;width:" + PANEL_W +
       "px;z-index:2147483000;box-shadow:-18px 0 44px -14px rgba(9,22,40,.35);";
     frame = document.createElement("iframe");
-    frame.src = base + "/static/compass/sidebar.html";
+    frame.src = base + "/static/compass/sidebar.html?v=" + Date.now(); // минуя любые кэши
     frame.style.cssText = "width:100%;height:100%;border:0;background:#fff;";
     host.appendChild(frame);
     document.body.appendChild(host);

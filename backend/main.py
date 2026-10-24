@@ -92,6 +92,12 @@ async def telemetry_middleware(request: Request, call_next):
     ms = (time.perf_counter() - t0) * 1000.0
     TELEMETRY_RING.append({"path": request.url.path, "method": request.method, "ms": round(ms, 3), "status": response.status_code})
     response.headers["x-latency-ms"] = f"{ms:.3f}"
+    # Статика стенда должна ВСЕГДА проверяться на свежесть: демо активно правится,
+    # а браузер/Cloudflare без этого держат старые agent.js/sidebar.js вечно —
+    # выглядит как «ничего не работает» после каждого обновления (было 23-24.10).
+    if request.url.path.startswith(("/static/", "/emc")):
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        response.headers["ETag"] = f'"{ms:.0f}-{request.url.path}"'  # меняется каждый ответ
     return response
 
 
