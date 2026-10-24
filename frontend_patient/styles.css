@@ -28,6 +28,8 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html { -webkit-text-size-adjust: 100%; }
+/* Анти-слоп: editorial-типографика — serif-заголовки (клиническая традиция),
+   sans-текст; иерархия разделов вместо «одинаковых карточек». */
 body {
   font: 400 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, sans-serif;
   background: var(--cream); color: var(--ink);
@@ -80,7 +82,14 @@ body {
 }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .duo-card--note { background: #fbf7ec; border: 1px solid #ecdfc4; }
-.duo-q { font-size: 24px; font-weight: 800; letter-spacing: -.02em; line-height: 1.22; margin-bottom: 8px; color: var(--sage-ink); }
+.duo-q {
+  font: 800 25px/1.2 Georgia, "Times New Roman", serif; letter-spacing: -.01em;
+  margin-bottom: 8px; color: var(--sage-ink);
+}
+.duo-card h2 {
+  font: 800 21px/1.25 Georgia, "Times New Roman", serif; letter-spacing: -.01em;
+  margin-bottom: 8px; color: var(--sage-ink);
+}
 .duo-lead { font-size: 14.5px; color: var(--ink-2); margin-bottom: 14px; line-height: 1.6; }
 .duo-card h2 { font-size: 20px; font-weight: 800; letter-spacing: -.015em; margin-bottom: 8px; color: var(--sage-ink); }
 

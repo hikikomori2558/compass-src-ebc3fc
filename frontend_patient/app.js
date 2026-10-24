@@ -348,6 +348,7 @@
     renderStep();
   };
   el("btn-diary-full").addEventListener("click", openDiary);
+  el("btn-show-onboard").addEventListener("click", function () { showView("onboard"); });
   el("btn-diary-quick").addEventListener("click", openDiary);
 
   el("btn-survey-exit").addEventListener("click", function () {

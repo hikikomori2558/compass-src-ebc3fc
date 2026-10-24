@@ -307,6 +307,141 @@
     curve(m1, "#9f1853");
   }
 
+  var cohortCache = [];
+
+  function loadCohortTable() {
+    call("/api/v1/auth/my-patients").then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        cohortCache = d.patients || [];
+        var tb = $("cohort-tbody");
+        $("tab-cohort-n").textContent = d.count ? "(" + d.count + ")" : "";
+        tb.innerHTML = cohortCache.length ? "" : "<tr><td colspan='6' class='sb-dim'>Пока никого.</td></tr>";
+        cohortCache.slice(0, 12).forEach(function (p, i) {
+          var delta = (p.gad7_last !== null && p.gad7_first !== null) ? p.gad7_last - p.gad7_first : null;
+          var tr = document.createElement("tr");
+          tr.innerHTML = "<td>П-" + (p.patient_hash || "").slice(0, 6) + "</td>" +
+            "<td>" + (p.gad7_first === null ? "—" : p.gad7_first) + " → <b>" + (p.gad7_last === null ? "—" : p.gad7_last) + "</b></td>" +
+            "<td>" + (delta === null ? "—" : (delta > 0 ? "+" : "") + delta) + "</td>" +
+            "<td>" + (p.doses_logged || 0) + "</td>" +
+            "<td>" + (p.doses_skipped || 0) + "</td>" +
+            "<td><button type='button' class='cp-btn cp-btn-sm' data-idx='" + i + "'>История</button></td>";
+          tr.querySelector("button").addEventListener("click", function () {
+            openPatientTimeline(p.patient_hash, "П-" + (p.patient_hash || "").slice(0, 6));
+          });
+          tb.appendChild(tr);
+        });
+        var side = $("cohort-list");
+        if (side) { /* мини-список на вкладке Пациент больше не нужен */ }
+      });
+  }
+
+  /* Таймлайн пациента в дашборде по клику из когорты (и по алерту) */
+  var dashPatientHash = null, dashPatientLabel = "";
+  function openPatientTimeline(hash, label) {
+    dashPatientHash = hash; dashPatientLabel = label || "";
+    renderDash();
+    $("dash").hidden = false;
+  }
+
+  /* CSV-отчёты: скачаются как файлы */
+  function downloadCSV(name, rows) {
+    var csv = rows.map(function (r) {
+      return r.map(function (c) { return '"' + String(c === null || c === undefined ? "" : c).replace(/"/g, '""') + '"'; }).join(";");
+    }).join("\r\n");
+    var blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  $("btn-report-cohort").addEventListener("click", function () {
+    var rows = [["patient", "gad7_first", "gad7_last", "delta", "doses_logged", "doses_skipped", "bound_since"]];
+    cohortCache.forEach(function (p) {
+      rows.push([p.patient_hash, p.gad7_first, p.gad7_last,
+        (p.gad7_last !== null && p.gad7_first !== null) ? p.gad7_last - p.gad7_first : "",
+        p.doses_logged, p.doses_skipped, p.bound_since]);
+    });
+    downloadCSV("compass_cohort_report.csv", rows);
+  });
+
+  /* ================================================================ What-if CYP2D6 + микросети */
+  var lastPhenoAs = 1.5;
+  var PHENO_LABEL = { "1.5": "Нормальный метаболизатор (NM)", "0.5": "Промежуточный (IM)", "0.1": "Медленный (PM)" };
+  function runWhatIf(as) {
+    lastPhenoAs = as;
+    document.querySelectorAll(".pheno").forEach(function (b) {
+      b.classList.toggle("pheno--on", b.dataset.as === String(as));
+    });
+    var screen = state.screen;
+    call("/api/v1/cdss/evaluate-encounter", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        patient_id: (state.screen && state.screen.ib) || "walkthrough",
+        ehr_note_text: (screen && screen.screenText) || "Осмотр. F41.1. Тревога.",
+        gad7_score: 15, phq9_score: 6, hama_score: 16, madrs_score: 12,
+        cyp2d6_activity_score: Number(as), egfr_ml_min: 82,
+        active_comedications: [],
+      }),
+    }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        drawWhatIf(d.poppk_rk45);
+        var pk = d.poppk_rk45;
+        $("wi-nums").innerHTML = "<b>" + (PHENO_LABEL[String(as)] || as) + "</b><br>" +
+          "Cmax: <b>" + pk.c_max_ng_ml + "</b> нг/мл • Cmin(SS): <b>" + pk.c_trough_ss_ng_ml + "</b> нг/мл • " +
+          "Tmax: " + pk.t_max_hours + " ч • накопление RAC: " + pk.accumulation_index_rac + "<br>" +
+          "Классификация окна: <b>" + pk.risk_classification.replace(/_/g, " ") + "</b> • " +
+          "RK45 шагов: " + pk.rk45_accepted_steps + " принято / " + pk.rk45_rejected_steps + " отклонено (адаптивный шаг)";
+        // микросети — человеческим языком
+        var mn = d.bio_and_micronets && d.bio_and_micronets.control_plane_micronets;
+        var box = $("mn-cards");
+        if (mn) {
+          var keys = Object.keys(mn).filter(function (k) { return typeof mn[k] === "object" && mn[k]; });
+          box.innerHTML = keys.length ? keys.map(function (k) {
+            var net = mn[k];
+            var label = k.replace(/_/g, " ");
+            var val = net.route !== undefined ? ("маршрут: " + net.route) :
+              (net.cluster !== undefined ? ("кластер: " + net.cluster) :
+              (net.decision !== undefined ? ("решение: " + net.decision) : JSON.stringify(net).slice(0, 80)));
+            return "<div class='sb-cbr'><b>" + label + "</b> — " + val +
+              "<div class='sb-cite'>INT8-микросеть C-ядра: пороговые проверки прошли, время — микросекунды.</div></div>";
+          }).join("") : "<div class='sb-dim'>Сети не вернули данных для этого пациента.</div>";
+        }
+      }).catch(function (e) {
+        $("wi-nums").textContent = "Ошибка what-if: " + e.message;
+      });
+  }
+  document.querySelectorAll(".pheno").forEach(function (b) {
+    b.addEventListener("click", function () { runWhatIf(Number(b.dataset.as)); });
+  });
+
+  function drawWhatIf(pk) {
+    var cv = $("wi-chart"), ctx = cv.getContext("2d");
+    var W = cv.width, H = cv.height, padL = 40, padB = 18, padT = 8;
+    ctx.clearRect(0, 0, W, H);
+    var curve = pk.conc_plasma_168h_ng_ml || [];
+    if (!curve.length) return;
+    var maxV = Math.max.apply(null, curve) * 1.15;
+    function X(i) { return padL + (W - padL - 8) * (i / (curve.length - 1)); }
+    function Y(v) { return padT + (H - padT - padB) * (1 - v / maxV); }
+    ctx.strokeStyle = "#e6e6e6"; ctx.fillStyle = "#6f6f6f"; ctx.font = "9px Tahoma";
+    for (var k = 0; k <= 4; k++) {
+      var y = padT + (H - padT - padB) * k / 4;
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - 8, y); ctx.stroke();
+      ctx.fillText(String(Math.round(maxV * (1 - k / 4))), 4, y + 3);
+    }
+    [0, 42, 84, 126, 167].forEach(function (h, i, arr) {
+      var last = i === arr.length - 1;
+      ctx.textAlign = last ? "right" : "left";
+      ctx.fillText(h + "ч", X(h) + (last ? 10 : -6), H - 5);
+    });
+    ctx.textAlign = "left";
+    ctx.strokeStyle = "#0043ce"; ctx.lineWidth = 1.8; ctx.beginPath();
+    curve.forEach(function (v, i) { i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v)); });
+    ctx.stroke();
+  }
+
   /* Когорта терапии: живые данные из БД (RLS врача) */
   function loadCohort() {
     call("/api/v1/auth/my-patients").then(function (r) { return r.ok ? r.json() : null; })
@@ -451,6 +586,18 @@
     try { document.execCommand("copy"); done(); } catch (e) {}
     ta.remove();
   }
+
+  /* ================================================================ вкладки панели */
+  document.querySelectorAll(".sb-tab").forEach(function (t) {
+    t.addEventListener("click", function () {
+      document.querySelectorAll(".sb-tab").forEach(function (x) { x.classList.toggle("sb-tab--on", x === t); });
+      document.querySelectorAll(".stab").forEach(function (v) {
+        v.hidden = v.dataset.stabView !== t.dataset.stab;
+      });
+      if (t.dataset.stab === "cohort") { loadCohortTable(); }
+      if (t.dataset.stab === "analytics") { runWhatIf(lastPhenoAs); }
+    });
+  });
 
   /* ================================================================ колокольчик уведомлений */
   $("btn-bell").addEventListener("click", function () {

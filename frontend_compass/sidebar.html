@@ -28,6 +28,11 @@
     <div class="sb-sub">CDSS 20-П «Rapira» &bull; <span class="sb-live">живой API</span>
       <span class="sb-latency" id="sb-latency">—</span></div>
     <div class="sb-src" id="sb-src" hidden>Источник: <b>экран ЭМК</b> &bull; <span id="sb-src-patient"></span></div>
+    <nav class="sb-tabs">
+      <button type="button" class="sb-tab sb-tab--on" data-stab="patient">Пациент</button>
+      <button type="button" class="sb-tab" data-stab="cohort">Когорта <span id="tab-cohort-n"></span></button>
+      <button type="button" class="sb-tab" data-stab="analytics">Аналитика</button>
+    </nav>
     <div class="sb-head-actions">
       <button type="button" class="sb-bell" id="btn-bell" title="Уведомления" hidden>
         <svg viewBox="0 0 24 24" width="17" height="17"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -54,6 +59,7 @@
     <button type="button" class="cp-btn cp-btn-sm" id="btn-alert-confirm">Подтвердить реакцию…</button>
   </div>
 
+  <div class="stab stab--on" data-stab-view="patient">
   <div class="sb-empty" id="sb-empty">
     <div class="sb-empty-title">Панель врача COMPASS</div>
     <div class="sb-steps">
@@ -137,6 +143,61 @@
     </div>
     <div class="sb-foot">Решение принимает врач. Система предупреждает и оформляет.<br>
       <span id="sb-telemetry">телеметрия: —</span> &bull; <span id="sb-ws">WS: —</span></div>
+  </div>
+
+  </div><!-- /stab patient -->
+
+  <!-- ================= ВКЛАДКА КОГОРТА ================= -->
+  <div class="stab" data-stab-view="cohort" hidden>
+    <div class="sb-sec" style="margin-top:12px">
+      <div class="sb-sec-t">Когорта терапии <span id="cohort-count2"></span></div>
+      <table class="sb-table sb-table--cohort" id="cohort-table">
+        <thead><tr><th>Пациент</th><th>GAD-7</th><th>Δ</th><th>Приёмы</th><th>Пропуски</th><th></th></tr></thead>
+        <tbody id="cohort-tbody"></tbody>
+      </table>
+      <div class="sb-actions">
+        <button type="button" class="cp-btn cp-btn-outline cp-btn-sm" id="btn-report-cohort">Скачать отчёт по когорте (CSV)</button>
+      </div>
+      <div class="sb-note">Данные из БД по RLS: только ваши пациенты. ФИО — в ЭМК; здесь обезличенные идентификаторы (152-ФЗ).</div>
+    </div>
+  </div>
+
+  <!-- ================= ВКЛАДКА АНАЛИТИКА ================= -->
+  <div class="stab" data-stab-view="analytics" hidden>
+    <div class="sb-sec" style="margin-top:12px">
+      <div class="sb-sec-t">What-if: фенотип CYP2D6 → кривая концентрации</div>
+      <div class="sb-note">Решатель ОДУ Рунге—Кутты—Фельберга 4(5) пересчитывает 168-часовую
+        кривую маритупирдина для выбранного фенотипа. Пропуски доз учтены в модели
+        (дипы на кривой). Это реальный C-решатель, а не картинка.</div>
+      <div class="pheno-row" id="pheno-row">
+        <button type="button" class="pheno pheno--on" data-as="1.5">Нормальный (NM)</button>
+        <button type="button" class="pheno" data-as="0.5">Промежуточный (IM)</button>
+        <button type="button" class="pheno" data-as="0.1">Медленный (PM)</button>
+      </div>
+      <canvas id="wi-chart" width="420" height="180"></canvas>
+      <div class="sb-pk-nums" id="wi-nums">Выберите фенотип для пересчёта.</div>
+    </div>
+
+    <div class="sb-sec">
+      <div class="sb-sec-t">Микросети INT8: маршрутизация наблюдения</div>
+      <div class="sb-note">Три крошечные сети (≈5 тыс. параметров каждая, INT8-квантование,
+        исполняются в C-ядре за микросекунды) сортируют пациента по маршруту наблюдения.
+        Решение всё равно принимает врач — сети лишь подсвечивают, на кого смотреть внимательнее.</div>
+      <div id="mn-cards"></div>
+    </div>
+
+    <div class="sb-sec">
+      <div class="sb-sec-t">Траектории: Вассерштейн и Махаланобис</div>
+      <div class="sb-note">Динамика пациента проецируется в 24-мерное пространство признаков и
+        сравнивается с траекториями из РКИ (расстояние Вассерштейна—Синкхорн за 36 недель).
+        Расстояние Махаланобиса отсекает нетипичные профили: для них система
+        <b>не экстраполирует</b> и честно пишет «данных недостаточно».</div>
+      <div id="ot-cards">
+        <div class="sb-cbr"><b>Как читать:</b> малое расхождение — пациент идёт по «проторённой»
+          траектории исследований, рекомендации опираются на доказательства. Большое — профиль
+          нетипичен, система снижает уверенность и предлагает очную консультацию.</div>
+      </div>
+    </div>
   </div>
 
   <!-- QR приглашение -->
