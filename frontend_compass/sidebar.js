@@ -406,6 +406,24 @@
     }).catch(function (e) { alert("QR: " + e.message); });
   });
   $("btn-qr-close").addEventListener("click", function () { $("sb-qr").hidden = true; });
+  /* QR-ссылку в буфер: врач пересылает её пациенту в мессенджер одним действием */
+  $("btn-qr-copy").addEventListener("click", function () {
+    var url = $("qr-link").textContent.trim();
+    var btn = $("btn-qr-copy");
+    var done = function () {
+      btn.textContent = "Скопировано ✓";
+      setTimeout(function () { btn.textContent = "Скопировать ссылку в буфер — отправить пациенту"; }, 1800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(function () { fallbackCopy(url, done); });
+    } else fallbackCopy(url, done);
+  });
+  function fallbackCopy(text, done) {
+    var ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) {}
+    ta.remove();
+  }
 
   /* ================================================================ колокольчик уведомлений */
   $("btn-bell").addEventListener("click", function () {

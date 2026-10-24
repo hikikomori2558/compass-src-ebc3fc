@@ -1,28 +1,24 @@
 /*
- * frontend_patient/app.js — PWA-дневник пациента COMPASS.
+ * frontend_patient/app.js — PWA-дневник пациента COMPASS (Duolingo-механика).
  *
- * UX по docs/UX_UI_DESIGN.md: базовый чек-ин = 3 тапа (таблетка → настроение →
- * отправить), полный опросник GAD-7/PHQ-9 — пошагово тапами по валидированным
- * формулировкам, суицидальный скрининг — каскад C-SSRS; после отправки —
- * НЕМЕДЛЕННЫЙ фидбек (при критичном ответе — отдельный тёплый экран поддержки);
- * вкладка «Терапия по неделям» — ожидания/побочки и свободная жалоба врачу;
- * вкладка «Прогресс» — тренд GAD-7 и настроение по дням.
+ * Механика (снята с живого Duolingo, адаптирована «без чувства вины»):
+ *   - один вопрос на экран; варианты — карточки с жёсткой нижней тенью;
+ *     выбор подсвечивает карточку и активирует нижнюю кнопку «Продолжить»;
+ *   - прогресс-бар урока сверху; выход ✕ в любой момент («прогресс сохранится»);
+ *   - серия дней подряд (streak) — без давления: пропуски не «сжигают» серию
+ *     в формулировках, никаких стыдящих текстов;
+ *   - НЕМЕДЛЕННЫЙ фидбек после отправки; при «тяжёлом» ответе — поддерживающий
+ *     экран с кризисным телефоном, без красноты и без «сигналов тревоги».
  *
- * Поток: QR → /api/v1/auth/bind → пациентский JWT → POST /api/v1/patient/checkin
- * (идемпотентный event_uuid + офлайн-очередь; при критичных ответах врачу уходит
- * ПУСТОЙ WS-пинг — клинический контент остаётся в контуре МО; Условие 3: система
- * не советует, только фиксирует и передаёт).
+ * Клинический контур не менялся: QR → bind → чек-ин (идемпотентный event_uuid,
+ * офлайн-очередь) → врачу уходит пустой WS-пинг, клиника остаётся в контуре МО.
  */
 (function () {
   "use strict";
 
   var QS = new URLSearchParams(window.location.search);
-  // По умолчанию API — тот же origin (стенд: https://.../static/pwa/).
-  // Явное ?api=... — для локальной разработки (python3 -m http.server 5501).
   var SAME_ORIGIN = (location.origin && location.origin.indexOf("http") === 0) ? location.origin : "http://127.0.0.1:8000";
-  var CFG = {
-    apiBase: (QS.get("api") || localStorage.getItem("compass_patient_api") || SAME_ORIGIN).replace(/\/+$/, "")
-  };
+  var CFG = { apiBase: (QS.get("api") || localStorage.getItem("compass_patient_api") || SAME_ORIGIN).replace(/\/+$/, "") };
   var STORE = {
     get session() {
       try { return JSON.parse(localStorage.getItem("compass_patient_session") || "null"); }
@@ -34,6 +30,8 @@
   var QUEUE_KEY = "compass_patient_outbox";
   var LOG_KEY = "compass_patient_log";
   var MOOD_KEY = "compass_patient_moods";
+  var DIARY_KEY = "compass_patient_diary";
+  var STREAK_KEY = "compass_patient_streak";
 
   function el(id) { return document.getElementById(id); }
   function uuid() {
@@ -44,16 +42,18 @@
       });
   }
   function today() { return new Date().toISOString().slice(0, 10); }
+  function dayDiff(d1, d2) { return Math.round((new Date(d2) - new Date(d1)) / 864e5); }
 
-  function api(path, opts, token, opts2) {
+  function api(path, opts, token, flags) {
     opts = opts || {};
-    var allowRebind = !(opts2 && opts2.queue); // 401 из офлайн-очереди не разлогинивает
+    var noReauth = !!(flags && flags.queue);
     return fetch(CFG.apiBase + path, Object.assign({}, opts, {
       headers: Object.assign({ "Content-Type": "application/json" },
         token ? { "Authorization": "Bearer " + token } : {}, opts.headers || {}),
     })).then(function (r) {
       if (r.status === 401) {
-        if (allowRebind) { STORE.clear(); showView("bind"); }
+        if (noReauth) throw new Error("401-queue");
+        STORE.clear(); showView("bind");
         throw new Error("Сессия истекла — привяжитесь заново");
       }
       if (!r.ok) throw new Error("HTTP " + r.status);
@@ -61,7 +61,7 @@
     });
   }
 
-  /* ================= офлайн-очередь (Условие: PWA живёт в лифтах и метро) ==== */
+  /* ================= очередь / журнал / серия ================= */
   function loadQueue() { try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]"); } catch (e) { return []; } }
   function saveQueue(q) { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); }
   function enqueue(item) { var q = loadQueue(); q.push(item); saveQueue(q); }
@@ -72,31 +72,52 @@
     (function next() {
       if (!q.length) { saveQueue([]); renderHistory(); return; }
       var item = q.shift();
-      // queue: true — 401 устаревшего queued-чек-ина выбрасывает ЭТОТ элемент,
-      // а не разлогинивает врача-сессию пациента (иначе гонка с живым чек-ином)
       api("/api/v1/patient/checkin", { method: "POST", body: JSON.stringify(item.payload) }, t.access_token, { queue: true })
-        .then(function () { next(); })
+        .then(next)
         .catch(function () { rest.push(item); rest = rest.concat(q); saveQueue(rest); renderHistory(); });
     })();
   }
-
   function loadLog() { try { return JSON.parse(localStorage.getItem(LOG_KEY) || "[]"); } catch (e) { return []; } }
-  function pushLog(entry) { var l = loadLog(); l.unshift(entry); localStorage.setItem(LOG_KEY, JSON.stringify(l.slice(0, 60))); }
+  function pushLog(entry) { var l = loadLog(); l.unshift(entry); localStorage.setItem(LOG_KEY, JSON.stringify(l.slice(0, 90))); }
   function loadMoods() { try { return JSON.parse(localStorage.getItem(MOOD_KEY) || "[]"); } catch (e) { return []; } }
   function pushMood(m) {
     var l = loadMoods().filter(function (x) { return x.d !== today(); });
     l.push({ d: today(), m: m }); localStorage.setItem(MOOD_KEY, JSON.stringify(l.slice(-30)));
   }
+  /* серия: дней подряд с хотя бы одним чек-ином; разрыв не «сжигает» её в тексте —
+     просто показываем текущую непрерывную серию, без упрёков. */
+  function calcStreak() {
+    var days = loadLog().map(function (x) { return x.ts.slice(0, 10); });
+    days = Array.from(new Set(days)).sort().reverse();
+    if (!days.length) return 0;
+    var streak = 1;
+    for (var i = 1; i < days.length; i++) {
+      if (dayDiff(days[i], days[i - 1]) === 1) streak += 1; else break;
+    }
+    return streak;
+  }
+  function renderStreaks() {
+    var s = calcStreak();
+    [["streak", "streak-n"], ["streak2", "streak2-n"], ["survey-streak", "survey-streak-n"], ["ob-streak", "ob-streak-n"]]
+      .forEach(function (pair) {
+        var wrap = el(pair[0]), n = el(pair[1]);
+        if (!wrap) return;
+        wrap.hidden = s < 1;
+        if (n) n.textContent = String(s);
+      });
+  }
 
-  /* ================= навигация (вкладки = 1 клик) ================= */
+  /* ================= навигация ================= */
   function showView(name) {
-    ["bind", "home", "survey", "progress", "info"].forEach(function (v) {
-      el("view-" + v).style.display = (v === name) ? "" : "none";
+    ["bind", "onboard", "home", "survey", "progress", "info"].forEach(function (v) {
+      var node = el("view-" + v);
+      if (node) node.style.display = (v === name) ? "" : "none";
     });
-    document.querySelectorAll(".navchip").forEach(function (c) {
-      c.classList.toggle("navchip--active", c.dataset.go === name);
+    document.querySelectorAll(".duo-tab").forEach(function (c) {
+      c.classList.toggle("duo-tab--active", c.dataset.go === name);
     });
     if (name === "progress") renderProgress();
+    if (name === "home") renderStreaks();
     window.scrollTo(0, 0);
   }
   document.addEventListener("click", function (e) {
@@ -111,20 +132,69 @@
     api("/api/v1/auth/bind", { method: "POST", body: JSON.stringify({ token: token }) })
       .then(function (t) {
         STORE.session = t;
-        enterDiary();
+        localStorage.setItem("compass_onboard_done", localStorage.getItem("compass_onboard_done") || "0");
+        if (localStorage.getItem("compass_onboard_done") === "1") enterHome();
+        else showView("onboard");
       })
       .catch(function (err) {
         el("bind-error").textContent = "Не удалось привязаться: " + err.message +
-          (err.stack ? " [" + String(err.stack).replace(/\s+/g, " ").slice(0, 300) + "]" : "");
+          ". Код одноразовый — попросите врача показать QR заново.";
       })
       .finally(function () { btn.disabled = false; btn.textContent = "Привязаться"; });
   }
 
+  /* ================= onboarding ================= */
+  el("btn-ob-start").addEventListener("click", function () {
+    localStorage.setItem("compass_onboard_done", "1");
+    enterHome();
+  });
+  el("btn-ob-done").addEventListener("click", function () {
+    localStorage.setItem("compass_onboard_done", "1");
+    enterHome();
+  });
+  el("btn-notify").addEventListener("click", function () {
+    var st = el("notify-status");
+    if (!("Notification" in window)) {
+      st.textContent = "Этот браузер не умеет уведомления — но дневник работает и так.";
+      return;
+    }
+    Notification.requestPermission().then(function (perm) {
+      if (perm === "granted") {
+        st.textContent = "Готово: напоминание будет приходить вечером (20:00), пока дневник открыт.";
+        st.className = "error ok";
+        try {
+          new Notification("Клинический компас", {
+            body: "Напоминание включено — до встречи в 20:00",
+            icon: "icons/icon-192.png",
+          });
+        } catch (e) { /* демо-нотификация не критична */ }
+        scheduleEveningReminder();
+      } else {
+        st.textContent = "Уведомления выключены — напоминание можно включить позже в настройках сайта.";
+      }
+    });
+  });
+  var reminderTimer = null;
+  function scheduleEveningReminder() {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    if (reminderTimer) clearTimeout(reminderTimer);
+    (function tick() {
+      var now = new Date();
+      var at = new Date(); at.setHours(20, 0, 0, 0);
+      if (now > at) at.setDate(at.getDate() + 1);
+      reminderTimer = setTimeout(function () {
+        try { new Notification("Клинический компас", { body: "Полминуты для дневника — врач увидит динамику.", icon: "icons/icon-192.png" }); } catch (e) {}
+        scheduleEveningReminder();
+      }, at - now);
+    })();
+  }
+
   /* ================= чек-ин: 3 тапа ================= */
-  var draft = { dose: null, mood: null, phq9: null, gad7: null, cssrs: null, item9: null };
+  var draft = { dose: null, mood: null, phq9: null, gad7: null, cssrs: null, item9: null,
+    diary: null };
 
   function resetDraft() {
-    draft = { dose: null, mood: null, phq9: null, gad7: null, cssrs: null, item9: null };
+    draft = { dose: null, mood: null, phq9: null, gad7: null, cssrs: null, item9: null, diary: null };
     document.querySelectorAll(".choice").forEach(function (c) { c.classList.remove("choice--on"); });
     document.querySelectorAll(".mood").forEach(function (x) { x.classList.remove("mood--on"); });
     el("step-mood").hidden = true;
@@ -139,7 +209,7 @@
       parts.push(draft.dose === "yes" ? "таблетка ✓" : "таблетка пропущена");
       if (draft.mood) parts.push("настроение " + draft.mood + "/5");
       el("send-summary").textContent = parts.join(" • ") +
-        ". Полный опросник (2 недели) — кнопкой ниже: врачу важна динамика раз в 1–2 недели.";
+        ". Опросник недели и подробный дневник — кнопками ниже: врачу важна динамика.";
     }
   }
 
@@ -151,17 +221,38 @@
       goStep(2);
     });
   });
-  document.querySelectorAll(".mood").forEach(function (c) {
-    c.addEventListener("click", function () {
-      document.querySelectorAll(".mood").forEach(function (x) { x.classList.remove("mood--on"); });
-      c.classList.add("mood--on");
-      draft.mood = parseInt(c.dataset.mood, 10);
-      pushMood(draft.mood);
-      goStep(3);
-    });
-  });
 
-  /* ================= отправка + немедленный фидбек ================= */
+  /* настроение: 5 состояний, SVG-иконки (без эмодзи) */
+  var MOOD_FACES = [
+    { m: 1, label: "тяжело", mouth: "M8 16c1.5-2 6.5-2 8 0" },
+    { m: 2, label: "так себе", mouth: "M8.5 15.5c1.2-1 5.8-1 7 0" },
+    { m: 3, label: "нормально", mouth: "M8 15h8" },
+    { m: 4, label: "хорошо", mouth: "M8.5 14.5c1.2 1 5.8 1 7 0" },
+    { m: 5, label: "отлично", mouth: "M8 14c1.5 2 6.5 2 8 0" },
+  ];
+  (function buildMoodRow() {
+    var row = el("mood-row");
+    MOOD_FACES.forEach(function (f) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "mood"; b.dataset.mood = f.m;
+      b.innerHTML =
+        '<svg viewBox="0 0 24 24" width="30" height="30">' +
+        '<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.8"/>' +
+        '<circle cx="8.5" cy="10" r="1.3" fill="currentColor"/><circle cx="15.5" cy="10" r="1.3" fill="currentColor"/>' +
+        '<path d="' + f.mouth + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+        "<span>" + f.label + "</span>";
+      b.addEventListener("click", function () {
+        document.querySelectorAll(".mood").forEach(function (x) { x.classList.remove("mood--on"); });
+        b.classList.add("mood--on");
+        draft.mood = f.m;
+        pushMood(f.m);
+        goStep(3);
+      });
+      row.appendChild(b);
+    });
+  })();
+
+  /* ================= отправка + фидбек ================= */
   function buildPayload() {
     return {
       event_uuid: uuid(),
@@ -180,7 +271,7 @@
       .then(function (resp) { return { resp: resp, offline: false }; })
       .catch(function (err) {
         var m = String(err.message);
-        if (m.indexOf("HTTP") === 0 || m.indexOf("Failed to fetch") >= 0 || m.indexOf("NetworkError") >= 0) {
+        if (m === "401-queue" || m.indexOf("HTTP") === 0 || m.indexOf("Failed to fetch") >= 0 || m.indexOf("NetworkError") >= 0) {
           enqueue({ queued_at: new Date().toISOString(), payload: payload });
           var critical = (payload.cssrs || 0) >= 1 || (payload.phq9_item9 || 0) >= 1;
           return { resp: { status: "QUEUED", critical: critical }, offline: true };
@@ -224,111 +315,186 @@
     if (log.length < 2 || !payload.gad7_total) return "";
     var prev = log[0].gad7, cur = payload.gad7_total;
     if (cur < prev) return "Тревога по опроснику ниже, чем в прошлый раз (" + prev + " → " + cur + "). Движение верное.";
-    if (cur === prev) return "Уровень тревоги держится на прежнем уровне — стабильность тоже результат.";
+    if (cur === prev) return "Уровень тревоги держится ровно — стабильность тоже результат.";
     return "Опросник немного выше прошлого (" + prev + " → " + cur + "). Плохие дни бывают — врач это увидит.";
   }
 
   el("btn-checkin").addEventListener("click", function () {
     var payload = buildPayload();
     pushLog({ ts: new Date().toISOString(), dose: draft.dose, mood: draft.mood,
-      gad7: payload.gad7_total || null, phq9: payload.phq9_total || null, cssrs: payload.cssrs });
+      gad7: payload.gad7_total || null, phq9: payload.phq9_total || null, cssrs: payload.cssrs,
+      diary: draft.diary || null });
     sendCheckin(payload).then(function (r) {
       resetDraft();
       showFeedback(r.resp, payload);
+      renderStreaks();
       renderHistory();
     }).catch(function (err) {
       var box = el("checkin-error"); if (box) { box.textContent = err.message; box.hidden = false; }
     });
   });
 
-  /* ================= полный опросник (survey.js рисует вопросы) ============ */
-  var surveyState = null;
+  /* ================= движок шагов (опросник / дневник) ================= */
+  var run = null; // {chain, idx, q, answers, results, mode}
 
-  el("btn-full-survey").addEventListener("click", startSurveyChain);
-
-  function startSurveyChain() {
-    surveyState = { chain: ["GAD7", "PHQ9", "CSSRS"], idx: 0, q: 0, answers: {}, results: {} };
+  el("btn-full-survey").addEventListener("click", function () {
+    run = { chain: ["GAD7", "PHQ9", "SAFETY"], idx: 0, q: 0, answers: {}, results: {}, mode: "survey" };
     showView("survey");
-    renderSurvey();
-  }
+    renderStep();
+  });
+  var openDiary = function () {
+    run = { chain: ["DIARY"], idx: 0, q: 0, answers: {}, results: {}, mode: "diary" };
+    showView("survey");
+    renderStep();
+  };
+  el("btn-diary-full").addEventListener("click", openDiary);
+  el("btn-diary-quick").addEventListener("click", openDiary);
 
-  function currentSurvey() { return SURVEYS[surveyState.chain[surveyState.idx]]; }
+  el("btn-survey-exit").addEventListener("click", function () {
+    run = null;
+    showView("home"); // без упрёков: прогресс частично сохранён
+  });
+
+  function currentSurvey() { return SURVEYS[run.chain[run.idx]]; }
   function visibleItems(s) {
-    return s.items.filter(function (it) { return !it.onlyIf || it.onlyIf(surveyState.answers); });
+    return s.items.filter(function (it) { return !it.onlyIf || it.onlyIf(run.answers); });
   }
 
-  function renderSurvey() {
+  var picked = null;      // текущий выбор (для многошагового «Продолжить»)
+  var multiPicked = [];   // для multi-чипов
+
+  function renderStep() {
+    if (!run) return; // защита: цепочка уже завершена (клик по мёртвому DOM)
     var s = currentSurvey();
     var items = visibleItems(s);
-    if (surveyState.q >= items.length) { finishSurvey(); return; }
-    var it = items[surveyState.q];
+    if (run.q >= items.length) { finishChain(); return; }
+    var it = items[run.q];
+
     var done = 0, totalLeft = 0;
-    surveyState.chain.forEach(function (id, i) {
+    run.chain.forEach(function (id, i) {
       var sv = SURVEYS[id];
-      var vis = (i < surveyState.idx) ? sv.items.length :
-        (i === surveyState.idx ? visibleItems(sv).length : 0);
-      if (i < surveyState.idx) done += vis;
+      var vis = (i < run.idx) ? sv.items.length :
+        (i === run.idx ? visibleItems(sv).length : 0);
+      if (i < run.idx) done += vis;
       totalLeft += vis;
     });
-    el("survey-count").textContent = (done + surveyState.q + 1) + "/" + totalLeft;
-    el("survey-bar").style.width = Math.round(100 * (done + surveyState.q) / Math.max(1, totalLeft)) + "%";
-    el("survey-lead").textContent = surveyState.q === 0 ? (s.lead + " · " + s.intro) : s.lead;
-    el("survey-question").textContent = "За последние 2 недели " + it.q + "?";
+    el("survey-count-text") && 0;
+    el("survey-bar").style.width = Math.round(100 * (done + run.q) / Math.max(1, totalLeft)) + "%";
+    el("survey-lead").textContent = (run.q === 0 ? s.lead + " · " + s.intro : s.lead);
+    el("survey-question").textContent = it.q;
+    el("survey-foot").hidden = !it.foot;
     el("survey-foot").textContent = it.foot || "";
+
     var box = el("survey-choices");
     box.innerHTML = "";
-    var choices = it.choices || (function () {
-      return ["Совсем нет", "Несколько дней", "Больше половины дней", "Почти каждый день"]
-        .map(function (label, i) { return { v: i, label: label }; });
-    })();
-    choices.forEach(function (c) {
+    picked = null; multiPicked = [];
+    var nextBtn = el("btn-survey-next");
+    nextBtn.disabled = true;
+    nextBtn.textContent = it.cta || "Продолжить";
+
+    if (it.input) {
+      // свободный ввод (заметка дневника)
+      var ta = document.createElement("textarea");
+      ta.className = "duo-input duo-input--area"; ta.rows = 4;
+      ta.placeholder = "Пара слов своими словами (необязательно)";
+      ta.addEventListener("input", function () { nextBtn.disabled = false; });
+      box.appendChild(ta);
+      nextBtn.onclick = function () {
+        run.answers[it.flag] = ta.value.trim();
+        collectAnswer(s, it, ta.value.trim());
+        run.q += 1; renderStep();
+      };
+      return;
+    }
+
+    (it.choices || (function () {
+      return FREQ.map(function (label, i) { return { v: i, label: label }; });
+    })()).forEach(function (c) {
       var b = document.createElement("button");
       b.type = "button"; b.className = "survey-choice"; b.textContent = c.label;
       b.addEventListener("click", function () {
-        collectAnswer(s, it, c.v);
-        surveyState.answers[it.flag || ("q" + surveyState.idx + "_" + surveyState.q)] = c.v;
-        surveyState.q += 1;
-        renderSurvey();
+        if (it.multi) {
+          if (c.v === "Ничего из этого") multiPicked = [c];
+          else {
+            multiPicked = multiPicked.filter(function (x) { return x.v !== "Ничего из этого"; });
+            if (b.classList.contains("choice--on")) b.classList.remove("choice--on");
+            else b.classList.add("choice--on");
+            if (!multiPicked.some(function (x) { return x.v === c.v; })) multiPicked.push(c);
+          }
+          Array.from(box.children).forEach(function (elBtn) {
+            var lbl = elBtn.textContent;
+            var on = multiPicked.some(function (x) { return x.v === lbl; });
+            elBtn.classList.toggle("choice--on", on);
+          });
+          nextBtn.disabled = multiPicked.length === 0;
+        } else {
+          Array.from(box.children).forEach(function (x) { x.classList.remove("choice--on"); });
+          b.classList.add("choice--on");
+          picked = c;
+          nextBtn.disabled = false;
+        }
       });
       box.appendChild(b);
     });
-    window.scrollTo(0, 0);
+
+    nextBtn.onclick = function () {
+      if (!run) return;
+      if (it.multi) {
+        run.answers[it.flag] = multiPicked.map(function (x) { return x.v; });
+        collectAnswer(s, it, multiPicked.map(function (x) { return x.v; }).join(", "));
+      } else {
+        run.answers[it.flag] = picked.v;
+        collectAnswer(s, it, picked.v);
+      }
+      run.q += 1;
+      renderStep();
+    };
   }
 
   function collectAnswer(s, it, v) {
-    var R = surveyState.results;
+    var R = run.results;
     if (s.id === "GAD7") {
-      R.gad7 = (R.gad7 || 0) + v;
+      R.gad7 = (R.gad7 || 0) + (typeof v === "number" ? v : 0);
     } else if (s.id === "PHQ9") {
-      R.phq9 = (R.phq9 || 0) + v;
+      R.phq9 = (R.phq9 || 0) + (typeof v === "number" ? v : 0);
       if (it.flag === "item9") R.item9 = v;
-    } else if (s.id === "CSSRS") {
-      R.cssrs = Math.max(R.cssrs || 0, v);
+    } else if (s.id === "SAFETY") {
+      R.cssrs = Math.max(R.cssrs || 0, typeof v === "number" ? v : 0);
+    } else if (s.id === "DIARY") {
+      R.diary = R.diary || {};
+      R.diary[it.flag] = v;
     }
   }
 
-  function finishSurvey() {
-    surveyState.idx += 1; surveyState.q = 0;
-    if (surveyState.idx >= surveyState.chain.length) {
-      var R = surveyState.results;
+  function finishChain() {
+    var R = run.results, mode = run.mode;
+    run = null;
+    showView("home");
+    if (mode === "survey") {
       draft.phq9 = { total: R.phq9 || 0 };
       draft.gad7 = { total: R.gad7 || 0 };
       draft.item9 = (R.item9 !== undefined) ? R.item9 : null;
       draft.cssrs = R.cssrs || 0;
-      showView("home");
       el("card-today").hidden = false;
       el("card-feedback").hidden = true;
       el("step-mood").hidden = true;
       el("step-send").hidden = false;
       el("send-summary").textContent = "Опросники пройдены: GAD-7 = " + (R.gad7 || 0) +
-        ", PHQ-9 = " + (R.phq9 || 0) + ". Проверьте шаг 3 и отправьте.";
-      return;
+        ", PHQ-9 = " + (R.phq9 || 0) + ". Проверьте и отправьте.";
+    } else {
+      draft.diary = R.diary || {};
+      el("card-today").hidden = false;
+      el("card-feedback").hidden = true;
+      el("step-mood").hidden = true;
+      el("step-send").hidden = false;
+      var d = R.diary || {};
+      el("send-summary").textContent = "Дневник сохранён: сон " + (d.sleep || "—") +
+        ", силы " + (d.energy ? d.energy + "/4" : "—") +
+        (d.symptoms ? ", отмечено: " + d.symptoms : "") + ". Отправьте вместе с чек-ином.";
     }
-    renderSurvey();
   }
-  el("btn-survey-exit").addEventListener("click", function () { showView("home"); });
 
-  /* ================= «что-то беспокоит» (жалоба врачом) ================= */
+  /* ================= «что-то беспокоит» ================= */
   el("btn-send-side").addEventListener("click", function () {
     var txt = el("side-effect-text").value.trim();
     if (txt.length < 3) { el("se-error").textContent = "Опишите чуть подробнее (минимум 3 символа)"; return; }
@@ -338,7 +504,7 @@
     el("btn-send-side").disabled = true;
     sendCheckin(payload).then(function () {
       el("side-effect-text").value = "";
-      el("se-result").innerHTML = "<div class='fb-insight'>✓ Ушло врачу. Если это срочно — позвоните ему (номер — в поликлинике).</div>";
+      el("se-result").innerHTML = "<div class='fb-insight'>Ушло врачу. Если это срочно — позвоните ему (номер — в поликлинике).</div>";
       el("btn-send-side").disabled = false;
     }).catch(function (e) {
       el("se-error").textContent = e.message;
@@ -353,16 +519,26 @@
     drawChart(pts.map(function (x) { return x.gad7; }));
     el("gad7-trend").textContent = pts.length >= 2
       ? ("Последний: " + pts[pts.length - 1].gad7 + " из 21 • предыдущий: " + pts[pts.length - 2].gad7 + ".")
-      : "Пока мало данных — пройдите полный опросник дважды, чтобы увидеть тренд.";
+      : "Пока мало данных — пройдите опросник дважды, чтобы увидеть тренд.";
     var strip = el("mood-strip"); strip.innerHTML = "";
     loadMoods().slice(-14).forEach(function (m) {
       var d = document.createElement("div");
       d.className = "mood-day";
       d.title = m.d;
-      d.textContent = ["", "😔", "😕", "😐", "🙂", "😊"][m.m] || "·";
+      d.appendChild(moodFace(m.m, 20));
       strip.appendChild(d);
     });
     renderHistory();
+  }
+
+  function moodFace(m, size) {
+    var f = MOOD_FACES[m - 1] || MOOD_FACES[2];
+    var wrap = document.createElement("span");
+    wrap.innerHTML = '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '">' +
+      '<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.8"/>' +
+      '<circle cx="8.5" cy="10" r="1.3" fill="currentColor"/><circle cx="15.5" cy="10" r="1.3" fill="currentColor"/>' +
+      '<path d="' + f.mouth + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    return wrap.firstChild;
   }
 
   function drawChart(vals) {
@@ -399,31 +575,42 @@
     list.innerHTML = log.length ? log.map(function (x) {
       var d = new Date(x.ts);
       var bits = [d.toLocaleDateString("ru-RU") + " " + d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })];
-      if (x.mood) bits.push(["", "😔", "😕", "😐", "🙂", "😊"][x.mood]);
+      if (x.mood) bits.push("настроение " + x.mood + "/5");
       if (x.gad7) bits.push("GAD-7: " + x.gad7);
+      if (x.diary && x.diary.sleep) bits.push("сон: " + x.diary.sleep);
       bits.push(x.dose === "no" ? "доза пропущена" : "доза ✓");
       return "<li>" + bits.join(" • ") + "</li>";
     }).join("") : "<li class='dim'>Пока пусто — отправьте первый чек-ин.</li>";
     var q = loadQueue();
     var note = el("offline-queue-note");
-    note.style.display = q.length ? "" : "none";
-    note.textContent = q.length ? ("В офлайн-очереди: " + q.length + " чек-ин(ов) — уйдут при появлении сети.") : "";
+    if (note) {
+      note.style.display = q.length ? "" : "none";
+      note.textContent = q.length ? ("В офлайн-очереди: " + q.length + " чек-ин(ов) — уйдут при появлении сети.") : "";
+    }
   }
 
   /* ================= вход/выход ================= */
-  function enterDiary() {
-    try { showView("home"); } catch (e) { alert("A:"+e.message+" | "+e.stack); }
-    try { renderHistory(); } catch (e) { alert("B:"+e.message+" | "+e.stack); }
-    try { flushQueue(); } catch (e) { alert("C:"+e.message+" | "+e.stack); }
+  function enterHome() {
+    showView("home");
+    renderStreaks();
+    renderHistory();
+    flushQueue();
   }
 
   el("btn-bind").addEventListener("click", function () {
     bind(el("bind-token").value.trim());
   });
+  el("bind-token").addEventListener("input", function () {
+    el("btn-bind").disabled = el("bind-token").value.trim().length < 10;
+  });
   el("bind-token").addEventListener("keydown", function (e) {
-    if (e.key === "Enter") bind(el("bind-token").value.trim());
+    if (e.key === "Enter" && !el("btn-bind").disabled) bind(el("bind-token").value.trim());
   });
   el("btn-care-ok").addEventListener("click", function () {
+    el("card-feedback").hidden = true;
+    el("card-today").hidden = false;
+  });
+  el("btn-care-ok2").addEventListener("click", function () {
     el("card-feedback").hidden = true;
     el("card-today").hidden = false;
   });
@@ -433,11 +620,18 @@
   /* ================= init ================= */
   (function init() {
     var tok = QS.get("token");
-    if (tok) el("bind-token").value = tok;
-    if (STORE.session) { enterDiary(); } else { showView("bind"); }
+    if (tok) {
+      el("bind-token").value = tok;
+      el("btn-bind").disabled = tok.trim().length < 10; // QR-переход: кнопка активна сразу
+    }
+    if (STORE.session) {
+      if (localStorage.getItem("compass_onboard_done") === "1") enterHome();
+      else showView("onboard");
+    } else { showView("bind"); }
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js").catch(function () { /* офлайн не критичен */ });
+      navigator.serviceWorker.register("sw.js").catch(function () { });
     }
     window.addEventListener("online", flushQueue);
+    scheduleEveningReminder();
   })();
 })();
