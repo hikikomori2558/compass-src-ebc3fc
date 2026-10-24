@@ -337,7 +337,7 @@ async def my_patients(request: Request, doctor: Principal = Depends(require_doct
                        AND m.dose_skipped) AS doses_skipped,
                    (SELECT count(*) FROM medication_adherence_logs m
                      WHERE m.patient_hash_id = b.patient_hash_id) AS doses_logged,
-                   b.created_at::date AS bound_since
+                   b.bound_at::date AS bound_since
             FROM doctor_patient_bindings b
             JOIN patient_pii_vault ppii ON ppii.patient_hash_id = b.patient_hash_id
             WHERE b.doctor_id = $1 AND b.active
