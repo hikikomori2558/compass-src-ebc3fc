@@ -380,6 +380,7 @@
           badge.hidden = d.count === 0;
           badge.textContent = String(d.count);
         }
+        if (typeof loadCohort === "function") loadCohort(); // когорта обновляется вместе с алертами
       });
   }
   $("btn-alert-confirm").addEventListener("click", function () {
