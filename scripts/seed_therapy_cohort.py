@@ -59,9 +59,11 @@ COHORT = [
 
 async def seed_sql(pool, patient_hash, days, gad, skips, critical_day, moods):
     from datetime import datetime, timedelta
+    from backend.db.context import db_conn
     now = datetime.utcnow()
 
-    async with pool.acquire() as conn:
+    # RLS: контекст AUTH_SERVICE — тот же, что при реальной привязке (создание ИДС)
+    async with db_conn(pool, role="AUTH_SERVICE", user_id=patient_hash) as conn:
         # GAD-7 ретро: каждый бальный отсчёт — раз в 4 дня назад от сегодня
         for i, score in enumerate(gad):
             days_ago = days - i * max(1, days // max(1, len(gad)))
