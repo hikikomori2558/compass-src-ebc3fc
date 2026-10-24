@@ -104,12 +104,12 @@ async def patient_checkin(req: CheckinRequest, request: Request,
     critical = _is_critical(req)
 
     async with db_conn(pool, role="PATIENT", user_id=patient.sub) as conn:
-        # Идемпотентность на самом входе: офлайн-буфер PWA может дослать повтор.
+        # Идемпотентность на самом входе, для ЛЮБОГО чек-ина: офлайн-буфер PWA может
+        # дослать повтор, и повтор нормального чек-ина не должен плодить записи шкал.
+        # Единая точка — medication_adherence_logs.event_uuid (UNIQUE по схеме).
         dup = await conn.fetchval(
-            "SELECT event_id FROM critical_events_outbox WHERE event_uuid = $1", req.event_uuid
-        ) if critical else None
-        # не-критические чек-ины тоже защищаем от дублей — по факту записи шкал ниже
-        # (упрощение: дублем считаем только критический, у него цена повтора — ложный алерт)
+            "SELECT log_id FROM medication_adherence_logs WHERE event_uuid = $1", req.event_uuid
+        )
         if dup is not None:
             # Дубль — это успех идемпотентности, а не новое событие: 200, не 201
             return JSONResponse({"status": "DUPLICATE", "critical": critical,
@@ -128,6 +128,15 @@ async def patient_checkin(req: CheckinRequest, request: Request,
                 "VALUES ($1, 'GAD-7', $2, '{}'::jsonb)",
                 uuid.UUID(patient.sub), req.gad7_total,
             )
+
+        # Приверженность (дневник приёма): было упущено — took_medication приходил,
+        # но никуда не писался; заодно здесь event_uuid = единая идемпотентность.
+        await conn.execute(
+            "INSERT INTO medication_adherence_logs "
+            "(patient_hash_id, planned_at, taken_at, dose_skipped, event_uuid) "
+            "VALUES ($1, now(), now(), $2, $3) ON CONFLICT (event_uuid) DO NOTHING",
+            uuid.UUID(patient.sub), not req.took_medication, req.event_uuid,
+        )
 
         alert_id: Optional[int] = None
         if critical:
