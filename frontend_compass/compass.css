@@ -105,6 +105,18 @@ textarea.cp-input { height: auto; padding: 8px 11px; resize: vertical; }
 .sb-notif-item .when { color: #8d8d8d; font-size: 10px; }
 .sb-notif-item .cp-btn { margin-top: 6px; }
 
+.sb-cohort-item { border: 1px solid #e7ece9; background: #f7faf8; border-radius: 9px; padding: 8px 10px; margin-bottom: 6px; }
+.sb-cohort-item .co-fio { font-size: 12.5px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+.co-delta { font: 800 11px system-ui; border-radius: 999px; padding: 1px 7px; background: #e6f5ec; color: #047817; }
+.co-delta.up { background: #fdeaea; color: #a51616; }
+.sb-cohort-item .co-meta { font-size: 11px; color: #6f6f6f; margin-top: 2px; }
+
+/* адаптив панели: узкие экраны */
+@media (max-width: 520px) {
+  .sb-src { display: none; }
+  .sb-qr-img { width: 150px; height: 150px; }
+}
+
 /* ---------- дашборд состояния (fullscreen поверх ЭМК) ---------- */
 .dash {
   position: fixed; inset: 0; z-index: 2147483002; background: #f4f4f4; overflow-y: auto;

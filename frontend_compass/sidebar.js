@@ -307,6 +307,30 @@
     curve(m1, "#9f1853");
   }
 
+  /* Когорта терапии: живые данные из БД (RLS врача) */
+  function loadCohort() {
+    call("/api/v1/auth/my-patients").then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        $("cohort-count").textContent = d.count ? "(" + d.count + ")" : "";
+        var box = $("cohort-list");
+        box.innerHTML = d.count ? "" : "<span class='sb-dim'>Пока никого — отправьте QR-приглашение.</span>";
+        (d.patients || []).slice(0, 6).forEach(function (p) {
+          var delta = (p.gad7_last !== null && p.gad7_first !== null) ? p.gad7_last - p.gad7_first : null;
+          var deltaHtml = delta === null ? "" :
+            "<span class='co-delta " + (delta < 0 ? "down" : (delta > 0 ? "up" : "")) + "'>" +
+            (delta > 0 ? "+" : "") + delta + "</span>";
+          var skip = p.doses_skipped ? (" · пропусков: " + p.doses_skipped) : " · без пропусков";
+          var div = document.createElement("div");
+          div.className = "sb-cohort-item";
+          div.innerHTML = "<div class='co-fio'>" + (p.fio_masked || "Пациент") + deltaHtml + "</div>" +
+            "<div class='co-meta'>GAD-7: " + (p.gad7_first ?? "—") + " → <b>" + (p.gad7_last ?? "—") + "</b>" +
+            skip + " · с " + p.bound_since + "</div>";
+          box.appendChild(div);
+        });
+      });
+  }
+
   function telemetry() {
     call("/api/v1/telemetry/summary").then(function (r) { return r.ok ? r.json() : null; })
       .then(function (t) {
