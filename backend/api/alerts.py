@@ -69,6 +69,9 @@ class CheckinRequest(BaseModel):
     gad7_total: int = Field(default=0, ge=0, le=21)
     cssrs: Optional[int] = Field(default=None, ge=0, le=5)
     took_medication: bool = Field(default=True, description="Отметка приёма (для вовлечённости)")
+    intake_time: Optional[str] = Field(default=None, description="Время приёма (HH:MM) — для фенотипной аналитики")
+    side_note: Optional[str] = Field(default=None, max_length=500, description="Жалоба/побочка своими словами — идёт врачу")
+    diary: Optional[dict] = Field(default=None, description="Подробный дневник: сон, силы, симптомы")
 
 
 class CheckinResponse(BaseModel):
@@ -133,9 +136,12 @@ async def patient_checkin(req: CheckinRequest, request: Request,
         # но никуда не писался; заодно здесь event_uuid = единая идемпотентность.
         await conn.execute(
             "INSERT INTO medication_adherence_logs "
-            "(patient_hash_id, planned_at, taken_at, dose_skipped, event_uuid) "
-            "VALUES ($1, now(), now(), $2, $3) ON CONFLICT (event_uuid) DO NOTHING",
-            uuid.UUID(patient.sub), not req.took_medication, req.event_uuid,
+            "(patient_hash_id, planned_at, taken_at, dose_skipped, intake_time, notes, diary, event_uuid) "
+            "VALUES ($1, now(), now(), $2, $3, $4, $5::jsonb, $6) "
+            "ON CONFLICT (event_uuid) DO NOTHING",
+            uuid.UUID(patient.sub), not req.took_medication,
+            req.intake_time, req.side_note,
+            json.dumps(req.diary) if req.diary else None, req.event_uuid,
         )
 
         alert_id: Optional[int] = None

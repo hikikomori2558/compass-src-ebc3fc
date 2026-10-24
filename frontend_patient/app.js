@@ -218,6 +218,15 @@
       document.querySelectorAll(".choice").forEach(function (x) { x.classList.remove("choice--on"); });
       c.classList.add("choice--on");
       draft.dose = c.dataset.dose;
+      if (draft.dose === "yes") {
+        var it = document.createElement("input");
+        it.type = "time"; it.className = "duo-input"; it.value = "08:00";
+        it.id = "intake-time"; it.setAttribute("aria-label", "Время приёма");
+        var row = c.parentElement.parentElement;
+        var existing = document.getElementById("intake-time");
+        if (!existing) { var lbl = document.createElement("div"); lbl.className = "qtitle"; lbl.style.fontSize = "14px"; lbl.textContent = "Во сколько приняли?"; row.appendChild(lbl); row.appendChild(it); }
+        else { existing.value = "08:00"; }
+      }
       goStep(2);
     });
   });
@@ -261,6 +270,8 @@
       gad7_total: (draft.gad7 && draft.gad7.total) || 0,
       cssrs: (draft.cssrs !== null && draft.cssrs !== undefined) ? draft.cssrs : null,
       took_medication: draft.dose !== "no",
+      intake_time: (draft.dose === "yes" && el("intake-time")) ? el("intake-time").value || null : null,
+      diary: draft.diary || null,
     };
   }
 
@@ -414,6 +425,12 @@
       var b = document.createElement("button");
       b.type = "button"; b.className = "survey-choice"; b.textContent = c.label;
       b.addEventListener("click", function () {
+        if (it.tips && it.tips[c.v]) {
+          var foot = el("survey-foot");
+          foot.hidden = false;
+          foot.textContent = it.tips[c.v];
+          foot.className = "survey-foot survey-foot--tip";
+        }
         if (it.multi) {
           if (c.v === "Ничего из этого") multiPicked = [c];
           else {

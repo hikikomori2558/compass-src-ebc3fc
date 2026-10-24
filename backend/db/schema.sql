@@ -183,6 +183,9 @@ CREATE TABLE medication_adherence_logs (
   dose_skipped     boolean NOT NULL DEFAULT false,
   pdc_pct          numeric,
   kop25_score      smallint CHECK (kop25_score BETWEEN 0 AND 100),
+  intake_time      text,                                -- время приёма (HH:MM) — фенотипная аналитика
+  notes            text,                                -- жалоба/побочка словами пациента (-> врачу)
+  diary            jsonb,                               -- подробный дневник состояния
   event_uuid       uuid UNIQUE                          -- идемпотентность офлайн-досылки PWA (RPO=0)
 );
 CREATE INDEX idx_adherence_patient_time ON medication_adherence_logs (patient_hash_id, planned_at DESC);
