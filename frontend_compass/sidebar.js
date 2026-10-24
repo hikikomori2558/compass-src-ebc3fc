@@ -320,12 +320,14 @@
           var deltaHtml = delta === null ? "" :
             "<span class='co-delta " + (delta < 0 ? "down" : (delta > 0 ? "up" : "")) + "'>" +
             (delta > 0 ? "+" : "") + delta + "</span>";
-          var skip = p.doses_skipped ? (" · пропусков: " + p.doses_skipped) : " · без пропусков";
+          var skip = p.doses_skipped ? ("пропусков: " + p.doses_skipped) : "без пропусков";
+          var hashShort = (p.patient_hash || "").slice(0, 8);
           var div = document.createElement("div");
           div.className = "sb-cohort-item";
-          div.innerHTML = "<div class='co-fio'>" + (p.fio_masked || "Пациент") + deltaHtml + "</div>" +
-            "<div class='co-meta'>GAD-7: " + (p.gad7_first ?? "—") + " → <b>" + (p.gad7_last ?? "—") + "</b>" +
-            skip + " · с " + p.bound_since + "</div>";
+          div.innerHTML = "<div class='co-fio'>Пациент " + hashShort + deltaHtml + "</div>" +
+            "<div class='co-meta'>GAD-7: " + (p.gad7_first === null ? "—" : p.gad7_first) + " → <b>" +
+            (p.gad7_last === null ? "—" : p.gad7_last) + "</b> · " + skip +
+            " · приёмов: " + (p.doses_logged || 0) + " · с " + p.bound_since + "</div>";
           box.appendChild(div);
         });
       });
