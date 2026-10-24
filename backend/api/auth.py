@@ -322,7 +322,10 @@ async def my_patients(request: Request, doctor: Principal = Depends(require_doct
         rows = await conn.fetch(
             """
             SELECT b.patient_hash_id::text AS patient_hash,
-                   ppii.last_name || ' ' || ppii.first_name AS fio_masked,
+                   -- Zero-PII: ФИО в vault зашифровано (fio_encrypted) — панель
+                   -- панель показывает минимально необходимое: пол, возраст
+                   CASE ppii.sex WHEN 1 THEN 'М' WHEN 0 THEN 'Ж' ELSE '—' END AS sex_label,
+                   date_part('year', age(ppii.birth_date))::int AS age,
                    (SELECT total_score FROM patient_scale_assessments s
                      WHERE s.patient_hash_id = b.patient_hash_id AND s.scale_code = 'GAD-7'
                      ORDER BY taken_at DESC LIMIT 1) AS gad7_last,
