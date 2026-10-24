@@ -84,17 +84,20 @@ async def seed_sql(pool, patient_hash, days, gad, skips, critical_day, moods):
                 patient_hash, score,
                 json.dumps({"item9": 0, "source": "PWA_checkin", "seed": True}), days_ago,
             )
-        # Приверженность: ежедневные записи, пропуски по сценарию
-        for d in range(days):
-            day = now - timedelta(days=d)
-            skipped = d in skips
-            await conn.execute(
-                "INSERT INTO medication_adherence_logs (patient_hash_id, planned_at, taken_at, "
-                "dose_skipped, before_meal_30min, event_uuid) "
-                "VALUES ($1, $2, $3, $4, true, $5) ON CONFLICT (event_uuid) DO NOTHING",
-                patient_hash, day, day, skipped,
-                __import__("uuid").uuid4(),
-            )
+        # Приверженность: ежедневные записи, пропуски по сценарию.
+        # Пишем от лица ПАЦИЕНТА (role=PATIENT + свой user_id) — ровно как реальный
+        # чек-ин в PWA: эта RLS-политика проверена боем (battle test).
+        async with db_conn(pool, role="PATIENT", user_id=patient_hash) as pconn:
+            for d in range(days):
+                day = now - timedelta(days=d)
+                skipped = d in skips
+                await pconn.execute(
+                    "INSERT INTO medication_adherence_logs (patient_hash_id, planned_at, taken_at, "
+                    "dose_skipped, before_meal_30min, event_uuid) "
+                    "VALUES ($1, $2, $3, $4, true, $5) ON CONFLICT (event_uuid) DO NOTHING",
+                    patient_hash, day, day, skipped,
+                    __import__("uuid").uuid4(),
+                )
         # Критический эпизод (пациент B): алерт на день critical_day, уже подтверждён
         if critical_day is not None:
             moment = now - timedelta(days=critical_day)
