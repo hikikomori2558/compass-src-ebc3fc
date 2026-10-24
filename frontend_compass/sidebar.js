@@ -19,6 +19,7 @@
   var state = {
     session: null,          // JWT врача (localStorage compass_session, origin COMPASS)
     screen: null,           // последний экранный документ {ib, fio, screenText}
+    pendingScreen: null,    // экран, пришедший до входа врача (разбирается после логина)
     confirmations: {},      // подтверждения врача по текущему пациенту
     lastResult: null,
     currentAlert: null,
