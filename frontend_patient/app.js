@@ -603,6 +603,10 @@
   el("bind-token").addEventListener("input", function () {
     el("btn-bind").disabled = el("bind-token").value.trim().length < 10;
   });
+  // sync при программной установке (QR-переход, вставка через меню) — input не стреляет
+  new MutationObserver(function () {
+    el("btn-bind").disabled = el("bind-token").value.trim().length < 10;
+  }).observe(el("bind-token"), { attributes: true, attributeFilter: ["value"] });
   el("bind-token").addEventListener("keydown", function (e) {
     if (e.key === "Enter" && !el("btn-bind").disabled) bind(el("bind-token").value.trim());
   });
@@ -622,7 +626,7 @@
     var tok = QS.get("token");
     if (tok) {
       el("bind-token").value = tok;
-      el("btn-bind").disabled = tok.trim().length < 10; // QR-переход: кнопка активна сразу
+      el("btn-bind").disabled = false; // QR-переход: кнопка активна сразу (валидацию делает сервер)
     }
     if (STORE.session) {
       if (localStorage.getItem("compass_onboard_done") === "1") enterHome();
