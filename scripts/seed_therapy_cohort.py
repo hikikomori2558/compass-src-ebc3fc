@@ -98,20 +98,22 @@ async def seed_sql(pool, patient_hash, days, gad, skips, critical_day, moods):
                     patient_hash, day, day, skipped,
                     __import__("uuid").uuid4(),
                 )
-        # Критический эпизод (пациент B): алерт на день critical_day, уже подтверждён
+        # Критический эпизод (пациент B): алерт на день critical_day, уже подтверждён.
+        # Вставка от лица ПАЦИЕНТА — ровно как реальный чек-ин создаёт алерт (RLS).
         if critical_day is not None:
             moment = now - timedelta(days=critical_day)
-            row = await conn.fetchrow(
-                "INSERT INTO clinical_alerts_and_routing "
-                "(patient_hash_id, category, critical, reasons, created_at, doctor_reaction_at) "
-                "VALUES ($1, 'MANDATORY_PSYCHIATRIST', true, $2::jsonb, $3, $3) RETURNING alert_id",
-                patient_hash, json.dumps(["C-SSRS = 2 (ретро-сценарий, подтверждён)"]), moment,
-            )
-            await conn.execute(
-                "INSERT INTO patient_scale_assessments (patient_hash_id, scale_code, total_score, items, taken_at) "
-                "VALUES ($1, 'C-SSRS', 2, $2::jsonb, $3)",
-                patient_hash, json.dumps({"seed": True}), moment,
-            )
+            async with db_conn(pool, role="PATIENT", user_id=patient_hash) as pconn:
+                row = await pconn.fetchrow(
+                    "INSERT INTO clinical_alerts_and_routing "
+                    "(patient_hash_id, category, critical, reasons, created_at, doctor_reaction_at) "
+                    "VALUES ($1, 'MANDATORY_PSYCHIATRIST', true, $2::jsonb, $3, $3) RETURNING alert_id",
+                    patient_hash, json.dumps(["C-SSRS = 2 (ретро-сценарий, подтверждён)"]), moment,
+                )
+                await pconn.execute(
+                    "INSERT INTO patient_scale_assessments (patient_hash_id, scale_code, total_score, items, taken_at) "
+                    "VALUES ($1, 'C-SSRS', 2, $2::jsonb, $3)",
+                    patient_hash, json.dumps({"seed": True}), moment,
+                )
             return row["alert_id"]
     return None
 
