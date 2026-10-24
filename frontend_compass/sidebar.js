@@ -85,11 +85,11 @@
           $("sb-src").hidden = false;
           $("sb-src-patient").textContent = state.screen.fio + " • ИБ № " + state.screen.ib;
         }
-        $("sb-empty").hidden = true;
         analyze(txt);
       }
     }).catch(function (err) {
       var el = $("login-err"); el.textContent = err.message; el.hidden = false;
+      el.className = "sb-login-err";
     });
   });
 
@@ -108,11 +108,32 @@
       analyze(d.payload.screenText);
     } else {
       state.pendingScreen = d.payload.screenText;
-      $("sb-empty").hidden = false;
-      $("sb-empty").innerHTML = "<div class='sb-empty-title'>Экран ЭМК считан: " +
-        d.payload.fio + "</div>Осталось войти как врач — разбор запустится сам.";
-      var f = $("form-login");
-      if (f) f.dispatchEvent(new Event("compass_pending"));
+      var msg = "Экран ЭМК считан: " + d.payload.fio + " (ИБ № " + d.payload.ib + "). " +
+        "Нажмите «Войти» — разбор запустится автоматически.";
+      // виден где угодно: и в карточке (если открыта), и прямо в форме логина
+      var box = $("sb-empty");
+      box.hidden = false;
+      box.innerHTML = "<div class='sb-empty-title'>Экран ЭМК считан: " +
+        d.payload.fio + " (ИБ № " + d.payload.ib + ")</div>" +
+        "<div class='sb-step'><b>Остался 1 шаг:</b> войдите как врач — " +
+        "разбор запустится автоматически.</div>";
+      var btn = document.createElement("button");
+      btn.type = "button"; btn.className = "cp-btn cp-btn-primary cp-btn-block";
+      btn.textContent = "▸ Войти и разобрать";
+      btn.addEventListener("click", function () {
+        ensureLogin(); // показать форму поверх
+        $("login-err").textContent = msg;
+        $("login-err").hidden = false;
+        $("login-err").className = "sb-login-err ok";
+        var inp = $("in-login"); if (inp) inp.focus();
+      });
+      box.appendChild(btn);
+      // и без карточки: форма логина уже видна? — пишем прямо в неё
+      if (!document.getElementById("sb-login").hidden) {
+        $("login-err").textContent = msg;
+        $("login-err").hidden = false;
+        $("login-err").className = "sb-login-err ok";
+      }
     }
   });
   /* агент ещё не загрузил iframe? сообщаем готовность сразу */
@@ -396,6 +417,7 @@
       $("sb-login").hidden = false; $("sb-app").hidden = true;
       $("login-err").textContent = "После входа сразу откроется демо-разбор.";
       $("login-err").hidden = false;
+      $("login-err").className = "sb-login-err ok";
       return;
     }
     state.confirmations = {};
