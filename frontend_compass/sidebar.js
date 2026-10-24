@@ -397,16 +397,36 @@
         var mn = d.bio_and_micronets && d.bio_and_micronets.control_plane_micronets;
         var box = $("mn-cards");
         if (mn) {
-          var keys = Object.keys(mn).filter(function (k) { return typeof mn[k] === "object" && mn[k]; });
-          box.innerHTML = keys.length ? keys.map(function (k) {
-            var net = mn[k];
-            var label = k.replace(/_/g, " ");
-            var val = net.route !== undefined ? ("маршрут: " + net.route) :
-              (net.cluster !== undefined ? ("кластер: " + net.cluster) :
-              (net.decision !== undefined ? ("решение: " + net.decision) : JSON.stringify(net).slice(0, 80)));
-            return "<div class='sb-cbr'><b>" + label + "</b> — " + val +
-              "<div class='sb-cite'>INT8-микросеть C-ядра: пороговые проверки прошли, время — микросекунды.</div></div>";
-          }).join("") : "<div class='sb-dim'>Сети не вернули данных для этого пациента.</div>";
+          var NET_RU = {
+            "router decision": ["Маршрутизатор наблюдения",
+              "какой канал контроля включить: врач / частые чек-ины / усиленный"],
+            "dropout dissimulation decision": ["Детектор симуляции (дропаут)",
+              "сверяет самоотчёт с объективными маркерами: расхождение — повод для очного визита"],
+            "cluster verify decision": ["Верификатор кластера",
+              "подтверждает, что пациент похож на свою группу РКИ"],
+            "escalation reasons": ["Причины эскалации",
+              "пусто — значит оснований усиливать контроль микросети не нашли"],
+          };
+          var out = [];
+          Object.keys(mn).forEach(function (k) {
+            var meta = NET_RU[k] || [k.replace(/_/g, " "), ""];
+            var v = mn[k];
+            var human = "";
+            if (k === "escalation reasons") {
+              human = Array.isArray(v) ? (v.length ? v.join("; ") : "нет") : String(v);
+            } else if (v && typeof v === "object") {
+              var parts = [];
+              if (v.point_prediction_label) parts.push(v.point_prediction_label);
+              if (v.route !== undefined) parts.push("маршрут " + v.route);
+              if (v.cluster !== undefined) parts.push("кластер " + v.cluster);
+              if (v.decision !== undefined) parts.push(String(v.decision));
+              if (v.p !== undefined) parts.push("уверенность " + (typeof v.p === "number" ? (v.p * 100).toFixed(0) + "%" : v.p));
+              human = parts.length ? parts.join(" • ") : JSON.stringify(v).slice(0, 90);
+            } else human = String(v);
+            out.push("<div class='sb-cbr'><b>" + meta[0] + "</b> — " + human +
+              "<div class='sb-cite'>" + meta[1] + "</div></div>");
+          });
+          box.innerHTML = out.join("") || "<div class='sb-dim'>Сети не вернули данных.</div>";
         }
       }).catch(function (e) {
         $("wi-nums").textContent = "Ошибка what-if: " + e.message;
