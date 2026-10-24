@@ -5,11 +5,12 @@
  * именем кэша). Всё остальное (включая API бэкенда) — сразу в сеть: клинические
  * данные между пациентом и МО не должны оседать в кэше браузера дольше сессии.
  */
-var CACHE = "compass-patient-shell-v1";
+var CACHE = "compass-patient-shell-v3-ux"; // v3: пошаговые опросники, фидбек, побочки
 var SHELL = [
   "./",
   "index.html",
   "app.js",
+  "survey.js",
   "styles.css",
   "manifest.webmanifest",
   "icons/icon-192.png",
@@ -33,15 +34,27 @@ self.addEventListener("fetch", function (e) {
   var url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return;      // API — только сеть
   if (e.request.method !== "GET") return;
+  // HTML/JS/CSS — NETWORK-FIRST (кэш только офлайн-фоллбэк): устаревший код
+  // невидимо ломал PWA после каждого обновления (было 23–24.10). Иконки/манифест —
+  // cache-first (меняются только с новой версией SW).
+  var shellOnly = SHELL.some(function (s) { return url.pathname.endsWith(s.replace("./", "")); });
+  var isCode = /\.(html|js|css)($|\?)/.test(url.pathname) || url.pathname.endsWith("/");
   e.respondWith(
-    caches.match(e.request).then(function (hit) {
-      if (hit) return hit;
-      return fetch(e.request).then(function (resp) {
-        if (resp.ok && SHELL.some(function (s) { return url.pathname.endsWith(s.replace("./", "")); })) {
-          var copy = resp.clone();
-          caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
+    fetch(e.request).then(function (resp) {
+      if (resp.ok && shellOnly) {
+        var copy = resp.clone();
+        caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
+      }
+      return resp;
+    }).catch(function () {
+      return caches.match(e.request).then(function (hit) {
+        if (hit) return hit;
+        if (isCode) {
+          return caches.match("./index.html").then(function (idx) {
+            return idx || new Response("Офлайн", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+          });
         }
-        return resp;
+        return new Response("", { status: 503 });
       });
     })
   );

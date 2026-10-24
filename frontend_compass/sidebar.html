@@ -28,10 +28,25 @@
     <div class="sb-sub">CDSS 20-П «Rapira» &bull; <span class="sb-live">живой API</span>
       <span class="sb-latency" id="sb-latency">—</span></div>
     <div class="sb-src" id="sb-src" hidden>Источник: <b>экран ЭМК</b> &bull; <span id="sb-src-patient"></span></div>
-    <button type="button" class="sb-close" id="btn-close" title="Свернуть (панель вернётся кнопкой COMPASS)">
-      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
+    <div class="sb-head-actions">
+      <button type="button" class="sb-bell" id="btn-bell" title="Уведомления" hidden>
+        <svg viewBox="0 0 24 24" width="17" height="17"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="sb-bell-badge" id="bell-badge" hidden>0</span>
+      </button>
+      <button type="button" class="sb-expand" id="btn-expand" title="Развернуть до дашборда состояния">
+        <svg viewBox="0 0 24 24" width="17" height="17"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button type="button" class="sb-close" id="btn-close" title="Свернуть — ЭМК вернётся целиком">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
   </header>
+
+  <!-- список уведомлений (выпадает из колокольчика) -->
+  <div class="sb-notiflist" id="notif-list" hidden>
+    <div class="sb-notif-head">Неподтверждённые уведомления <span id="notif-count"></span></div>
+    <div id="notif-items"></div>
+  </div>
 
   <div class="sb-alert" id="sb-alert" hidden>
     <b id="sb-alert-title"></b>
@@ -127,6 +142,53 @@
     <div class="sb-qr-link" id="qr-link"></div>
     <button type="button" class="cp-btn cp-btn-sm" id="btn-qr-close">Закрыть</button>
   </div>
+</div>
+
+<!-- ============ ДАШБОРД СОСТОЯНИЯ (fullscreen поверх ЭМК; из панели ⤢) ============ -->
+<div class="dash" id="dash" hidden>
+  <header class="dash-head">
+    <div class="dash-title">COMPASS <span>дашборд состояния</span></div>
+    <div class="dash-actions">
+      <button type="button" class="cp-btn cp-btn-sm" id="btn-dash-collapse">◂ Свернуть в панель</button>
+      <button type="button" class="cp-btn cp-btn-sm" id="btn-dash-close">✕ К ЭМК</button>
+    </div>
+  </header>
+
+  <div class="dash-grid">
+    <!-- Крупное состояние -->
+    <div class="dash-card dash-card--state">
+      <div class="sb-sec-t">Состояние последнего разбора</div>
+      <div class="sb-svetofor dash-sv" id="dash-sv">
+        <div class="sb-svetofor-head" id="dash-status">—</div>
+        <div class="sb-svetofor-text" id="dash-status-text">Разбор ещё не запускался — откройте карту в ЭМК и нажмите закладку COMPASS.</div>
+      </div>
+      <div class="dash-kv" id="dash-kv"></div>
+    </div>
+
+    <!-- Уведомления -->
+    <div class="dash-card">
+      <div class="sb-sec-t">Уведомления <span id="dash-notif-count"></span></div>
+      <div id="dash-notif-items" class="dash-notifs"><span class="sb-dim">Пока пусто.</span></div>
+    </div>
+
+    <!-- Тренд PK -->
+    <div class="dash-card">
+      <div class="sb-sec-t">Фармакокинетика 168 ч</div>
+      <canvas id="dash-pk" width="760" height="240"></canvas>
+      <div class="sb-pk-nums" id="dash-pk-nums">—</div>
+    </div>
+
+    <!-- SLA -->
+    <div class="dash-card">
+      <div class="sb-sec-t">Метрики платформы (живые)</div>
+      <div class="dash-sla" id="dash-sla">—</div>
+      <div class="dash-actions-row">
+        <button type="button" class="cp-btn cp-btn-outline cp-btn-sm" id="btn-dash-057">ф. 057/у-04</button>
+        <button type="button" class="cp-btn cp-btn-outline cp-btn-sm" id="btn-dash-qr">QR пациенту</button>
+      </div>
+    </div>
+  </div>
+  <div class="dash-foot">Решение принимает врач. COMPASS предупреждает и оформляет.</div>
 </div>
 
 <!-- модалки (внутри iframe) -->

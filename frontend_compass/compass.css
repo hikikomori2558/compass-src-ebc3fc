@@ -81,12 +81,59 @@ textarea.cp-input { height: auto; padding: 8px 11px; resize: vertical; }
 .sb-live { color: #047817; font-weight: 700; }
 .sb-latency { color: #8d8d8d; margin-left: 8px; }
 .sb-src { font-size: 11px; margin-top: 6px; padding: 5px 8px; background: #edf5ff; border: 1px solid #c8dbff; border-radius: 5px; color: #0043ce; }
-.sb-close {
-  position: absolute; top: 10px; right: 10px; width: 28px; height: 28px;
+.sb-head-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; }
+.sb-close, .sb-expand, .sb-bell {
+  width: 30px; height: 30px;
   display: flex; align-items: center; justify-content: center;
-  background: none; border: none; border-radius: 6px; color: #525252; cursor: pointer;
+  background: none; border: none; border-radius: 7px; color: #525252; cursor: pointer;
 }
-.sb-close:hover { background: #f4f4f4; color: #161616; }
+.sb-close:hover, .sb-expand:hover, .sb-bell:hover { background: #f4f4f4; color: #161616; }
+.sb-bell { position: relative; }
+.sb-bell-badge {
+  position: absolute; top: -3px; right: -3px; min-width: 15px; height: 15px;
+  background: #da1e28; color: #fff; font: 700 9.5px/15px system-ui; text-align: center;
+  border-radius: 999px; padding: 0 3px;
+}
+.sb-notiflist {
+  position: absolute; top: 86px; right: 10px; z-index: 30; width: calc(100% - 20px);
+  background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 16px 40px -12px rgba(22,22,22,.3);
+  max-height: 55vh; overflow-y: auto; padding: 10px;
+}
+.sb-notif-head { font: 700 11px system-ui; text-transform: uppercase; letter-spacing: .05em; color: #525252; margin-bottom: 8px; }
+.sb-notif-item { border: 1px solid #f0d3d3; background: #fdf1f1; border-radius: 9px; padding: 8px 10px; margin-bottom: 6px; font-size: 11.5px; }
+.sb-notif-item b { display: block; margin-bottom: 2px; color: #a51616; }
+.sb-notif-item .when { color: #8d8d8d; font-size: 10px; }
+.sb-notif-item .cp-btn { margin-top: 6px; }
+
+/* ---------- дашборд состояния (fullscreen поверх ЭМК) ---------- */
+.dash {
+  position: fixed; inset: 0; z-index: 2147483002; background: #f4f4f4; overflow-y: auto;
+  display: flex; flex-direction: column; animation: dash-in .28s ease both;
+}
+@keyframes dash-in { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+.dash[hidden] { display: none; }
+.dash-head {
+  display: flex; align-items: center; gap: 12px; padding: 16px 22px;
+  background: #161616; color: #fff; position: sticky; top: 0; z-index: 5;
+}
+.dash-title { font-size: 18px; font-weight: 800; }
+.dash-title span { font-weight: 400; opacity: .65; font-size: 13px; margin-left: 8px; }
+.dash-actions { margin-left: auto; display: flex; gap: 8px; }
+.dash-actions .cp-btn { background: rgba(255,255,255,.12); color: #fff; }
+.dash-actions .cp-btn:hover { background: rgba(255,255,255,.22); }
+.dash-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px; padding: 18px 22px; flex: 1; align-content: start;
+}
+.dash-card { background: #fff; border-radius: 14px; padding: 16px 18px; box-shadow: 0 1px 3px rgba(0,0,0,.07); }
+.dash-sv { margin-bottom: 10px; }
+.dash-kv { font-size: 12.5px; color: #393939; line-height: 1.7; }
+.dash-kv b { display: inline-block; min-width: 150px; color: #525252; }
+.dash-notifs { max-height: 260px; overflow-y: auto; }
+.dash-sla { font-size: 13px; line-height: 1.8; color: #393939; }
+.dash-actions-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+#dash-pk { width: 100%; height: auto; }
+.dash-foot { text-align: center; font: 400 11px system-ui; color: #8d8d8d; padding: 14px; }
 
 .sb-alert { margin: 12px 14px 0; padding: 10px 12px; border-radius: 8px; background: #da1e28; color: #fff; }
 .sb-alert-sub { font-size: 11.5px; opacity: .9; margin: 3px 0 8px; }

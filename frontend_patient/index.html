@@ -4,113 +4,207 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#007d79" />
-  <title>Клинический компас — дневник пациента</title>
+  <title>Клинический компас — дневник терапии</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=3" />
 </head>
 <body>
 
-  <!-- ЭКРАН 1: ПРИВЯЗКА К ВРАЧУ ПО ОДНОРАЗОВОМУ QR (Условие 2: без третьих лиц) -->
+  <!-- ================= ЭКРАН: ПРИВЯЗКА (1 клик после QR) ================= -->
   <section id="view-bind" class="screen">
-    <div class="brand-row">
-      <svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <path d="M16 2L4 8v16l12 6 12-6V8L16 2zm0 4.2l8 4v11.6l-8 4-8-4V10.2l8-4z" fill="#007d79"/>
-        <path d="M15 10h2v5h5v2h-5v5h-2v-5h-5v-2h5v-5z" fill="#007d79"/>
-      </svg>
-      <div>
-        <h1>Клинический компас</h1>
-        <p>Дневник терапии пациента</p>
-      </div>
+    <div class="hero">
+      <div class="hero-badge">К</div>
+      <h1>Клинический компас</h1>
+      <p class="hero-sub">Ваш дневник терапии — рядом с врачом</p>
     </div>
-
-    <div class="card">
-      <h2>Привязка к вашему лечащему врачу</h2>
-      <ol class="steps">
-        <li>Врач в карточке пациента нажал «Привязать пациента по QR» и показал вам QR-код.</li>
-        <li>Отсканируйте его камерой — откроется эта страница с заполненным кодом связи.</li>
-        <li>Нажмите «Привязаться» — канал «пациент → врач» появится <strong>без участия третьих лиц</strong>
-          (152-ФЗ, согласия ИДС фиксируются автоматически).</li>
-      </ol>
-      <label class="field-label" for="bind-token">Код связи из QR</label>
-      <input type="text" id="bind-token" class="input" placeholder="вставьте код, если открыли вручную" spellcheck="false" />
+    <div class="card card--rise">
+      <h2>Привязка к врачу</h2>
+      <p class="card-sub">Отсканируйте QR-код, показанный врачом, — код подставится сам.
+        Или вставьте его вручную.</p>
+      <input type="text" id="bind-token" class="input" placeholder="Код связи" spellcheck="false" />
       <div class="error" id="bind-error"></div>
-      <button type="button" id="btn-bind" class="btn btn--primary">Привязаться к врачу</button>
-      <p class="hint">Код одноразовый и живёт 24 часа. Клинические данные передаются только
-        между вами и вашей медицинской организацией.</p>
+      <button type="button" id="btn-bind" class="btn btn--primary btn--lg">Привязаться</button>
+      <p class="hint">Код одноразовый, живёт 24 часа. Данные — только между вами и вашей
+        медицинской организацией (152-ФЗ).</p>
     </div>
   </section>
 
-  <!-- ЭКРАН 2: ДНЕВНИК (ежедневный чек-ин -> врачу; при критичности — экстренный алерт) -->
-  <section id="view-diary" class="screen" style="display:none;">
-    <header class="diary-header">
-      <div>
-        <h1>Дневник терапии</h1>
-        <p id="diary-subtitle">Связь с лечащим врачом установлена</p>
+  <!-- ================= ЭКРАН: ДОМ (сегодня + прогресс одним взглядом) ===== -->
+  <section id="view-home" class="screen" style="display:none;">
+    <header class="topbar">
+      <div class="hero-badge hero-badge--sm">К</div>
+      <div class="topbar-title">
+        <h1>Добрый день</h1>
+        <p id="home-subtitle">Связь с врачом установлена</p>
       </div>
-      <button type="button" id="btn-logout" class="btn btn--ghost btn--sm">Выйти</button>
+      <button type="button" id="btn-logout" class="btn btn--ghost btn--sm" style="width:auto">Выйти</button>
+      <nav class="topnav">
+        <button type="button" class="navchip navchip--active" data-go="home">Сегодня</button>
+        <button type="button" class="navchip" data-go="progress">Прогресс</button>
+        <button type="button" class="navchip" data-go="info">Побочки</button>
+      </nav>
     </header>
 
-    <div class="card">
-      <h2>Как вы себя чувствуете сегодня?</h2>
-      <p class="card-sub">Заполняется один раз в день. Врач видит динамику в своей карточке;
-        при критичных ответах врач получает экстренное уведомление.</p>
+    <!-- Сегодняшний чек-ин: базовый = 3 клика -->
+    <div class="card card--rise" id="card-today">
+      <h2>Как прошёл день?</h2>
+      <p class="card-sub">Три коротких шага — врач увидит сегодня.</p>
 
-      <div class="field-block">
-        <div class="field-title">Сегодняшнюю дозу препарата принял(а)?</div>
-        <div class="segmented">
-          <button type="button" id="btn-dose-yes" class="seg seg--active">Да, принял(а)</button>
-          <button type="button" id="btn-dose-no" class="seg">Нет</button>
+      <div class="qstep">
+        <div class="qnum">1 / 3</div>
+        <div class="qtitle">Таблетку сегодня приняли?</div>
+        <div class="choice-row">
+          <button type="button" class="choice" data-dose="yes"><span class="choice-emoji">✓</span>Да</button>
+          <button type="button" class="choice" data-dose="no"><span class="choice-emoji">—</span>Нет</button>
         </div>
       </div>
 
-      <div class="field-block">
-        <div class="field-title">Тревога за последние 2 недели (GAD-7: 0–21)</div>
-        <input type="range" id="input-gad7" class="range" min="0" max="21" step="1" value="5" />
-        <div class="range-caption"><span id="lbl-gad7">5 баллов</span><span class="range-hint">0 — нет тревоги, 21 — максимально</span></div>
+      <div class="qstep" id="step-mood" hidden>
+        <div class="qnum">2 / 3</div>
+        <div class="qtitle">Как настроение сегодня?</div>
+        <div class="mood-row">
+          <button type="button" class="mood" data-mood="1"><span>😔</span>тяжело</button>
+          <button type="button" class="mood" data-mood="2"><span>😕</span>так себе</button>
+          <button type="button" class="mood" data-mood="3"><span>😐</span>нормально</button>
+          <button type="button" class="mood" data-mood="4"><span>🙂</span>хорошо</button>
+          <button type="button" class="mood" data-mood="5"><span>😊</span>отлично</button>
+        </div>
       </div>
 
-      <div class="field-block">
-        <div class="field-title">PHQ-9, пункт 9: мысли о причинении себе вреда?</div>
-        <select id="select-item9" class="input">
-          <option value="">— Затрудняюсь ответить —</option>
-          <option value="0">0 — Ни разу</option>
-          <option value="1">1 — Несколько дней</option>
-          <option value="2">2 — Больше половины дней</option>
-          <option value="3">3 — Почти каждый день</option>
-        </select>
+      <div class="qstep" id="step-send" hidden>
+        <div class="qnum">3 / 3</div>
+        <div class="qtitle">Готово к отправке</div>
+        <p class="card-sub" id="send-summary">—</p>
+        <button type="button" id="btn-checkin" class="btn btn--primary btn--lg">Отправить врачу</button>
+        <button type="button" class="btn btn--ghost btn--lg" id="btn-full-survey">Пройти полный опросник (2 недели) ›</button>
       </div>
-
-      <div class="field-block">
-        <div class="field-title">C-SSRS (экран суицидального риска, 0–5)</div>
-        <select id="select-cssrs" class="input">
-          <option value="">— Затрудняюсь ответить —</option>
-          <option value="0">0 — Нет</option>
-          <option value="1">1 — Желание умереть</option>
-          <option value="2">2 — Активные мысли</option>
-          <option value="3">3 — Методы (без плана)</option>
-          <option value="4">4 — План</option>
-          <option value="5">5 — Подготовка/попытка</option>
-        </select>
-      </div>
-
-      <div class="error" id="checkin-error"></div>
-      <button type="button" id="btn-checkin" class="btn btn--primary">Отправить врачу</button>
-      <div id="checkin-result"></div>
     </div>
 
-    <div class="card">
-      <h2>История на этом устройстве</h2>
-      <p class="card-sub">Локальный журнал отправок (данные врача — только в медицинской организации).</p>
+    <!-- Результат отправки: ВСЕГДА немедленный фидбек (см. UX_UI_DESIGN.md §4) -->
+    <div class="card card--rise" id="card-feedback" hidden>
+      <div id="feedback-ok">
+        <div class="fb-icon fb-icon--ok">✓</div>
+        <h2>Отправлено</h2>
+        <p class="fb-main" id="fb-main">Врач увидит ваш ответ сегодня.</p>
+        <p class="fb-insight" id="fb-insight"></p>
+        <p class="fb-week" id="fb-week"></p>
+        <button type="button" class="btn btn--primary btn--lg" data-go="progress">Посмотреть прогресс</button>
+      </div>
+      <div id="feedback-care" hidden>
+        <div class="fb-icon fb-icon--care">♥</div>
+        <h2>Спасибо за доверие</h2>
+        <p class="fb-main">То, что вы рассказали, — очень важно. Ваш врач уже получил
+          уведомление и свяжется с вами.</p>
+        <p class="fb-insight">Если нужно поговорить прямо сейчас — круглосуточный телефон
+          психологической помощи: <b>8-800-333-44-34</b> (бесплатно).</p>
+        <button type="button" class="btn btn--primary btn--lg" id="btn-care-ok">Понятно</button>
+      </div>
+    </div>
+
+    <!-- Быстрый доступ к побочкам прямо с дома -->
+    <div class="quick-row">
+      <button type="button" class="quick" data-go="info"><span>💊</span>Что ожидать от терапии</button>
+      <button type="button" class="quick" data-go="info"><span>✍️</span>Что-то беспокоит</button>
+    </div>
+  </section>
+
+  <!-- ================= ЭКРАН: ПОЛНЫЙ ОПРОСНИК (по 1 вопросу на экран) ===== -->
+  <section id="view-survey" class="screen" style="display:none;">
+    <header class="survey-head">
+      <button type="button" class="btn btn--ghost btn--sm" id="btn-survey-exit">✕</button>
+      <div class="survey-progress"><div id="survey-bar"></div></div>
+      <div class="survey-count" id="survey-count">1/7</div>
+    </header>
+    <div class="card card--rise" id="survey-card">
+      <p class="survey-lead" id="survey-lead"></p>
+      <h2 id="survey-question">—</h2>
+      <div class="survey-choices" id="survey-choices"></div>
+      <p class="survey-foot" id="survey-foot"></p>
+    </div>
+  </section>
+
+  <!-- ================= ЭКРАН: ПРОГРЕСС =================================== -->
+  <section id="view-progress" class="screen" style="display:none;">
+    <header class="topbar">
+      <div class="hero-badge hero-badge--sm">К</div>
+      <div class="topbar-title"><h1>Прогресс</h1><p id="progress-subtitle">Ваша динамика</p></div>
+      <nav class="topnav">
+        <button type="button" class="navchip" data-go="home">Сегодня</button>
+        <button type="button" class="navchip navchip--active" data-go="progress">Прогресс</button>
+        <button type="button" class="navchip" data-go="info">Побочки</button>
+      </nav>
+    </header>
+    <div class="card card--rise">
+      <h2>Тревога (GAD-7)</h2>
+      <canvas id="chart-gad7" height="150"></canvas>
+      <p class="card-sub" id="gad7-trend">Пока мало данных — пройдите опросник два раза.</p>
+    </div>
+    <div class="card card--rise">
+      <h2>Настроение по дням</h2>
+      <div class="mood-strip" id="mood-strip"></div>
+      <p class="card-sub">Последние 14 дней ваших чек-инов.</p>
+    </div>
+    <div class="card card--rise">
+      <h2>История отправок</h2>
       <ul id="history-list" class="history-list"></ul>
       <div id="offline-queue-note" class="offline-note" style="display:none;"></div>
     </div>
-
-    <p class="footer-note">Система сопровождает терапию и не заменяет консультацию врача.
-      При острых состояниях обращайтесь к врачу или в экстренные службы.</p>
   </section>
 
-  <script src="app.js"></script>
+  <!-- ================= ЭКРАН: ПОБОЧКИ И ОЖИДАНИЯ ========================= -->
+  <section id="view-info" class="screen" style="display:none;">
+    <header class="topbar">
+      <div class="hero-badge hero-badge--sm">К</div>
+      <div class="topbar-title"><h1>Терапия по неделям</h1><p>Чего ожидать и когда звонить</p></div>
+      <nav class="topnav">
+        <button type="button" class="navchip" data-go="home">Сегодня</button>
+        <button type="button" class="navchip" data-go="progress">Прогресс</button>
+        <button type="button" class="navchip navchip--active" data-go="info">Побочки</button>
+      </nav>
+    </header>
+
+    <div class="card card--rise">
+      <h2>🟢 Нормально в первые дни (1–5)</h2>
+      <ul class="expect-list">
+        <li>Дневная сонливость — чаще в первые 3 дня, организм привыкает</li>
+        <li>Лёгкая тошнота — проходит, помогает приём до еды</li>
+        <li>Лёгкое головокружение при вставании</li>
+      </ul>
+    </div>
+    <div class="card card--rise">
+      <h2>🟢 К неделям 2–4</h2>
+      <ul class="expect-list">
+        <li>Эффект нарастает <b>постепенно</b>: «поворотный момент» обычно на 2–3 неделе</li>
+        <li>Сон улучшается часто раньше, чем настроение — это хороший знак</li>
+        <li>Не бросайте приём при «пока нет эффекта» — это ожидаемо</li>
+      </ul>
+    </div>
+    <div class="card card--rise card--warn">
+      <h2>📞 Связаться с врачом сейчас, если:</h2>
+      <ul class="expect-list">
+        <li>Сыпь, отёк, сильное сердцебиение</li>
+        <li>Тревога или подавленность резко усилились</li>
+        <li>Появились необычные для вас мысли или состояния</li>
+      </ul>
+    </div>
+
+    <div class="card card--rise">
+      <h2>✍️ Что-то беспокоит?</h2>
+      <p class="card-sub">Опишите своими словами — уйдёт врачу вместе с вашим дневником.</p>
+      <textarea id="side-effect-text" class="input input--area" rows="4"
+        placeholder="Например: вторую ночь плохо сплю, днём очень сонный(ая)..."></textarea>
+      <div class="error" id="se-error"></div>
+      <button type="button" id="btn-send-side" class="btn btn--primary btn--lg">Отправить врачу</button>
+      <div id="se-result"></div>
+    </div>
+  </section>
+
+  <p class="footer-note">Система сопровождает терапию и не заменяет консультацию врача.
+    При острых состояниях — врач или экстренные службы.</p>
+
+  <script src="survey.js?v=3"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

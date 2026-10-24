@@ -347,6 +347,13 @@
           $("sb-alert-sub").textContent = a.category + " • " + (a.reasons || []).join("; ") +
             " • " + new Date(a.created_at).toLocaleTimeString("ru-RU");
         }
+        // колокольчик живёт и без баннера
+        var bell = $("btn-bell"), badge = $("bell-badge");
+        if (bell) {
+          bell.hidden = false;
+          badge.hidden = d.count === 0;
+          badge.textContent = String(d.count);
+        }
       });
   }
   $("btn-alert-confirm").addEventListener("click", function () {
@@ -399,6 +406,150 @@
     }).catch(function (e) { alert("QR: " + e.message); });
   });
   $("btn-qr-close").addEventListener("click", function () { $("sb-qr").hidden = true; });
+
+  /* ================================================================ колокольчик уведомлений */
+  $("btn-bell").addEventListener("click", function () {
+    var box = $("notif-list");
+    box.hidden = !box.hidden;
+    if (!box.hidden) renderNotifList();
+  });
+  function renderNotifList() {
+    call("/api/v1/alerts/unconfirmed").then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        var box = $("notif-items");
+        $("notif-count").textContent = d.count ? "(" + d.count + ")" : "";
+        box.innerHTML = d.count ? "" : "<span class='sb-dim'>Всё подтверждено — тихо.</span>";
+        (d.alerts || []).slice(0, 8).forEach(function (a) {
+          var div = document.createElement("div");
+          div.className = "sb-notif-item";
+          div.innerHTML = "<b>" + a.category + "</b>" + (a.reasons || []).join("; ") +
+            "<div class='when'>" + new Date(a.created_at).toLocaleString("ru-RU") + "</div>";
+          var b = document.createElement("button");
+          b.type = "button"; b.className = "cp-btn cp-btn-sm";
+          b.textContent = "Подтвердить реакцию";
+          b.addEventListener("click", function () {
+            call("/api/v1/alerts/" + a.alert_id + "/confirm", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action_taken: "Уведомление принято, пациент contacted" }),
+            }).then(function (r2) { if (r2.ok) { refreshAlerts(); renderNotifList(); } });
+          });
+          div.appendChild(b);
+          box.appendChild(div);
+        });
+        $("bell-badge").hidden = d.count === 0;
+        $("bell-badge").textContent = String(d.count);
+      });
+  }
+
+  /* ================================================================ дашборд состояния (⤢) */
+  $("btn-expand").addEventListener("click", function () {
+    renderDash();
+    $("dash").hidden = false;
+  });
+  $("btn-dash-collapse").addEventListener("click", function () { $("dash").hidden = true; });
+  $("btn-dash-close").addEventListener("click", function () {
+    $("dash").hidden = true;
+    if (window.parent !== window) window.parent.postMessage({ type: "COMPASS_CLOSE" }, "*");
+  });
+  $("btn-dash-057").addEventListener("click", function () { $("dash").hidden = true; $("btn-057").click(); });
+  $("btn-dash-qr").addEventListener("click", function () { $("dash").hidden = true; $("btn-qr").click(); });
+
+  function renderDash() {
+    var d = state.lastResult;
+    var sv = $("dash-sv"), dec = d && (d.compass_decision || {});
+    var stMap = {
+      GREEN_IN_LABEL: "green", AMBER_DATA_REQUIRED: "amber", AMBER_REVIEW: "amber",
+      RED_HARD_STOP: "red", RED_CRITICAL_ALERT: "red",
+    };
+    var stTitle = {
+      GREEN_IN_LABEL: "ЗЕЛЁНЫЙ — показание по ОХЛП", AMBER_DATA_REQUIRED: "ЖЁЛТЫЙ — недостаточно данных",
+      AMBER_REVIEW: "ЖЁЛТЫЙ — требуется контроль врача", RED_HARD_STOP: "КРАСНЫЙ — противопоказание",
+      RED_CRITICAL_ALERT: "КРАСНЫЙ — экстренный психиатр",
+    };
+    if (d) {
+      sv.className = "sb-svetofor dash-sv " + (stMap[d.overall_status] || "amber");
+      $("dash-status").textContent = stTitle[d.overall_status] || d.overall_status;
+      $("dash-status-text").textContent = ((dec.aviandr_decision_support || {}).headline || "");
+      var pk = (dec.c_core_pk_and_safety || {}).pk_summary_168h;
+      var routing = dec.routing_and_alerting || {};
+      $("dash-kv").innerHTML =
+        "<div><b>Пациент</b> " + (state.screen ? state.screen.fio + " • ИБ № " + state.screen.ib : "—") + "</div>" +
+        "<div><b>Маршрутизация</b> " + (routing.routing_category || "—") + "</div>" +
+        "<div><b>Cmax маритупирдина</b> " + (pk ? pk.parent_cmax_pg_ml + " пг/мл" : "—") + "</div>" +
+        "<div><b>Cmin метаболита M1</b> " + (pk ? pk.m1_ctrough_ss_pg_ml + " пг/мл" : "—") + "</div>" +
+        "<div><b>Подтверждений сделано</b> " + Object.keys(state.confirmations).length + "</div>";
+      if (pk) drawDashPK(pk);
+    }
+    // уведомления
+    call("/api/v1/alerts/unconfirmed").then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data) return;
+        $("dash-notif-count").textContent = data.count ? "(" + data.count + ")" : "";
+        var box = $("dash-notif-items");
+        box.innerHTML = data.count ? "" : "<span class='sb-dim'>Всё подтверждено.</span>";
+        (data.alerts || []).slice(0, 10).forEach(function (a) {
+          var div = document.createElement("div");
+          div.className = "sb-notif-item";
+          div.innerHTML = "<b>" + a.category + "</b>" + (a.reasons || []).join("; ") +
+            "<div class='when'>" + new Date(a.created_at).toLocaleString("ru-RU") + "</div>";
+          var b = document.createElement("button");
+          b.type = "button"; b.className = "cp-btn cp-btn-sm";
+          b.textContent = "Подтвердить";
+          b.addEventListener("click", function () {
+            call("/api/v1/alerts/" + a.alert_id + "/confirm", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action_taken: "Уведомление принято (дашборд)" }),
+            }).then(function (r2) { if (r2.ok) renderDash(); });
+          });
+          div.appendChild(b);
+          box.appendChild(div);
+        });
+      });
+    // SLA
+    call("/api/v1/telemetry/summary").then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (t) {
+        if (!t) return;
+        $("dash-sla").innerHTML =
+          "Запросов наблюдено: <b>" + t.requests_observed + "</b><br>" +
+          "p50: <b>" + (t.p50_ms === null ? "—" : t.p50_ms.toFixed(1) + " мс") + "</b> • " +
+          "p95: <b>" + (t.p95_ms === null ? "—" : t.p95_ms.toFixed(1) + " мс") + "</b> • " +
+          "p99: <b>" + (t.p99_ms === null ? "—" : t.p99_ms.toFixed(1) + " мс") + "</b><br>" +
+          "<span class='sb-dim'>C-ядро + полный safe-pipeline; живые цифры с этого стенда.</span>";
+      });
+  }
+
+  function drawDashPK(pk) {
+    var cv = $("dash-pk"), ctx = cv.getContext("2d");
+    var W = cv.width, H = cv.height, padL = 44, padB = 20, padT = 10;
+    ctx.clearRect(0, 0, W, H);
+    var p = pk.pk_curve_parent_168h || [], m1 = pk.pk_curve_m1_168h || [];
+    if (!p.length) return;
+    var maxV = Math.max.apply(null, p.concat(m1)) * 1.12;
+    function X(i) { return padL + (W - padL - 10) * (i / (p.length - 1)); }
+    function Y(v) { return padT + (H - padT - padB) * (1 - v / maxV); }
+    ctx.strokeStyle = "#e0e0e0"; ctx.fillStyle = "#7c7c7c"; ctx.font = "11px Tahoma";
+    for (var k = 0; k <= 4; k++) {
+      var y = padT + (H - padT - padB) * k / 4;
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - 10, y); ctx.stroke();
+      ctx.fillText(String(Math.round(maxV * (1 - k / 4))), 4, y + 4);
+    }
+    [0, 42, 84, 126, 167].forEach(function (h, idx, arr) {
+      var last = idx === arr.length - 1;
+      ctx.textAlign = last ? "right" : "left";
+      ctx.fillText(h + "ч", X(h) + (last ? 10 : -8), H - 6);
+    });
+    ctx.textAlign = "left";
+    function curve(arr, color, w) {
+      ctx.strokeStyle = color; ctx.lineWidth = w; ctx.beginPath();
+      arr.forEach(function (v, i) { i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v)); });
+      ctx.stroke();
+    }
+    curve(p, "#0f62fe", 2.4);
+    curve(m1, "#9f1853", 2.4);
+    $("dash-pk-nums").innerHTML = "Cmax маритупирдина: <b>" + pk.parent_cmax_pg_ml + "</b> пг/мл • " +
+      "Cmin M1 (равновесие): <b>" + pk.m1_ctrough_ss_pg_ml + "</b> пг/мл • RK45, C-ядро";
+  }
 
   /* ================================================================ standalone-режим: живое демо и проверки */
   var DEMO_SCREEN = {
