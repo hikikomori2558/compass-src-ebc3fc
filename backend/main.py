@@ -121,16 +121,7 @@ app = FastAPI(
 # Порядок важен (доки FastAPI): последняя добавленная middleware — самая внешняя.
 # Поэтому сначала телеметрия, а CORS — последним: тогда CORS-заголовки есть и на
 # ответах телеметрии/ошибок, а не только на счастливом пути маршрутов.
-@app.middleware("http")
-async def no_cache_static(request: Request, call_next):
-    # Демо-стенд правится до последнего момента: устаревший JS в кэше браузера
-    # ломает вход невидимо (запрос 200, а код старый). Статике — always revalidate.
-    response = await call_next(request)
-    if request.url.path.startswith("/static/"):
-        response.headers["Cache-Control"] = "no-cache, must-revalidate"
-    return response
-
-
+# no-cache для статики (/static + /emc) — внутри telemetry_middleware ниже, единая точка.
 @app.middleware("http")
 async def telemetry_middleware(request: Request, call_next):
     # Каждый запрос сам себе секундомер: латентность уходит в кольцо и в заголовок ответа,

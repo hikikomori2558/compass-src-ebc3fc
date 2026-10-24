@@ -215,11 +215,13 @@ async def unconfirmed(request: Request, doctor: Principal = Depends(require_doct
     pool = request.app.state.pg_pool
     async with db_conn(pool, role=doctor.role, user_id=doctor.sub) as conn:
         rows = await conn.fetch(
-            "SELECT alert_id, category, reasons, created_at FROM clinical_alerts_and_routing "
+            "SELECT alert_id, patient_hash_id, category, reasons, created_at "
+            "FROM clinical_alerts_and_routing "
             "WHERE critical AND doctor_reaction_at IS NULL ORDER BY created_at DESC LIMIT 100"
         )
     return {"count": len(rows),
             "alerts": [{"alert_id": r["alert_id"], "category": r["category"],
+                        "patient_hash": str(r["patient_hash_id"]) if r["patient_hash_id"] else None,
                         "reasons": json.loads(r["reasons"]), "created_at": r["created_at"].isoformat()}
                        for r in rows]}
 

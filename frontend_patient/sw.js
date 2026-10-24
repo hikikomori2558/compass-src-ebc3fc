@@ -5,7 +5,7 @@
  * именем кэша). Всё остальное (включая API бэкенда) — сразу в сеть: клинические
  * данные между пациентом и МО не должны оседать в кэше браузера дольше сессии.
  */
-var CACHE = "compass-patient-shell-v4-duo"; // v4: Duolingo-механика, без эмодзи
+var CACHE = "compass-patient-shell-v5-sage"; // v4: Duolingo-механика, без эмодзи
 var SHELL = [
   "./",
   "index.html",

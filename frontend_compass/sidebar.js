@@ -476,6 +476,30 @@
   function renderDash() {
     var d = state.lastResult;
     var sv = $("dash-sv"), dec = d && (d.compass_decision || {});
+    // История пациента из БД: таймлайн последнего алерта (шкалы/приверженность/алерты)
+    var alertPh = state.currentAlert && state.currentAlert.patient_hash;
+    var tlBox = $("dash-timeline");
+    if (alertPh) {
+      call("/api/v1/compass-bio/patient/" + alertPh + "/timeline")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (tl) {
+          if (!tl) return;
+          var bits = [];
+          (tl.scales || []).slice(0, 4).forEach(function (s) {
+            bits.push("<div class='dash-tl'><b>" + s.scale_code + "</b> " + s.total_score +
+              " <span class='when'>" + new Date(s.taken_at).toLocaleDateString("ru-RU") +
+              (s.delta_prev !== null && s.delta_prev !== undefined ? " (Δ " + s.delta_prev + ")" : "") + "</span></div>");
+          });
+          (tl.adherence || []).slice(0, 3).forEach(function (a) {
+            bits.push("<div class='dash-tl'>приём " + (a.dose_skipped ? "пропущен" : "принят") +
+              " <span class='when'>" + new Date(a.taken_at).toLocaleDateString("ru-RU") +
+              (a.pdc_pct !== null ? " • PDC " + a.pdc_pct + "%" : "") + "</span></div>");
+          });
+          tlBox.innerHTML = bits.length ? bits.join("") : "<span class='sb-dim'>История пуста.</span>";
+        }).catch(function () {});
+    } else {
+      tlBox.innerHTML = "<span class='sb-dim'>Таймлайн доступен по пациенту из уведомления.</span>";
+    }
     var stMap = {
       GREEN_IN_LABEL: "green", AMBER_DATA_REQUIRED: "amber", AMBER_REVIEW: "amber",
       RED_HARD_STOP: "red", RED_CRITICAL_ALERT: "red",
