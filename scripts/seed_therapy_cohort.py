@@ -69,7 +69,7 @@ async def seed_sql(pool, patient_hash, days, gad, skips, critical_day, moods):
                 days_ago = 0
             await conn.execute(
                 "INSERT INTO patient_scale_assessments (patient_hash_id, scale_code, total_score, items, taken_at) "
-                "VALUES ($1, 'GAD-7', $2, $3::jsonb, now() - ($4 || ' days')::interval)",
+                "VALUES ($1, 'GAD-7', $2, $3::jsonb, now() - make_interval(days => $4::int))",
                 patient_hash, score,
                 json.dumps({"source": "PWA_checkin", "seed": True}), days_ago,
             )
@@ -78,7 +78,7 @@ async def seed_sql(pool, patient_hash, days, gad, skips, critical_day, moods):
             days_ago = days - i * max(1, days // max(1, len(gad)))
             await conn.execute(
                 "INSERT INTO patient_scale_assessments (patient_hash_id, scale_code, total_score, items, taken_at) "
-                "VALUES ($1, 'PHQ-9', $2, $3::jsonb, now() - ($4 || ' days')::interval)",
+                "VALUES ($1, 'PHQ-9', $2, $3::jsonb, now() - make_interval(days => $4::int))",
                 patient_hash, score,
                 json.dumps({"item9": 0, "source": "PWA_checkin", "seed": True}), days_ago,
             )
