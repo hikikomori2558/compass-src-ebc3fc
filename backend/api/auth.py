@@ -341,7 +341,7 @@ async def my_patients(request: Request, doctor: Principal = Depends(require_doct
             FROM doctor_patient_bindings b
             JOIN patient_pii_vault ppii ON ppii.patient_hash_id = b.patient_hash_id
             WHERE b.doctor_id = $1 AND b.active
-            ORDER BY b.created_at DESC
+            ORDER BY b.bound_at DESC
             """,
             uuid.UUID(doctor.sub),
         )
