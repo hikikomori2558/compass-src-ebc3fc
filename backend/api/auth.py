@@ -307,3 +307,39 @@ async def bind(req: BindRequest, request: Request):
         principal_role="PATIENT",
         principal_sub=str(patient_hash),
     )
+
+
+@auth_router.get("/my-patients",
+                 summary="[Врач] Когорта терапии: пациенты на ведении + последняя динамика")
+async def my_patients(request: Request, doctor: Principal = Depends(require_doctor)):
+    """Кого врач ведёт сейчас: привязка активна + последняя GAD-7, PHQ-9,
+    приверженность и «серия дней» из чек-инов. RLS отрезает чужих пациентов
+    (app_is_attending), данные — только в контуре МО."""
+    pool = request.app.state.pg_pool
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    async with db_conn(pool, role=doctor.role, user_id=doctor.sub) as conn:
+        rows = await conn.fetch(
+            """
+            SELECT b.patient_hash_id::text AS patient_hash,
+                   ppii.last_name || ' ' || ppii.first_name AS fio_masked,
+                   (SELECT total_score FROM patient_scale_assessments s
+                     WHERE s.patient_hash_id = b.patient_hash_id AND s.scale_code = 'GAD-7'
+                     ORDER BY taken_at DESC LIMIT 1) AS gad7_last,
+                   (SELECT total_score FROM patient_scale_assessments s
+                     WHERE s.patient_hash_id = b.patient_hash_id AND s.scale_code = 'GAD-7'
+                     ORDER BY taken_at ASC LIMIT 1) AS gad7_first,
+                   (SELECT count(*) FROM medication_adherence_logs m
+                     WHERE m.patient_hash_id = b.patient_hash_id
+                       AND m.dose_skipped) AS doses_skipped,
+                   (SELECT count(*) FROM medication_adherence_logs m
+                     WHERE m.patient_hash_id = b.patient_hash_id) AS doses_logged,
+                   b.created_at::date AS bound_since
+            FROM doctor_patient_bindings b
+            JOIN patient_pii_vault ppii ON ppii.patient_hash_id = b.patient_hash_id
+            WHERE b.doctor_id = $1 AND b.active
+            ORDER BY b.created_at DESC
+            """,
+            uuid.UUID(doctor.sub),
+        )
+    return {"count": len(rows), "patients": [dict(r) for r in rows]}
