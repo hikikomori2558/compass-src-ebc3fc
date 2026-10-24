@@ -76,6 +76,18 @@
       localStorage.setItem("compass_login", $("in-login").value.trim());
       ensureLogin();
       connectWS();
+      /* был «экран считан до входа» — сразу разбираем его */
+      if (state.pendingScreen) {
+        var txt = state.pendingScreen;
+        state.pendingScreen = null;
+        state.confirmations = {};
+        if (state.screen) {
+          $("sb-src").hidden = false;
+          $("sb-src-patient").textContent = state.screen.fio + " • ИБ № " + state.screen.ib;
+        }
+        $("sb-empty").hidden = true;
+        analyze(txt);
+      }
     }).catch(function (err) {
       var el = $("login-err"); el.textContent = err.message; el.hidden = false;
     });
@@ -89,7 +101,19 @@
     state.confirmations = {};
     $("sb-src").hidden = false;
     $("sb-src-patient").textContent = d.payload.fio + " • ИБ № " + d.payload.ib;
-    analyze(d.payload.screenText);
+    /* Сессии может не быть (врач не входил в COMPASS) — тогда экран ждёт входа:
+       после успешного логина pending-анализ запускается автоматически. */
+    if (state.session) {
+      $("sb-empty").hidden = true;
+      analyze(d.payload.screenText);
+    } else {
+      state.pendingScreen = d.payload.screenText;
+      $("sb-empty").hidden = false;
+      $("sb-empty").innerHTML = "<div class='sb-empty-title'>Экран ЭМК считан: " +
+        d.payload.fio + "</div>Осталось войти как врач — разбор запустится сам.";
+      var f = $("form-login");
+      if (f) f.dispatchEvent(new Event("compass_pending"));
+    }
   });
   /* агент ещё не загрузил iframe? сообщаем готовность сразу */
   window.addEventListener("load", function () {
@@ -366,7 +390,14 @@
       "Шкалы: GAD-7 = 15 б., PHQ-9 = 6 б., C-SSRS = 0.",
   };
   $("btn-demo").addEventListener("click", function () {
-    if (!state.session) { $("sb-login").hidden = false; $("sb-app").hidden = true; return; }
+    if (!state.session) {
+      state.pendingScreen = DEMO_SCREEN.screenText;
+      state.screen = { ib: DEMO_SCREEN.ib, fio: DEMO_SCREEN.fio };
+      $("sb-login").hidden = false; $("sb-app").hidden = true;
+      $("login-err").textContent = "После входа сразу откроется демо-разбор.";
+      $("login-err").hidden = false;
+      return;
+    }
     state.confirmations = {};
     $("sb-src").hidden = false;
     $("sb-src-patient").textContent = DEMO_SCREEN.fio + " • ИБ № " + DEMO_SCREEN.ib;
