@@ -65,9 +65,9 @@ def _rate_ok(ip: str) -> bool:
     return True
 
 
-async def _audit(action: str, request: Request, actor_id: str | None = None,
+async def _audit(action: str, request: Request, actor_id=None,
                  entity: str = "users_auth", entity_id: str = "",
-                 details: dict | None = None, pool=None) -> None:
+                 details: dict = None, pool=None) -> None:
     """Append-only запись в audit_log (роль приложения имеет только INSERT —
     прочитать журнал из-под API нельзя BY DESIGN, см. schema.sql)."""
     if pool is None:
