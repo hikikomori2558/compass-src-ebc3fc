@@ -322,10 +322,6 @@ async def my_patients(request: Request, doctor: Principal = Depends(require_doct
         rows = await conn.fetch(
             """
             SELECT b.patient_hash_id::text AS patient_hash,
-                   -- Zero-PII: ФИО в vault зашифровано (fio_encrypted) — панель
-                   -- панель показывает минимально необходимое: пол, возраст
-                   CASE ppii.sex WHEN 1 THEN 'М' WHEN 0 THEN 'Ж' ELSE '—' END AS sex_label,
-                   date_part('year', age(ppii.birth_date))::int AS age,
                    (SELECT total_score FROM patient_scale_assessments s
                      WHERE s.patient_hash_id = b.patient_hash_id AND s.scale_code = 'GAD-7'
                      ORDER BY taken_at DESC LIMIT 1) AS gad7_last,
@@ -338,8 +334,9 @@ async def my_patients(request: Request, doctor: Principal = Depends(require_doct
                    (SELECT count(*) FROM medication_adherence_logs m
                      WHERE m.patient_hash_id = b.patient_hash_id) AS doses_logged,
                    b.bound_at::date AS bound_since
+            -- Zero-PII: JOIN к patient_pii_vault невозможен и не нужен — роль
+            -- приложения не имеет гранта на vault BY DESIGN; врач видит ФИО в ЭМК.
             FROM doctor_patient_bindings b
-            JOIN patient_pii_vault ppii ON ppii.patient_hash_id = b.patient_hash_id
             WHERE b.doctor_id = $1 AND b.active
             ORDER BY b.bound_at DESC
             """,
