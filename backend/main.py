@@ -175,7 +175,9 @@ if _COMPASS_STATIC.is_dir():
 
 _PWA_STATIC = _ROOT / "frontend_patient"
 if _PWA_STATIC.is_dir():
-    app.mount("/static/pwa", StaticFiles(directory=str(_PWA_STATIC)), name="pwa")
+    # html=True обязателен: QR-приглашение ведёт на /static/pwa/?token=… (без имени
+    # файла) — без него телефон пациента получал {"detail":"Not Found"}.
+    app.mount("/static/pwa", StaticFiles(directory=str(_PWA_STATIC), html=True), name="pwa")
 
 
 async def _emc_proxy(request: Request, path: str) -> Response:
