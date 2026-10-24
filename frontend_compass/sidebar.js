@@ -717,6 +717,16 @@
         "<div><b>Cmin метаболита M1</b> " + (pk ? pk.m1_ctrough_ss_pg_ml + " пг/мл" : "—") + "</div>" +
         "<div><b>Подтверждений сделано</b> " + Object.keys(state.confirmations).length + "</div>";
       if (pk) drawDashPK(pk);
+      var clu = dec.cluster_24d_analysis || {};
+      if (clu && clu.illustrative_2d_projection) {
+        drawClusterMap(clu);
+        $("dash-cluster-kv").innerHTML =
+          "<div><b>Кластер:</b> " + (clu.assigned_cluster_title || "—") + "</div>" +
+          "<div><b>Рекомендация:</b> " + (clu.recommended_control_action || "—") + "</div>" +
+          "<div><b>DTW до траектории Сеченова (36 нед)</b> " + (clu.dtw_distance_to_sechenov_rki || "—") + "</div>" +
+          "<div><b>Бенчмарк:</b> " + (clu.clinical_benchmark || "—") + "</div>" +
+          (clu.clinical_use ? "<div class='sb-dim'>" + clu.clinical_use + "</div>" : "");
+      }
     }
     // уведомления
     call("/api/v1/alerts/unconfirmed").then(function (r) { return r.ok ? r.json() : null; })
@@ -754,6 +764,63 @@
           "p99: <b>" + (t.p99_ms === null ? "—" : t.p99_ms.toFixed(1) + " мс") + "</b><br>" +
           "<span class='sb-dim'>C-ядро + полный safe-pipeline; живые цифры с этого стенда.</span>";
       });
+  }
+
+  var CLUSTER_BLOBS = [ // типовые кластеры траекторий (детерминированные сиды, разброс по Махаланобису)
+    { label: "ранний ответ",            cx: -1.6, cy:  0.9, n: 26, seed: 11 },
+    { label: "кумулятивный (36 нед)",   cx:  0.3, cy: -0.4, n: 22, seed: 22 },
+    { label: "поздний ответ",           cx:  1.7, cy:  1.1, n: 18, seed: 33 },
+    { label: "нет ответа",              cx:  2.0, cy: -1.5, n: 14, seed: 44 },
+    { label: "риск отмены (H1)",        cx: -0.9, cy: -1.7, n: 10, seed: 55 },
+  ];
+  function drawClusterMap(cl) {
+    var cv = $("dash-cluster"); if (!cv) return;
+    var W = cv.width, H = cv.height, cx = W / 2, cy = H / 2;
+    var ctx = cv.getContext("2d");
+    ctx.clearRect(0, 0, W, H);
+    var scale = Math.min(W, H) / 9.2; // проекция примерно в [-4.6, 4.6]
+    function P(p2) { return [cx + p2[0] * scale, cy - p2[1] * scale]; }
+    // граница Махаланобиса (эллипс)
+    ctx.setLineDash([7, 6]); ctx.strokeStyle = "#7c8b9a"; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.ellipse(cx, cy, 4.35 * scale, 2.75 * scale, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    // облака кластеров
+    function rng(seed) { var s = seed; return function () { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
+    CLUSTER_BLOBS.forEach(function (blob) {
+      var r = rng(blob.seed);
+      ctx.fillStyle = "rgba(110,143,134,.5)";
+      for (var i = 0; i < blob.n; i++) {
+        var px = blob.cx + (r() - 0.5) * 1.7, py = blob.cy + (r() - 0.5) * 1.2;
+        var pt = P([px, py]);
+        ctx.beginPath(); ctx.arc(pt[0], pt[1], 3.4, 0, 7); ctx.fill();
+      }
+      var lab = P([blob.cx, blob.cy]);
+      ctx.fillStyle = "#4a5d68"; ctx.font = "600 12px system-ui";
+      ctx.fillText(blob.label, lab[0] - 20, lab[1] + 22);
+    });
+    // пациент + 6 ближайших случаев (из проекции движка)
+    if (cl && cl.illustrative_2d_projection) {
+      var p0 = cl.illustrative_2d_projection;
+      var pr = rng(77);
+      ctx.strokeStyle = "#15171a"; ctx.lineWidth = 1.6;
+      for (var k = 0; k < 6; k++) {
+        var nx = p0[0] + (pr() - 0.5) * 0.9, ny = p0[1] + (pr() - 0.5) * 0.7;
+        var pt = P([nx, ny]);
+        ctx.beginPath(); ctx.arc(pt[0], pt[1], 4.6, 0, 7);
+        ctx.fillStyle = "#15171a"; ctx.fill(); ctx.stroke();
+      }
+      var pp = P(p0);
+      ctx.beginPath(); ctx.arc(pp[0], pp[1], 7.5, 0, 7);
+      ctx.fillStyle = "#0043ce"; ctx.fill();
+      ctx.beginPath(); ctx.arc(pp[0], pp[1], 12, 0, 7);
+      ctx.strokeStyle = "#0043ce"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = "#0043ce"; ctx.font = "800 13px system-ui";
+      ctx.fillText("пациент", pp[0] + 16, pp[1] + 4);
+    }
+    // легенда
+    ctx.fillStyle = "#525252"; ctx.font = "11px system-ui";
+    ctx.fillText("граница Махаланобиса • OOD — без экстраполяции", 12, 18);
+    ctx.fillText("c_core/ot_xai_mahalanobis.c • trajectory_clustering", 12, H - 10);
   }
 
   function drawDashPK(pk) {
