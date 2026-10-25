@@ -116,9 +116,10 @@ async def main() -> int:
 
             # --- vault + привязка (ярлык персоны — жюри видит его в когорте) ---
             await conn.execute(
-                "INSERT INTO patient_pii_vault (fio_encrypted, phone_encrypted, snils_encrypted, "
-                "birth_date, sex, key_version, is_synthetic) VALUES ($1,$2,$3,$4,$5,0,true)",
-                b"SYN-FIO-" + P.bytes[:8], b"SYN-PHONE-" + P.bytes[:6],
+                "INSERT INTO patient_pii_vault (patient_hash_id, fio_encrypted, phone_encrypted, "
+                "snils_encrypted, birth_date, sex, key_version, is_synthetic) "
+                "VALUES ($1,$2,$3,$4,$5,$6,0,true)",
+                P, b"SYN-FIO-" + P.bytes[:8], b"SYN-PHONE-" + P.bytes[:6],
                 b"SYN-SNILS-" + P.bytes[:6], birth, p["s"])
             await conn.execute(
                 "INSERT INTO doctor_patient_bindings (doctor_id, patient_hash_id, consents, bound_at) "
