@@ -83,7 +83,16 @@ def main() -> int:
             check(f"пациент {i + 1} чек-ин {c + 1}: идемпотентность", r2["status"] == "DUPLICATE")
 
     time.sleep(2.0)  # релей outbox -> redis
+    # своих пациентов знаем по sub из JWT: боевой тест подтверждает ТОЛЬКО свои
+    # алерты (в когорте стенда живут чужие, в т.ч. демонстрационные неподтверждённые)
+    import base64 as _b64x
+    def _sub(tok):
+        pl = tok.split(".")[1]; pl += "=" * (-len(pl) % 4)
+        return json.loads(_b64x.urlsafe_b64decode(pl))["sub"]
+    own_subs = {_sub(t) for t in patients}
     ua = req("/api/v1/alerts/unconfirmed", token=H)
+    ua["alerts"] = [a for a in ua["alerts"] if a.get("patient_hash") in own_subs]
+    ua["count"] = len(ua["alerts"])
     check("врач видит критичные алерты", ua["count"] >= critical_expected,
           f"ожидали >= {critical_expected}, получено {ua['count']}")
     check("в алертах есть patient_hash (для таймлайна)",
