@@ -11,7 +11,7 @@
 import json
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect, WebSocketException
 from fastapi.responses import JSONResponse
@@ -67,6 +67,7 @@ class CheckinRequest(BaseModel):
     # None = вопрос не задан/пропущен. Раньше пропуск превращался в 0 («мыслей нет») и не давал алерта.
     phq9_item9: Optional[int] = Field(default=None, ge=0, le=3)
     gad7_total: int = Field(default=0, ge=0, le=21)
+    hads_answers: Optional[List[int]] = Field(default=None, description="14 ответов HADS (0–3) — подсчёт на сервере")
     cssrs: Optional[int] = Field(default=None, ge=0, le=5)
     took_medication: bool = Field(default=True, description="Отметка приёма (для вовлечённости)")
     intake_time: Optional[str] = Field(default=None, description="Время приёма (HH:MM) — для фенотипной аналитики")
@@ -131,6 +132,26 @@ async def patient_checkin(req: CheckinRequest, request: Request,
                 "VALUES ($1, 'GAD-7', $2, '{}'::jsonb)",
                 uuid.UUID(patient.sub), req.gad7_total,
             )
+        if req.hads_answers is not None:
+            # HADS-14 (Приложение Г1 КР МЗ РФ): подсчёт СЕРВЕРОМ (подпись PWA не
+            # доверенная), подшкалы пишутся отдельными строками — их читает
+            # кластерный профиль и графики врача
+            from backend.domain.scales_mz import score_answers
+            hs = score_answers("HADS", req.hads_answers)
+            if "error" not in hs:
+                items_json = json.dumps({"answers": req.hads_answers, "source": "PWA_checkin"})
+                await conn.execute(
+                    "INSERT INTO patient_scale_assessments (patient_hash_id, scale_code, total_score, items) "
+                    "VALUES ($1, 'HADS', $2, $3::jsonb)",
+                    uuid.UUID(patient.sub), hs["total_score"], items_json)
+                await conn.execute(
+                    "INSERT INTO patient_scale_assessments (patient_hash_id, scale_code, total_score, items) "
+                    "VALUES ($1, 'HADS-A', $2, '{}'::jsonb)",
+                    uuid.UUID(patient.sub), hs["hads_a"])
+                await conn.execute(
+                    "INSERT INTO patient_scale_assessments (patient_hash_id, scale_code, total_score, items) "
+                    "VALUES ($1, 'HADS-D', $2, '{}'::jsonb)",
+                    uuid.UUID(patient.sub), hs["hads_d"])
 
         # Приверженность (дневник приёма): было упущено — took_medication приходил,
         # но никуда не писался; заодно здесь event_uuid = единая идемпотентность.

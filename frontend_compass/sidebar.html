@@ -266,6 +266,17 @@
       <div id="dash-timeline" class="dash-timeline"><span class="sb-dim">Откроется для привязанных пациентов из уведомлений.</span></div>
     </div>
 
+    <!-- HAM-A-14: клиницистская шкала Гамильтона, заполняет врач (КР МЗ РФ) -->
+    <div class="dash-card" id="dash-hama-card" hidden>
+      <div class="sb-sec-t">HAM-A-14 · оценка врача <span class="sb-dim">(шкала Гамильтона, КР МЗ РФ)</span></div>
+      <div id="hama-items" class="hama-items"></div>
+      <div class="dash-kv" id="hama-sum"><span class="sb-dim">Отметьте выраженность по каждому пункту.</span></div>
+      <div class="dash-actions-row">
+        <button type="button" class="cp-btn cp-btn-primary cp-btn-sm" id="btn-hama-save" disabled>Записать HAM-A</button>
+        <span class="sb-dim" id="hama-saved-note"></span>
+      </div>
+    </div>
+
     <!-- SLA -->
     <div class="dash-card">
       <div class="sb-sec-t">Метрики платформы (живые)</div>

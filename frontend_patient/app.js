@@ -268,6 +268,7 @@
       phq9_total: (draft.phq9 && draft.phq9.total) || 0,
       phq9_item9: (draft.item9 !== null && draft.item9 !== undefined) ? draft.item9 : null,
       gad7_total: (draft.gad7 && draft.gad7.total) || 0,
+      hads_answers: draft.hads_answers || null,
       cssrs: (draft.cssrs !== null && draft.cssrs !== undefined) ? draft.cssrs : null,
       took_medication: draft.dose !== "no",
       intake_time: (draft.dose === "yes" && el("intake-time")) ? el("intake-time").value || null : null,
@@ -345,11 +346,104 @@
     });
   });
 
+  /* ================= шкалы МЗ РФ с сервера (item-level, hot-reload) =================
+   * Опросники тянутся GET /scales/{code}: формулировки и tips правятся на сервере
+   * без релиза PWA (Метрика №10). Офлайн — встроенный снимок ниже. */
+  var FALLBACK_GAD7 = {
+    id: "GAD7", lead: "Неделя · тревога",
+    intro: "7 коротких вопросов о последних двух неделях.",
+    items: [
+      "Ощущение нервозности, тревожности или напряжения",
+      "Невозможность остановить волнение или контролировать беспокойство",
+      "Чрезмерное беспокойство о разных вещах",
+      "Трудности с расслаблением",
+      "Такое беспокойство, что трудно усидеть на месте",
+      "Лёгкая раздражительность или вспыльчивость",
+      "Страх, что случится что-то ужасное",
+    ],
+  };
+  var FALLBACK_HADS = {
+    id: "HADS", lead: "Неделя · настроение и тревога",
+    intro: "14 утверждений за последнюю неделю — как в бланке поликлиники.",
+    items: [
+      "Я испытываю напряженность или взвинченность",
+      "Мне по-прежнему доставляют удовольствие вещи, которые радовали меня раньше",
+      "Я испытываю страх, будто что-то ужасное может вот-вот случиться",
+      "Я способен рассмеяться и увидеть в происходящем смешную сторону",
+      "Беспокоящие мысли крутятся у меня в голове",
+      "Я чувствую себя бодрым(-ой)",
+      "Я могу спокойно сесть и легко расслабиться",
+      "У меня такое ощущение, словно я двигаюсь заторможенно",
+      "Я испытываю внутреннее напряжение или дрожь",
+      "Я не могу усидеть на месте, мне постоянно нужно двигаться",
+      "Я потерял(-а) интерес к своей внешности",
+      "Я жду с удовольствием того, что должно произойти",
+      "Я испытываю внезапное чувство паники",
+      "Я могу получить удовольствие от хорошей книги, радио- или телепередачи",
+    ],
+    itemOptions: [
+      ["Совсем не испытываю", "Время от времени, иногда", "Часто", "Большую часть времени"],
+      ["Определённо да", "Пожалуй, да", "В очень малой степени", "Совсем нет"],
+      ["Совсем не испытываю", "Иногда, и это меня не беспокоит", "Да, но страх не сильный", "Определённо да, страх очень сильный"],
+      ["Определённо да", "Пожалуй, да", "В очень малой степени", "Совсем не способен"],
+      ["Только изредка", "Время от времени и не так часто", "Большую часть времени", "Постоянно"],
+      ["Практически всё время", "Иногда", "Очень редко", "Совсем не чувствую"],
+      ["Определённо да", "Пожалуй, да", "Лишь изредка", "Совсем не могу"],
+      ["Совсем нет", "Иногда", "Часто", "Практически всё время"],
+      ["Совсем не испытываю", "Иногда", "Часто", "Очень часто"],
+      ["Совсем нет", "Не столь сильно", "Довольно сильно", "Очень определённо"],
+      ["Нет, интерес не изменился", "Несколько меньше, чем раньше", "Значительно меньше", "Совсем не интересует"],
+      ["Как обычно", "Меньше, чем раньше", "Значительно меньше", "Совсем не жду"],
+      ["Совсем не бывает", "Не так уж часто", "Довольно часто", "Очень часто"],
+      ["Часто", "Иногда", "Редко", "Очень редко или никогда"],
+    ],
+  };
+
+  function surveyFromScale(def, fallback, leadKey) {
+    var items = (def && def.items ? def.items : fallback.items).map(function (q, i) {
+      var it = { q: (def && def.items ? String(q) : q) };
+      var opts = (def && def.item_options) ? def.item_options[i]
+        : (fallback.itemOptions ? fallback.itemOptions[i] : null);
+      if (opts) {
+        it.choices = opts.map(function (o, j) {
+          return { v: (typeof o === "object" ? o.v : j), label: (typeof o === "object" ? o.label : o) };
+        });
+      } else {
+        it.freq = true;
+      }
+      var tip = def && def.tips ? def.tips[i] : null;
+      if (tip) it.tip = tip;
+      return it;
+    });
+    return { id: fallback.id, lead: fallback.lead, intro: fallback.intro, items: items };
+  }
+
+  function startFullSurvey() {
+    var defs = { gad: null, hads: null };
+    var done = 0;
+    var launch = function () {
+      var gad = surveyFromScale(defs.gad, FALLBACK_GAD7);
+      var hads = surveyFromScale(defs.hads, FALLBACK_HADS);
+      SURVEYS.GAD7 = gad;
+      SURVEYS.HADS = hads;
+      run = { chain: ["GAD7", "HADS", "SAFETY"], idx: 0, q: 0, answers: {}, results: {}, mode: "survey" };
+      showView("survey");
+      renderStep();
+    };
+    var got = function () { done += 1; if (done >= 2) launch(); };
+    api("/api/v1/compass-bio/scales/GAD-7", {}, null)
+      .then(function (d) { defs.gad = d; got(); }).catch(got);
+    api("/api/v1/compass-bio/scales/HADS", {}, null)
+      .then(function (d) { defs.hads = d; got(); }).catch(got);
+    // защита от зависшего запроса: через 4 с стартуем на том, что есть
+    setTimeout(function () { if (done < 2) { done = 2; launch(); } }, 4000);
+  }
+
   /* ================= движок шагов (опросник / дневник) ================= */
   var run = null; // {chain, idx, q, answers, results, mode}
 
   el("btn-full-survey").addEventListener("click", function () {
-    run = { chain: ["GAD7", "PHQ9", "SAFETY"], idx: 0, q: 0, answers: {}, results: {}, mode: "survey" };
+    startFullSurvey();
     showView("survey");
     renderStep();
   });
@@ -394,8 +488,9 @@
     el("survey-bar").style.width = Math.round(100 * (done + run.q) / Math.max(1, totalLeft)) + "%";
     el("survey-lead").textContent = (run.q === 0 ? s.lead + " · " + s.intro : s.lead);
     el("survey-question").textContent = it.q;
-    el("survey-foot").hidden = !it.foot;
-    el("survey-foot").textContent = it.foot || "";
+    var footText = it.tip || it.foot || "";
+    el("survey-foot").hidden = !footText;
+    el("survey-foot").textContent = footText;
 
     var box = el("survey-choices");
     box.innerHTML = "";
@@ -486,6 +581,9 @@
     var R = run.results;
     if (s.id === "GAD7") {
       R.gad7 = (R.gad7 || 0) + (typeof v === "number" ? v : 0);
+    } else if (s.id === "HADS") {
+      R.hads = R.hads || [];
+      R.hads.push(v);
     } else if (s.id === "PHQ9") {
       R.phq9 = (R.phq9 || 0) + (typeof v === "number" ? v : 0);
       if (it.flag === "item9") R.item9 = v;
@@ -502,8 +600,9 @@
     run = null;
     showView("home");
     if (mode === "survey") {
-      draft.phq9 = { total: R.phq9 || 0 };
+      draft.phq9 = { total: 0 };
       draft.gad7 = { total: R.gad7 || 0 };
+      draft.hads_answers = R.hads || null;
       draft.item9 = (R.item9 !== undefined) ? R.item9 : null;
       draft.cssrs = R.cssrs || 0;
       el("card-today").hidden = false;
@@ -511,7 +610,8 @@
       el("step-mood").hidden = true;
       el("step-send").hidden = false;
       el("send-summary").textContent = "Опросники пройдены: GAD-7 = " + (R.gad7 || 0) +
-        ", PHQ-9 = " + (R.phq9 || 0) + ". Проверьте и отправьте.";
+        (R.hads ? ", HADS = " + R.hads.reduce(function (a, b) { return a + b; }, 0) + " (14 пунктов)" : "") +
+        ". Проверьте и отправьте.";
     } else {
       draft.diary = R.diary || {};
       el("card-today").hidden = false;

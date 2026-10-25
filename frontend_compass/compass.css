@@ -278,3 +278,15 @@ textarea.cp-input { height: auto; padding: 8px 11px; resize: vertical; }
   .sb-modal { position: absolute; inset: 0; background: #fff; padding: 0; display: block; }
   .sb-modal-actions { display: none; }
 }
+
+/* ==== HAM-A-14: клиницистская шкала (врач) ==== */
+.hama-items { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.hama-row { display: flex; align-items: center; gap: 8px; }
+.hama-row__text { flex: 1; font-size: 12px; line-height: 1.35; color: var(--cp-ink, #1f2937); }
+.hama-row__chips { display: flex; gap: 3px; }
+.hama-chip { min-width: 26px; height: 24px; border: 1px solid #d4d4d8; background: #fff;
+  border-radius: 6px; font-size: 11px; cursor: pointer; padding: 0 4px; }
+.hama-chip:hover { border-color: #a1a1aa; }
+.hama-chip--on { background: #312e81; border-color: #312e81; color: #fff; }
+.hama-head { display: flex; gap: 3px; justify-content: flex-end; margin-bottom: 2px; }
+.hama-head span { width: 26px; text-align: center; font-size: 10px; color: #71717a; }

@@ -344,6 +344,104 @@
     $("dash").hidden = false;
   }
 
+  /* ==== HAM-A-14: шкала Гамильтона, заполняет ВРАЧ (Приложение КР МЗ РФ) ====
+   * 14 пунктов 0–4, автосумма, факторы: психическая (1–6, 14) / соматическая (7–13).
+   * Пороги КР: ≥14 — клинически значимая тревога; ответ = редукция ≥50%; ремиссия ≤7. */
+  var HAMA_ITEMS = [
+    "Тревожное настроение", "Напряжение", "Страхи", "Бессонница",
+    "Когнитивные затруднения", "Депрессивное настроение",
+    "Соматические мышечные", "Соматические сенсорные", "Сердечно-сосудистые",
+    "Респираторные", "Желудочно-кишечные", "Мочеполовые", "Вегетативные",
+    "Поведение при осмотре",
+  ];
+  var HAMA_CHIP_LABEL = ["0 нет", "1 лёгкая", "2 умерен.", "3 знач.", "4 макс."];
+  var hamaAnswers = [];
+
+  function renderHamA(ph) {
+    hamaAnswers = new Array(HAMA_ITEMS.length).fill(null);
+    var box = $("hama-items");
+    if (!box) return;
+    box.innerHTML = "";
+    var head = document.createElement("div");
+    head.className = "hama-head";
+    head.innerHTML = "<span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>";
+    box.appendChild(head);
+    HAMA_ITEMS.forEach(function (txt, i) {
+      var row = document.createElement("div");
+      row.className = "hama-row";
+      var t = document.createElement("div");
+      t.className = "hama-row__text";
+      t.textContent = (i + 1) + ". " + txt;
+      row.appendChild(t);
+      var chips = document.createElement("div");
+      chips.className = "hama-row__chips";
+      HAMA_CHIP_LABEL.forEach(function (lbl, v) {
+        var c = document.createElement("button");
+        c.type = "button"; c.className = "hama-chip"; c.textContent = String(v); c.title = lbl;
+        c.addEventListener("click", function () {
+          hamaAnswers[i] = v;
+          Array.from(chips.children).forEach(function (x, j) {
+            x.classList.toggle("hama-chip--on", j === v);
+          });
+          updateHamASum();
+        });
+        chips.appendChild(c);
+      });
+      row.appendChild(chips);
+      box.appendChild(row);
+    });
+    updateHamASum();
+    var note = $("hama-saved-note");
+    if (note) note.textContent = "";
+  }
+
+  function updateHamASum() {
+    var filled = hamaAnswers.filter(function (x) { return x !== null; }).length;
+    var sumEl = $("hama-sum"), btn = $("btn-hama-save");
+    if (btn) btn.disabled = filled < HAMA_ITEMS.length;
+    if (!sumEl) return;
+    if (filled < HAMA_ITEMS.length) {
+      sumEl.innerHTML = "<span class='sb-dim'>Заполнено " + filled + " из 14. Шкалу записывают целиком — пропуски искажают порог ≥14.</span>";
+      return;
+    }
+    var total = hamaAnswers.reduce(function (a, b) { return a + b; }, 0);
+    var psy = [0, 1, 2, 3, 4, 5, 13].reduce(function (a, i) { return a + hamaAnswers[i]; }, 0);
+    var som = total - psy;
+    var band = total < 14 ? "тревога не выявляется (<14)"
+      : total < 28 ? "клинически значимая тревога (14–27)" : "тяжёлая тревога (≥28)";
+    sumEl.innerHTML = "<b>Сумма " + total + "/56</b> · " + band +
+      "<br>Психический фактор: <b>" + psy + "</b> · Соматический: <b>" + som + "</b>" +
+      "<br><span class='sb-dim'>Пороги КР МЗ РФ: ГТР ≥14 · ответ = редукция ≥50% · ремиссия ≤7</span>";
+  }
+
+  var hamaSaveBtn = $("btn-hama-save");
+  if (hamaSaveBtn) {
+    hamaSaveBtn.addEventListener("click", function () {
+      var ph = hamaSaveBtn.closest(".dash-card").dataset.ph;
+      if (!ph || hamaAnswers.some(function (x) { return x === null; })) return;
+      hamaSaveBtn.disabled = true;
+      call("/api/v1/compass-bio/patient/" + ph + "/clinician-scale?code=HAM-A", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: hamaAnswers }),
+      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          hamaSaveBtn.disabled = false;
+          var note = $("hama-saved-note");
+          if (res.ok) {
+            var d = res.d;
+            if (note) note.textContent = "Записано: HAM-A = " + d.total_score + " (" + (d.severity || "") + ")";
+            refreshAlerts();
+          } else if (note) {
+            note.textContent = "Ошибка: " + (res.d.detail || "не записано");
+          }
+        }).catch(function (e) {
+          hamaSaveBtn.disabled = false;
+          var note = $("hama-saved-note");
+          if (note) note.textContent = "Ошибка сети: " + e.message;
+        });
+    });
+  }
+
   /* CSV-отчёты: скачаются как файлы */
   function downloadCSV(name, rows) {
     var csv = rows.map(function (r) {
@@ -673,6 +771,16 @@
     // История пациента из БД: приоритет — пациент, выбранный из когорты; иначе из алерта
     var alertPh = dashPatientHash || (state.currentAlert && state.currentAlert.patient_hash);
     var tlBox = $("dash-timeline");
+    // HAM-A-14 появляется только когда выбран конкретный пациент
+    var hamaCard = $("dash-hama-card");
+    if (hamaCard) {
+      hamaCard.hidden = !alertPh;
+      if (alertPh && hamaCard.dataset.ph !== alertPh) {
+        hamaCard.dataset.ph = alertPh;
+        hamaCard.dataset.answers = "";
+        renderHamA(alertPh);
+      }
+    }
     if (alertPh) {
       call("/api/v1/compass-bio/patient/" + alertPh + "/timeline")
         .then(function (r) { return r.ok ? r.json() : null; })
@@ -758,6 +866,7 @@
         "<div><b>Подтверждений сделано</b> " + Object.keys(state.confirmations).length + "</div>";
       if (pk) drawDashPK(pk);
       var clu = dec.cluster_24d_analysis || {};
+      bindClusterCanvasEvents();
       if (clu && clu.illustrative_2d_projection) {
         drawClusterMap(clu);
         $("dash-cluster-kv").innerHTML =
@@ -806,61 +915,141 @@
       });
   }
 
-  var CLUSTER_BLOBS = [ // типовые кластеры траекторий (детерминированные сиды, разброс по Махаланобису)
-    { label: "ранний ответ",            cx: -1.6, cy:  0.9, n: 26, seed: 11 },
-    { label: "кумулятивный (36 нед)",   cx:  0.3, cy: -0.4, n: 22, seed: 22 },
-    { label: "поздний ответ",           cx:  1.7, cy:  1.1, n: 18, seed: 33 },
-    { label: "нет ответа",              cx:  2.0, cy: -1.5, n: 14, seed: 44 },
-    { label: "риск отмены (H1)",        cx: -0.9, cy: -1.7, n: 10, seed: 55 },
-  ];
+  /* ---------- интерактивная кластер-карта (pan/zoom/drag/click) ---------- */
+  var clusterMap = { data: null, vx: 0, vy: 0, scale: 1, dragNode: null, dragBg: null, hover: null };
+  var CLUSTER_COLORS = { K1: "#4a7c59", K2: "#b7791f", K3: "#2b6cb0", K4: "#805ad5", K5: "#c0392b" };
+
+  function loadClusterMap() {
+    call("/api/v1/compass-bio/cluster-map").then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        clusterMap.data = d;
+        clusterMap.vx = 0; clusterMap.vy = 0; clusterMap.scale = 1;
+        renderDash(); // перерисовать дашборд с картой
+      });
+  }
+
   function drawClusterMap(cl) {
     var cv = $("dash-cluster"); if (!cv) return;
-    var W = cv.width, H = cv.height, cx = W / 2, cy = H / 2;
     var ctx = cv.getContext("2d");
+    var W = cv.width, H = cv.height;
     ctx.clearRect(0, 0, W, H);
-    var scale = Math.min(W, H) / 9.2; // проекция примерно в [-4.6, 4.6]
-    function P(p2) { return [cx + p2[0] * scale, cy - p2[1] * scale]; }
-    // граница Махаланобиса (эллипс)
-    ctx.setLineDash([7, 6]); ctx.strokeStyle = "#7c8b9a"; ctx.lineWidth = 1.4;
-    ctx.beginPath(); ctx.ellipse(cx, cy, 4.35 * scale, 2.75 * scale, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.setLineDash([]);
-    // облака кластеров
-    function rng(seed) { var s = seed; return function () { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
-    CLUSTER_BLOBS.forEach(function (blob) {
-      var r = rng(blob.seed);
-      ctx.fillStyle = "rgba(110,143,134,.5)";
-      for (var i = 0; i < blob.n; i++) {
-        var px = blob.cx + (r() - 0.5) * 1.7, py = blob.cy + (r() - 0.5) * 1.2;
-        var pt = P([px, py]);
-        ctx.beginPath(); ctx.arc(pt[0], pt[1], 3.4, 0, 7); ctx.fill();
-      }
-      var lab = P([blob.cx, blob.cy]);
-      ctx.fillStyle = "#4a5d68"; ctx.font = "600 12px system-ui";
-      ctx.fillText(blob.label, lab[0] - 20, lab[1] + 22);
-    });
-    // пациент + 6 ближайших случаев (из проекции движка)
-    if (cl && cl.illustrative_2d_projection) {
-      var p0 = cl.illustrative_2d_projection;
-      var pr = rng(77);
-      ctx.strokeStyle = "#15171a"; ctx.lineWidth = 1.6;
-      for (var k = 0; k < 6; k++) {
-        var nx = p0[0] + (pr() - 0.5) * 0.9, ny = p0[1] + (pr() - 0.5) * 0.7;
-        var pt = P([nx, ny]);
-        ctx.beginPath(); ctx.arc(pt[0], pt[1], 4.6, 0, 7);
-        ctx.fillStyle = "#15171a"; ctx.fill(); ctx.stroke();
-      }
-      var pp = P(p0);
-      ctx.beginPath(); ctx.arc(pp[0], pp[1], 7.5, 0, 7);
-      ctx.fillStyle = "#0043ce"; ctx.fill();
-      ctx.beginPath(); ctx.arc(pp[0], pp[1], 12, 0, 7);
-      ctx.strokeStyle = "#0043ce"; ctx.lineWidth = 2; ctx.stroke();
-      ctx.fillStyle = "#0043ce"; ctx.font = "800 13px system-ui";
-      ctx.fillText("пациент", pp[0] + 16, pp[1] + 4);
+    var d = clusterMap.data;
+    if (!d) {
+      ctx.fillStyle = "#8d8d8d"; ctx.font = "12px system-ui";
+      ctx.fillText("Карта загружается…", 20, H / 2);
+      // триггер загрузки один раз
+      if (!clusterMap.loading) { clusterMap.loading = true; loadClusterMap(); }
+      return;
     }
+    var cx = W / 2 + clusterMap.vx, cy = H / 2 + clusterMap.vy;
+    var sc = clusterMap.scale * Math.min(W, H) / 9.2;
+    function P(pt) { return [cx + pt[0] * sc, cy - pt[1] * sc]; }
+    var el = d.mahalanobis_ellipse;
+    ctx.setLineDash([7, 6]); ctx.strokeStyle = "#7c8b9a"; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.ellipse(cx, cy, el.rx * sc, el.ry * sc, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    // референсные точки (честно помечены)
+    ctx.fillStyle = "rgba(110,143,134,.45)";
+    d.reference_points.forEach(function (p) {
+      var pt = P([p.x, p.y]);
+      ctx.beginPath(); ctx.arc(pt[0], pt[1], 3.2, 0, 7); ctx.fill();
+    });
+    // подписи кластеров
+    ctx.font = "600 12px system-ui";
+    d.reference_labels.forEach(function (l) {
+      var pt = P([l.cx, l.cy]);
+      ctx.fillStyle = "#4a5d68";
+      ctx.fillText(l.label, pt[0] - 22, pt[1] + 24);
+    });
+    // пациенты (реальные)
+    d.patients.forEach(function (p) {
+      var pt = P([p.x, p.y]);
+      var col = CLUSTER_COLORS[(p.cluster || "").split("_")[0]] || "#15171a";
+      ctx.beginPath(); ctx.arc(pt[0], pt[1], p.ood ? 6 : 5.5, 0, 7);
+      ctx.fillStyle = col; ctx.fill();
+      if (p.ood) { ctx.strokeStyle = "#c0392b"; ctx.lineWidth = 2; ctx.stroke(); }
+      ctx.font = "700 11px system-ui"; ctx.fillStyle = "#15171a";
+      ctx.fillText("П-" + p.hash6, pt[0] + 8, pt[1] - 8);
+    });
     // легенда
     ctx.fillStyle = "#525252"; ctx.font = "11px system-ui";
-    ctx.fillText("граница Махаланобиса • OOD — без экстраполяции", 12, 18);
-    ctx.fillText("c_core/ot_xai_mahalanobis.c • trajectory_clustering", 12, H - 10);
+    ctx.fillText("серые точки — референсные траектории исследований (не пациенты)", 12, 18);
+    ctx.fillText("цветные — ваши пациенты (RLS); красный контур = OOD, без экстраполяции", 12, 34);
+    ctx.fillText("колесо — зум • перетаскивание фона — панорама • клик — карточка пациента", 12, H - 10);
+  }
+
+  function bindClusterCanvasEvents() {
+    var cv = document.getElementById("dash-cluster");
+    if (!cv || cv.__bound) return;
+    cv.__bound = true;
+    var toWorld = function (px, py) {
+      var W = cv.width, H = cv.height;
+      var sc = clusterMap.scale * Math.min(W, H) / 9.2;
+      return [(px - W / 2 - clusterMap.vx) / sc, -(py - H / 2 - clusterMap.vy) / sc];
+    };
+    cv.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      clusterMap.scale = Math.min(4, Math.max(0.5, clusterMap.scale * (e.deltaY < 0 ? 1.15 : 0.87)));
+      renderDash();
+    }, { passive: false });
+    cv.addEventListener("mousedown", function (e) {
+      var rect = cv.getBoundingClientRect();
+      var px = (e.clientX - rect.left) * (cv.width / rect.width);
+      var py = (e.clientY - rect.top) * (cv.height / rect.height);
+      // попадание в узел пациента?
+      var hit = null;
+      if (clusterMap.data) {
+        var sc = clusterMap.scale * Math.min(cv.width, cv.height) / 9.2;
+        clusterMap.data.patients.forEach(function (p) {
+          var nx = cv.width / 2 + clusterMap.vx + p.x * sc;
+          var ny = cv.height / 2 + clusterMap.vy - p.y * sc;
+          if (Math.hypot(px - nx, py - ny) < 12) hit = p;
+        });
+      }
+      if (hit) { clusterMap.dragNode = hit; }
+      else { clusterMap.dragBg = { x: e.clientX, y: e.clientY }; }
+    });
+    cv.addEventListener("mousemove", function (e) {
+      var rect = cv.getBoundingClientRect();
+      var px = (e.clientX - rect.left) * (cv.width / rect.width);
+      var py = (e.clientY - rect.top) * (cv.height / rect.height);
+      if (clusterMap.dragNode) {
+        var sc = clusterMap.scale * Math.min(cv.width, cv.height) / 9.2;
+        clusterMap.dragNode.x = (px - cv.width / 2 - clusterMap.vx) / sc;
+        clusterMap.dragNode.y = -(py - cv.height / 2 - clusterMap.vy) / sc;
+        renderDash();
+      } else if (clusterMap.dragBg) {
+        clusterMap.vx += e.clientX - clusterMap.dragBg.x;
+        clusterMap.vy += e.clientY - clusterMap.dragBg.y;
+        clusterMap.dragBg = { x: e.clientX, y: e.clientY };
+        renderDash();
+      }
+    });
+    window.addEventListener("mouseup", function () { clusterMap.dragNode = null; clusterMap.dragBg = null; });
+    cv.addEventListener("click", function (e) {
+      var rect = cv.getBoundingClientRect();
+      var px = (e.clientX - rect.left) * (cv.width / rect.width);
+      var py = (e.clientY - rect.top) * (cv.height / rect.height);
+      if (!clusterMap.data) return;
+      var sc = clusterMap.scale * Math.min(cv.width, cv.height) / 9.2;
+      var hit = null;
+      clusterMap.data.patients.forEach(function (p) {
+        var nx = cv.width / 2 + clusterMap.vx + p.x * sc;
+        var ny = cv.height / 2 + clusterMap.vy - p.y * sc;
+        if (Math.hypot(px - nx, py - ny) < 14) hit = p;
+      });
+      if (hit) {
+        var hashFull = (clusterMap.data.patients.indexOf(hit) >= 0) ? hit.hash6 : "";
+        // полный hash ищем по префиксу из my-patients
+        call("/api/v1/auth/my-patients").then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            if (!d) return;
+            var p = (d.patients || []).find(function (x) { return (x.patient_hash || "").indexOf(hit.hash6) === 0; });
+            if (p) openPatientTimeline(p.patient_hash, "П-" + hit.hash6);
+          });
+      }
+    });
   }
 
   function drawDashPK(pk) {
