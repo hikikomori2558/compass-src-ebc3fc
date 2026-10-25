@@ -403,6 +403,9 @@
   var dashPatientHash = null, dashPatientLabel = "";
   function openPatientTimeline(hash, label) {
     dashPatientHash = hash; dashPatientLabel = label || "";
+    // записка пациента живёт в панели: прячем инструкцию, показываем контент
+    var empty = $("sb-empty"), content = $("sb-content");
+    if (empty && content) { empty.hidden = true; content.hidden = false; }
     renderPatientNote(hash, label);
     renderDash();
     $("dash").hidden = false;
