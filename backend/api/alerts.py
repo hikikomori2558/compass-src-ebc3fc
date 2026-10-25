@@ -180,9 +180,8 @@ async def patient_checkin(req: CheckinRequest, request: Request,
         _it = None
         if req.intake_time:
             try:
-                _hh, _mm = str(req.intake_time).split(":")[:2]
-                _it = datetime.time(int(_hh), int(_mm))
-            except (ValueError, IndexError):
+                _it = datetime.strptime(str(req.intake_time), "%H:%M").time()
+            except ValueError:
                 _it = None
         await conn.execute(
             "INSERT INTO patient_diary_entries "
