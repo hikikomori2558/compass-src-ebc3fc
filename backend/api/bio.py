@@ -338,9 +338,20 @@ async def patient_timeline(patient_hash: str, request: Request,
             "FROM adverse_events_and_risks WHERE patient_hash_id=$1 "
             "ORDER BY reported_at DESC LIMIT 20", ph)
 
+    def _num(v):
+        # numeric из БД (Decimal) → int, если это целое: фронту и тестам нужны числа,
+        # а не строки «11» (иначе графики и сравнения ломаются молча)
+        try:
+            f = float(v)
+            return int(f) if f.is_integer() else f
+        except (TypeError, ValueError):
+            return v
+
     return {
         "patient_hash": patient_hash,
-        "scales": [dict(s) for s in scales],
+        "scales": [{**dict(s), "total_score": _num(s["total_score"]),
+                    "delta_prev": _num(s["delta_prev"]) if s["delta_prev"] is not None else None}
+                   for s in scales],
         "alerts": [{**dict(a), "reasons": _json.loads(a["reasons"]) if a["reasons"] else []}
                    for a in alerts],
         "adherence": [dict(x) for x in adherence],
