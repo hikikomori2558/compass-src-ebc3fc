@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 import math
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.db.context import db_conn
@@ -96,9 +96,7 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
     if not gad_rows and not logs:
         return None  # данных нет — профиль не выдумываем
 
-    start_day = 1.0
-    if bound and bound["bound_at"]:
-        start_day = max(1.0, float((datetime.utcnow() - bound["bound_at"]).days) + 1.0)
+    start_day = therapy_day
     gad7_series = [(0.0, 18.0)] + [
         (max(1.0, start_day - (len(gad_rows) - 1 - i) * 4.0), float(r["total_score"]))
         for i, r in enumerate(gad_rows)]
@@ -108,7 +106,8 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
 
     therapy_day = 3.0
     if bound and bound["bound_at"]:
-        therapy_day = max(1.0, float((datetime.utcnow() - bound["bound_at"]).days) + 1.0)
+        bound_aware = bound["bound_at"].replace(tzinfo=bound["bound_at"].tzinfo) or bound["bound_at"]
+        therapy_day = max(1.0, float((datetime.now(timezone.utc) - bound["bound_at"]).total_seconds()) / 86400.0 + 1.0)
 
     # приверженность: PDC по фактам приёма
     doses_logged = len(logs)
