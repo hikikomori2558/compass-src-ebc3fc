@@ -45,9 +45,11 @@ ACCESS_TTL = timedelta(hours=2)
 REFRESH_TTL = timedelta(days=14)
 BIND_TTL = timedelta(hours=24)
 
-# Дефолтный секрет — только для локальной разработки; в бою JWT_SECRET обязателен.
-# Длина ≥ 32 байт — требование RFC 7518 для HS256, иначе PyJWT честно ругается.
-JWT_SECRET = os.getenv("JWT_SECRET", "dev_jwt_secret_change_me_min_32_bytes!")
+# Fail-closed: без секрета (или с коротким) старт запрещён — «тихий» запуск с
+# публичным из git невозможен. Длина ≥ 32 байт — требование RFC 7518 для HS256.
+JWT_SECRET = os.getenv("JWT_SECRET", "")
+if len(JWT_SECRET) < 32:
+    raise RuntimeError("JWT_SECRET не задан или короче 32 байт — скопируйте .env.example в .env")
 JWT_ALG = "HS256"
 
 

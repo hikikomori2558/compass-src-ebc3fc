@@ -33,3 +33,8 @@ redis_data/
 Thumbs.db
 .env
 design_refs/case_sources/
+
+# Секреты: .env НЕ коммитится (см. .env.example); исключение — .env.example
+.env
+.env.*
+!.env.example

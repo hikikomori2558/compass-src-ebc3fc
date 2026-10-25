@@ -60,7 +60,7 @@ def _bind(lib: ctypes.CDLL) -> None:
 
 
 class PiiScrubber:
-    def __init__(self, pepper: str = "dev_pepper_change_me"):
+    def __init__(self, pepper: str = ""):
         self.pepper = pepper.encode("utf-8")
         self._lib = _load_lib()
         _bind(self._lib)
@@ -130,7 +130,13 @@ _SCRUBBER: Optional[PiiScrubber] = None
 def get_scrubber() -> PiiScrubber:
     global _SCRUBBER
     if _SCRUBBER is None:
-        _SCRUBBER = PiiScrubber(os.getenv("PII_PEPPER", "dev_pepper_change_me"))
+        _pepper = os.getenv("PII_PEPPER", "")
+        if not _pepper:
+            # Fail-closed: без перца псевдонимизация невозможна. Локальная разработка
+            # задаёт PII_PEPPER из .env (см. .env.example); прод обязан его иметь.
+            raise RuntimeError("PII_PEPPER не задан — псевдонимизация ПДн отключена "
+                               "(скопируйте .env.example в .env)")
+        _SCRUBBER = PiiScrubber(_pepper)
     return _SCRUBBER
 
 
