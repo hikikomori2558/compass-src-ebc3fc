@@ -96,6 +96,10 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
     if not gad_rows and not logs:
         return None  # данных нет — профиль не выдумываем
 
+    therapy_day = 3.0
+    if bound and bound["bound_at"]:
+        therapy_day = max(1.0, float((datetime.now(timezone.utc) - bound["bound_at"]).total_seconds()) / 86400.0 + 1.0)
+
     start_day = therapy_day
     gad7_series = [(0.0, 18.0)] + [
         (max(1.0, start_day - (len(gad_rows) - 1 - i) * 4.0), float(r["total_score"]))
@@ -103,11 +107,6 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
     gad7_last = float(gad_rows[-1]["total_score"]) if gad_rows else 18.0
     phq9_last = float(phq_rows[0]["total_score"]) if phq_rows else max(0.0, gad7_last - 8.0)
     suicidal = float(cssrs_row["total_score"]) if cssrs_row else 0.0
-
-    therapy_day = 3.0
-    if bound and bound["bound_at"]:
-        bound_aware = bound["bound_at"].replace(tzinfo=bound["bound_at"].tzinfo) or bound["bound_at"]
-        therapy_day = max(1.0, float((datetime.now(timezone.utc) - bound["bound_at"]).total_seconds()) / 86400.0 + 1.0)
 
     # приверженность: PDC по фактам приёма
     doses_logged = len(logs)
