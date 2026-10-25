@@ -471,6 +471,29 @@
         });
     });
   }
+  /* Ответ пациенту в треде сопровождения */
+  var msgReplyBtn = $("btn-msg-reply");
+  if (msgReplyBtn) {
+    msgReplyBtn.addEventListener("click", function () {
+      var ph = dashPatientHash || (state.currentAlert && state.currentAlert.patient_hash);
+      var text = $("msg-reply").value.trim();
+      var note = $("msg-reply-note");
+      if (!ph) { note.textContent = "Сначала выберите пациента."; return; }
+      if (text.length < 2) { note.textContent = "Пусто."; return; }
+      msgReplyBtn.disabled = true;
+      call("/api/v1/compass-bio/patient/" + ph + "/messages", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: text }),
+      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          msgReplyBtn.disabled = false;
+          if (res.ok) { $("msg-reply").value = ""; note.textContent = "Отправлено — появится в PWA пациента.";
+            renderDash(); }
+          else note.textContent = "Ошибка: " + (res.d.detail || "");
+        }).catch(function (e) { msgReplyBtn.disabled = false; note.textContent = "Сеть: " + e.message; });
+    });
+  }
+
   /* ==== Осознанное несогласие → audit_log (против иллюзии понимания) ==== */
   var disBtn = $("btn-disagree");
   if (disBtn) {
@@ -700,6 +723,19 @@
       setTimeout(connectWS, 5000);
     };
   }
+  /* Категории маршрутизации (Условие кейса: «обязательно» и «желательно» различимы):
+   * бейдж с цветом ОБЯЗАТЕЛЬНО = красный, ЖЕЛАТЕЛЬНО = янтарный, первичное звено = серый. */
+  var ROUTE_RU = {
+    MANDATORY_PSYCHIATRIST: ["ОБЯЗАТЕЛЬНО к психиатру", "route-badge route--mandatory"],
+    RECOMMENDED_PSYCHIATRIST: ["ЖЕЛАТЕЛЬНО к психиатру", "route-badge route--recommended"],
+    PRIMARY_CARE_MANAGEMENT: ["Первичное звено", "route-badge route--primary"],
+  };
+  function routeBadge(cat) {
+    var m = ROUTE_RU[cat];
+    if (!m) return "<b>" + String(cat || "") + "</b>";
+    return "<span class='" + m[1] + "'>" + m[0] + "</span>";
+  }
+
   function refreshAlerts() {
     call("/api/v1/alerts/unconfirmed").then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
@@ -717,8 +753,8 @@
           if (!quiet) {
             state.alertPingAt = state.alertPingAt || {};
             state.alertPingAt[a.alert_id] = now;
-            $("sb-alert-title").textContent = "Критический алерт (" + d.count + ")";
-            $("sb-alert-sub").textContent = a.category + " • " + (a.reasons || []).join("; ") +
+            $("sb-alert-title").innerHTML = "Критический алерт (" + d.count + ") " + routeBadge(a.category);
+            $("sb-alert-sub").textContent = (a.reasons || []).join("; ") +
               " • " + new Date(a.created_at).toLocaleTimeString("ru-RU");
           }
         }
@@ -735,7 +771,7 @@
   $("btn-alert-confirm").addEventListener("click", function () {
     if (!state.currentAlert) return;
     var a = state.currentAlert;
-    $("confirm-info").textContent = "Алерт " + a.alert_id + " • " + a.category + " • " + (a.reasons || []).join("; ");
+    $("confirm-info").innerHTML = "Алерт " + a.alert_id + " • " + routeBadge(a.category) + " • " + (a.reasons || []).join("; ");
     $("modal-confirm").hidden = false;
   });
   $("btn-confirm-ok").addEventListener("click", function () {
@@ -829,7 +865,7 @@
         (d.alerts || []).slice(0, 8).forEach(function (a) {
           var div = document.createElement("div");
           div.className = "sb-notif-item";
-          div.innerHTML = "<b>" + a.category + "</b>" + (a.reasons || []).join("; ") +
+          div.innerHTML = routeBadge(a.category) + (a.reasons || []).join("; ") +
             "<div class='when'>" + new Date(a.created_at).toLocaleString("ru-RU") + "</div>";
           var b = document.createElement("button");
           b.type = "button"; b.className = "cp-btn cp-btn-sm";
@@ -903,6 +939,18 @@
               " <span class='when'>" + new Date(a.reported_at).toLocaleDateString("ru-RU") +
               (a.has_draft ? " • черновик 1071 готов" : "") + "</span></div>");
           });
+          // Тред сообщений пациент ↔ врач (задача 6)
+          var mrow = $("dash-msg-thread");
+          if (mrow) {
+            mrow.dataset.ph = alertPh;
+            var msgs = tl.messages || [];
+            mrow.innerHTML = msgs.length ? msgs.reverse().map(function (m) {
+              return "<div class='dash-tl" + (m.sender_role === 'DOCTOR' ? " msg-doc" : "") + "'>" +
+                (m.sender_role === 'PATIENT' ? "<b>Пациент:</b> " : "<b>Врач:</b> ") +
+                String(m.body).replace(/[<>]/g, "") +
+                "<span class='when'>" + new Date(m.created_at).toLocaleString("ru-RU") + "</span></div>";
+            }).join("") : "<span class='sb-dim'>Сообщений пока нет.</span>";
+          }
           var aeRow = $("dash-ae-row");
           if (aeRow) {
             aeRow.hidden = aes.length === 0;
@@ -1023,7 +1071,7 @@
         (data.alerts || []).slice(0, 10).forEach(function (a) {
           var div = document.createElement("div");
           div.className = "sb-notif-item";
-          div.innerHTML = "<b>" + a.category + "</b>" + (a.reasons || []).join("; ") +
+          div.innerHTML = routeBadge(a.category) + (a.reasons || []).join("; ") +
             "<div class='when'>" + new Date(a.created_at).toLocaleString("ru-RU") + "</div>";
           var b = document.createElement("button");
           b.type = "button"; b.className = "cp-btn cp-btn-sm";

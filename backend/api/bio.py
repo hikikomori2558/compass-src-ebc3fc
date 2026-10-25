@@ -337,6 +337,9 @@ async def patient_timeline(patient_hash: str, request: Request,
             "roszdravnadzor_draft IS NOT NULL AS has_draft "
             "FROM adverse_events_and_risks WHERE patient_hash_id=$1 "
             "ORDER BY reported_at DESC LIMIT 20", ph)
+        msgs = await conn.fetch(
+            "SELECT message_id, sender_role, thread_kind, body, created_at "
+            "FROM messages WHERE patient_hash_id=$1 ORDER BY created_at DESC LIMIT 30", ph)
 
     def _num(v):
         # numeric из БД (Decimal) → int, если это целое: фронту и тестам нужны числа,
@@ -356,6 +359,7 @@ async def patient_timeline(patient_hash: str, request: Request,
                    for a in alerts],
         "adherence": [dict(x) for x in adherence],
         "adverse_events": [dict(a) for a in aes],
+        "messages": [dict(m) for m in msgs],
         "note": "RLS: врач видит только своих пациентов; чужие списки пусты",
     }
 
@@ -496,6 +500,32 @@ async def draft_ae_1071(patient_hash: str, request: Request,
         if n == 0:
             lines = ["Все записи НЯ уже имеют черновики извещения."] + lines[4:]
     return {"draft_text": "\n".join(lines), "drafts_formed": n}
+
+
+@bio_router.post("/patient/{patient_hash}/messages",
+                 summary="[Врач] Ответ пациенту в треде сопровождения")
+async def doctor_reply_message(patient_hash: str, request: Request,
+                               principal: Principal = Depends(get_principal)) -> Dict[str, Any]:
+    """Ответ врача. RLS проверит app_is_attending: чужому пациенту письмо не уйдёт."""
+    import json as _json
+    import uuid as _uuid
+
+    from backend.db.context import db_conn
+    from fastapi import HTTPException
+    body = await request.json() if request.headers.get("content-length") else {}
+    text = str(body.get("body") or "").strip()[:1000]
+    if len(text) < 2:
+        raise HTTPException(400, "Пустое сообщение")
+    pool = getattr(request.app.state, "pg_pool", None)
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    async with db_conn(pool, role=principal.role, user_id=principal.sub) as conn:
+        await conn.execute(
+            "INSERT INTO messages (patient_hash_id, sender_role, sender_id, thread_kind, priority, body) "
+            "VALUES ($1, 'DOCTOR', $2, $3, 1, $4)",
+            _uuid.UUID(patient_hash), _uuid.UUID(principal.sub),
+            str(body.get("thread_kind") or "CLINICAL"), text)
+    return {"sent": True}
 
 
 @bio_router.post("/patient/{patient_hash}/disagree",
@@ -664,6 +694,9 @@ async def patient_insights(patient_hash: str, request: Request,
             "roszdravnadzor_draft IS NOT NULL AS has_draft "
             "FROM adverse_events_and_risks WHERE patient_hash_id=$1 "
             "ORDER BY reported_at DESC LIMIT 20", ph)
+        msgs = await conn.fetch(
+            "SELECT message_id, sender_role, thread_kind, body, created_at "
+            "FROM messages WHERE patient_hash_id=$1 ORDER BY created_at DESC LIMIT 30", ph)
         adherence = await conn.fetchval(
             "SELECT pdc_pct FROM medication_adherence_logs WHERE patient_hash_id=$1 "
             "ORDER BY taken_at DESC LIMIT 1", ph)

@@ -296,3 +296,10 @@ textarea.cp-input { height: auto; padding: 8px 11px; resize: vertical; }
 .dash-zone__p { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #312e81;
   border: 1px solid #c7d2fe; background: #eef2ff; border-radius: 999px; padding: 2px 10px; }
 .dash-zone .sb-dim { font-size: 11px; }
+
+/* ==== Категории маршрутизации: ОБЯЗАТЕЛЬНО/ЖЕЛАТЕЛЬНО визуально различимы ==== */
+.route-badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .04em;
+  border-radius: 4px; padding: 1px 7px; margin-right: 6px; vertical-align: middle; }
+.route--mandatory { background: #c0392b; color: #fff; }
+.route--recommended { background: #d97706; color: #fff; }
+.route--primary { background: #6b7280; color: #fff; }

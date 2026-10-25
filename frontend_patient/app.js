@@ -149,6 +149,42 @@
     return Math.max(1, l.length);   // дней с чек-инами
   }
 
+  /* Связь с врачом (задача 6 кейса): отправка + тред */
+  function renderMsgThread(rows) {
+    var box = el("msg-thread");
+    if (!box) return;
+    box.innerHTML = (rows || []).reverse().map(function (m) {
+      return "<div class='msg-item" + (m.sender_role === "PATIENT" ? " msg-item--patient" : "") + "'>" +
+        (m.sender_role === "DOCTOR" ? "<b>Ответ врача:</b> " : "") +
+        String(m.body).replace(/[<>]/g, "") +
+        "<span class='when'>" + new Date(m.created_at).toLocaleString("ru-RU") + "</span></div>";
+    }).join("") || "";
+  }
+  function refreshMsgThread() {
+    var t = STORE.session;
+    if (!t || !t.access_token) return;
+    api("/api/v1/patient/messages", {}, t.access_token)
+      .then(function (d) { renderMsgThread(d && d.messages); }).catch(function () {});
+  }
+  var msgBtn = el("btn-msg-send");
+  if (msgBtn) {
+    msgBtn.addEventListener("click", function () {
+      var ta = el("msg-body");
+      var text = (ta.value || "").trim();
+      if (text.length < 2) return;
+      msgBtn.disabled = true; msgBtn.textContent = "Отправляю…";
+      var t = STORE.session;
+      api("/api/v1/patient/messages", { method: "POST", body: JSON.stringify({ body: text }) },
+          t.access_token)
+        .then(function () { ta.value = ""; refreshMsgThread();
+          msgBtn.textContent = "Отправлено ✓"; setTimeout(function () {
+            msgBtn.textContent = "Отправить врачу"; msgBtn.disabled = false; }, 2000); })
+        .catch(function (e) {
+          msgBtn.textContent = "Ошибка: " + e.message; msgBtn.disabled = false; });
+    });
+    refreshMsgThread();
+  }
+
   /* Напоминания: 2 слота (утро — приём, вечер — дневник); текст по неделе */
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.ready.then(function (reg) {
@@ -792,6 +828,7 @@
 
   /* ================= вход/выход ================= */
   function enterHome() {
+    refreshMsgThread();
     showView("home");
     renderStreaks();
     renderHistory();

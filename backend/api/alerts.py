@@ -122,6 +122,39 @@ async def patient_engagement_status(request: Request,
     }
 
 
+class MessageRequest(BaseModel):
+    body: str = Field(min_length=2, max_length=1000, description="Текст сообщения врачу")
+    thread_kind: str = Field(default="CLINICAL", pattern="^(CLINICAL|REGIMEN|SOCIAL)$")
+
+
+@alerts_router.post("/patient/messages", status_code=201,
+                    summary="[Пациент] Сообщение лечащему врачу (задача 6 кейса: канал коммуникации)")
+async def send_message(req: MessageRequest, request: Request,
+                       patient: Principal = Depends(require_patient)) -> Dict[str, Any]:
+    """Пациент ↔ его лечащий врач, без третьих лиц (RLS: врач видит только своих)."""
+    from backend.db.context import db_conn
+    pool = request.app.state.pg_pool
+    async with db_conn(pool, role="PATIENT", user_id=patient.sub) as conn:
+        await conn.execute(
+            "INSERT INTO messages (patient_hash_id, sender_role, thread_kind, priority, body) "
+            "VALUES ($1, 'PATIENT', $2, $3, $4)",
+            uuid.UUID(patient.sub), req.thread_kind,
+            3 if req.thread_kind == "CLINICAL" else 1, req.body)
+    return {"sent": True}
+
+
+@alerts_router.get("/patient/messages", summary="[Пациент] Тред с лечащим врачом")
+async def my_messages(request: Request, patient: Principal = Depends(require_patient)) -> Dict[str, Any]:
+    from backend.db.context import db_conn
+    pool = request.app.state.pg_pool
+    async with db_conn(pool, role="PATIENT", user_id=patient.sub) as conn:
+        rows = await conn.fetch(
+            "SELECT message_id, sender_role, thread_kind, body, created_at "
+            "FROM messages WHERE patient_hash_id=$1 ORDER BY created_at DESC LIMIT 50",
+            uuid.UUID(patient.sub))
+    return {"messages": [dict(r) for r in rows]}
+
+
 # ------------------------------------------------------------------ чек-ин пациента
 @alerts_router.post("/patient/checkin", response_model=CheckinResponse, status_code=201)
 async def patient_checkin(req: CheckinRequest, request: Request,

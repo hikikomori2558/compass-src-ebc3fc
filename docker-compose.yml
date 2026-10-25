@@ -47,10 +47,11 @@ services:
     container_name: compass_api
     environment:
       DATABASE_URL: postgresql://compass_api:compass_api_demo@db:5432/compass
-      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET обязателен — см. .env.example (мин. 32 байта)}
       REDIS_URL: redis://redis:6379/0
-      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_me}
-      PII_PEPPER: ${PII_PEPPER:-dev_pepper_change_me}
+      # Секреты БЕЗ девелоперских фолбэков: забытый .env = явная ошибка старта,
+      # а не «тихий» запуск с публичными ключами (см. .env.example)
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET обязателен — скопируйте .env.example}
+      PII_PEPPER: ${PII_PEPPER:?PII_PEPPER обязателен — скопируйте .env.example}
       CORS_ORIGINS: "*"
       # QR-приглашение пациента ведёт на PWA; для показа с телефона укажи LAN-IP:
       # PATIENT_APP_URL=http://<LAN-IP>:5501/ (в .env или окружении docker compose)
