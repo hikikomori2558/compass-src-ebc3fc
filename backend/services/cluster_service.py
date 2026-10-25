@@ -334,17 +334,55 @@ def _fit_cluster_reference(cluster_id: int) -> None:
 
 
 def cluster_map_payload(profiles: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Собирает payload интерактивной карты: кластеры, референсы, реальные пациенты."""
-    patients = []
+    """Собирает payload интерактивной карты: кластеры, референсы, реальные пациенты.
+
+    2D-позиция — витринная схема «подсолнухом»: внутри кластера детерминированная
+    спираль (филлотаксис, шаг 137.5°) по сортировке hash — точки не слипаются
+    даже при 105 пациентах; OOD — на внешнем кольце СВОЕГО кластера (честно:
+    кластер и OOD считаются в исходном 24D, это раскладка для глаза).
+    """
+    import math as _m
+
+    by_cluster: Dict[str, List[Dict[str, Any]]] = {}
     for p in profiles:
-        patients.append({
-            "hash6": p["patient_hash"][:6] if p.get("patient_hash") else "—",
-            "x": p["projection_x"], "y": p["projection_y"],
-            "cluster": p["cluster_code"],
-            "ood": bool(p["ood"]["is_ood_anomaly"]) if p.get("ood") else False,
-            "dtw": p["dtw"],
-            "pdc": (p.get("facts") or {}).get("pdc"),
-        })
+        code = (p["cluster_code"] or "K?")[:2]
+        by_cluster.setdefault(code, []).append(p)
+
+    umap_by_code = {}
+    for k, meta in _ENGINE.CLUSTERS_METADATA.items():
+        umap_by_code[meta["code"]] = meta["umap_coords"]
+
+    patients = []
+    for code, group in sorted(by_cluster.items()):
+        group.sort(key=lambda p: str(p["patient_hash"]))
+        base = umap_by_code.get(code, [0.0, 0.0])
+        inner = [p for p in group if not (p.get("ood") or {}).get("is_ood_anomaly")]
+        outer = [p for p in group if (p.get("ood") or {}).get("is_ood_anomaly")]
+
+        def place(seq, r0, dr):
+            for i, p in enumerate(seq):
+                r = r0 + dr * _m.sqrt(i)
+                ang = i * 2.39996          # золотой угол
+                yield p, round(base[0] + r * _m.cos(ang), 3), round(base[1] + r * _m.sin(ang), 3)
+
+        # внутренние: r 0.12..~1.1 (40 точек → 0.12+0.19*6.3≈1.3); OOD — кольцо 1.7..2.1
+        for p, x, y in place(inner, 0.12, 0.19):
+            patients.append({
+                "hash6": str(p["patient_hash"])[:6], "x": x, "y": y,
+                "cluster": p["cluster_code"],
+                "ood": False, "dtw": p["dtw"],
+                "pdc": (p.get("facts") or {}).get("pdc"),
+            })
+        for i, p in enumerate(outer):
+            ang = i * 2.39996 + 0.7
+            x = round(base[0] + (1.75 + 0.16 * (i % 3)) * _m.cos(ang), 3)
+            y = round(base[1] + (1.75 + 0.16 * (i % 3)) * _m.sin(ang), 3)
+            patients.append({
+                "hash6": str(p["patient_hash"])[:6], "x": x, "y": y,
+                "cluster": p["cluster_code"],
+                "ood": True, "dtw": p["dtw"],
+                "pdc": (p.get("facts") or {}).get("pdc"),
+            })
     reference = []
     for blob in REFERENCE_BLOBS:
         r = _seed_rng(blob["seed"])
