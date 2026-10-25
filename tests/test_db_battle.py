@@ -121,6 +121,8 @@ def main() -> int:
     pt = req("/api/v1/auth/bind", {"token": inv["token"]})
     PTOK = pt["access_token"]
     hads_answers = [2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1]
+    # Пункты HADS чередуются: A = нечётные (1,3,…,13), D = чётные (2,4,…,14)
+    A_IDX, D_IDX = [0, 2, 4, 6, 8, 10, 12], [1, 3, 5, 7, 9, 11, 13]
     ev = str(uuid.uuid4())
     cr = req("/api/v1/patient/checkin", {
         "event_uuid": ev, "gad7_total": 14, "hads_answers": hads_answers,
@@ -131,7 +133,7 @@ def main() -> int:
     sc = req("/api/v1/compass-bio/scales/HADS", token=PTOK)
     check("GET /scales/HADS: 14 пунктов + per-item options",
           len(sc["items"]) == 14 and sc.get("per_item_options") and len(sc.get("tips", [])) == 14)
-    ha = sum(hads_answers[:7]); hd = sum(hads_answers[7:])
+    ha = sum(hads_answers[i] for i in A_IDX); hd = sum(hads_answers[i] for i in D_IDX)
     # ищем СВОЕГО (свежепривязанного) пациента: ищем того, у кого HADS-A == ha
     ph2 = None
     for pp in reversed(req("/api/v1/auth/my-patients", token=H)["patients"]):
