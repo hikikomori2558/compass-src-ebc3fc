@@ -223,26 +223,26 @@ async def patient_checkin(req: CheckinRequest, request: Request,
         # Вовлечённость (сервер = источник истины): транзакционный UPSERT в
         # patient_engagement. Анти-давление: разрыв серии НЕ сжигает рекорд
         # (best_streak сохраняется), новый день просто начинает серию заново.
-        await conn.execute(
-            "INSERT INTO patient_engagement "
-            "(patient_hash_id, streak_days, best_streak, total_points, last_checkin_date) "
-            "VALUES ($1, 1, 1, 10, current_date) "
-            "ON CONFLICT (patient_hash_id) DO UPDATE SET "
-            "streak_days = CASE WHEN patient_engagement.last_checkin_date = current_date "
-            "                 THEN patient_engagement.streak_days "
-            "                 WHEN patient_engagement.last_checkin_date = current_date - 1 "
-            "                 THEN patient_engagement.streak_days + 1 "
+        _pe = uuid.UUID(patient.sub)
+        _pe_upd = await conn.execute(
+            "UPDATE patient_engagement SET "
+            "streak_days = CASE WHEN last_checkin_date = current_date THEN streak_days "
+            "                 WHEN last_checkin_date = current_date - 1 THEN streak_days + 1 "
             "                 ELSE 1 END, "
-            "best_streak = GREATEST(patient_engagement.best_streak, "
-            "    CASE WHEN patient_engagement.last_checkin_date = current_date - 1 "
-            "         THEN patient_engagement.streak_days + 1 "
-            "         WHEN patient_engagement.last_checkin_date = current_date "
-            "         THEN patient_engagement.streak_days ELSE 1 END), "
-            "total_points = patient_engagement.total_points + "
-            "    CASE WHEN patient_engagement.last_checkin_date = current_date THEN 0 ELSE 10 END, "
-            "last_checkin_date = current_date",
-            uuid.UUID(patient.sub),
-        )
+            "best_streak = GREATEST(best_streak, "
+            "    CASE WHEN last_checkin_date = current_date - 1 THEN streak_days + 1 "
+            "         WHEN last_checkin_date = current_date THEN streak_days ELSE 1 END), "
+            "total_points = total_points + "
+            "    CASE WHEN last_checkin_date = current_date THEN 0 ELSE 10 END, "
+            "last_checkin_date = current_date "
+            "WHERE patient_hash_id = $1",
+            _pe)
+        if _pe_upd == "UPDATE 0":
+            await conn.execute(
+                "INSERT INTO patient_engagement "
+                "(patient_hash_id, streak_days, best_streak, total_points, last_checkin_date) "
+                "VALUES ($1, 1, 1, 10, current_date)",
+                _pe)
 
         # Фармаконадзор: жалобы из дневника → записи НЯ (adverse_events_and_risks).
         # Дедуп на день: одна и та же жалоба в один день не плодит строки НЯ.

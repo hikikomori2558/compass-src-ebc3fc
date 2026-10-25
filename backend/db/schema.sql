@@ -392,6 +392,14 @@ ALTER TABLE messages                       FORCE  ROW LEVEL SECURITY;
 ALTER TABLE patient_engagement             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE patient_engagement             FORCE  ROW LEVEL SECURITY;
 
+-- Вовлечённость: пациент обновляет СВОЙ ряд (UPSERT из чекина; PG16 отвергает
+-- ON CONFLICT при FORCE RLS — приложение использует UPDATE→INSERT)
+CREATE POLICY engagement_update_patient ON patient_engagement FOR UPDATE USING (
+  app_current_role() = 'ADMIN_METHODOLOGIST'
+  OR (app_current_role() IN ('DOCTOR_PSYCHIATRIST','DOCTOR_NEUROLOGIST','DOCTOR_GP') AND app_is_attending(patient_hash_id))
+  OR (app_current_role() = 'PATIENT' AND patient_hash_id = app_current_user_id())
+);
+
 -- Привязки: врач — свои, пациент — свои (без app_is_attending: иначе рекурсия RLS)
 CREATE POLICY bindings_select ON doctor_patient_bindings FOR SELECT USING (
   app_current_role() = 'ADMIN_METHODOLOGIST'
