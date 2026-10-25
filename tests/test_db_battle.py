@@ -132,11 +132,15 @@ def main() -> int:
     check("GET /scales/HADS: 14 пунктов + per-item options",
           len(sc["items"]) == 14 and sc.get("per_item_options") and len(sc.get("tips", [])) == 14)
     ha = sum(hads_answers[:7]); hd = sum(hads_answers[7:])
-    UA = req("/api/v1/alerts/unconfirmed", token=H)
-    ph2 = (UA["alerts"][0]["patient_hash"] if UA["count"] else None) or \
-          req("/api/v1/auth/my-patients", token=H)["patients"][0]["patient_hash"]
-    tl2 = req(f"/api/v1/compass-bio/patient/{ph2}/timeline", token=H)
-    hads_rows = {x["scale_code"]: x["total_score"] for x in tl2["scales"] if x["scale_code"].startswith("HADS")}
+    # ищем СВОЕГО (свежепривязанного) пациента: ищем того, у кого HADS-A == ha
+    ph2 = None
+    for pp in reversed(req("/api/v1/auth/my-patients", token=H)["patients"]):
+        tlp = req(f"/api/v1/compass-bio/patient/{pp['patient_hash']}/timeline", token=H)
+        rows = {x["scale_code"]: x["total_score"] for x in tlp["scales"] if x["scale_code"].startswith("HADS")}
+        if rows.get("HADS-A") is not None:
+            ph2, hads_rows = pp["patient_hash"], rows
+            if rows.get("HADS-A") == ha:
+                break
     check("HADS roundtrip: серверный подсчёт A/D",
           hads_rows.get("HADS-A") == ha and hads_rows.get("HADS-D") == hd,
           f"ожидали A={ha} D={hd}, в БД {hads_rows}")
@@ -172,13 +176,14 @@ def main() -> int:
           and cmap.get("honesty", {}).get("reference_note"), 
           f"refs={len(cmap.get('reference_points', []))} pts={len(cmap.get('patients', []))}")
 
-    # 12. Серверный стрик: чекин повышает, дубль не раздувает
+    # 12. Серверный стрик: разрыв серии не сжигает рекорд; тот же день — очков нет
+    # (анти-фарминг), идемпотентный дубль не меняет ничего
     eng0 = req("/api/v1/patient/engagement", token=PTOK)
     ev2 = str(uuid.uuid4())
     req("/api/v1/patient/checkin", {"event_uuid": ev2, "took_medication": True}, PTOK)
     eng1 = req("/api/v1/patient/engagement", token=PTOK)
-    check("streak серверный растёт на новом чекине", eng1["total_points"] > eng0["total_points"],
-          f"{eng0['total_points']} -> {eng1['total_points']}")
+    check("стрик серверный: тот же день = очков нет (анти-фарминг)",
+          eng1["total_points"] == eng0["total_points"] and eng1["streak_days"] >= 1, str(eng1))
     req("/api/v1/patient/checkin", {"event_uuid": ev2, "took_medication": True}, PTOK)
     eng2 = req("/api/v1/patient/engagement", token=PTOK)
     check("дубль не раздувает streak/points", eng2 == eng1, str(eng2))
