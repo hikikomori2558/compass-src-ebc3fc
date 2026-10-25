@@ -255,23 +255,48 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
 
 _FITTED = set()
 
+# Центроиды кластеров в осях z24 (порядок = build_24d_state_vector): клинически
+# осмысленные значения, вокруг которых строится Ledoit-Wolf ковариация.
+# Это референсные облака (НЕ пациенты): детерминированный сид, честно помечены reference.
+Z24_CLUSTER_CENTROIDS = {
+    0: [10.0, 6.0, 9.0, 6.0, 0.0, 27.5, -3.2, -1.3, 0.8, 4.0, 310.0, 95.0, 78.0, 6.5,
+        1.0, 0.0, 0.18, 4.2, 34.0, 145.0, 0.82, 2.0, 0.0, 35.0],   # K1 быстрый респондер
+    1: [13.0, 7.0, 13.0, 9.0, 0.0, 27.2, -1.8, -0.7, 0.2, 3.0, 445.0, 92.0, 76.0, 8.0,
+        1.0, 0.0, 0.20, 4.5, 30.0, 160.0, 0.80, 2.4, 0.0, 35.0],   # K2 адаптация H1 (дроп-риск)
+    2: [7.0, 4.0, 5.0, 4.0, 0.0, 28.4, -0.8, -0.4, 1.6, 90.0, 305.0, 96.0, 80.0, 5.5,
+        1.0, 0.0, 0.17, 4.0, 38.0, 130.0, 0.85, 1.8, 0.0, 35.0],   # K3 кумулятивный 36 нед
+    3: [6.0, 5.0, 4.0, 5.0, 0.0, 27.5, -0.5, -0.3, 0.1, 6.0, 315.0, 90.0, 60.0, 4.0,
+        1.0, 0.0, 0.46, 1.1, 36.0, 140.0, 0.82, 2.0, 0.0, 35.0],   # K4 диссимуляция
+    4: [17.0, 12.0, 17.0, 22.0, 1.4, 25.8, 0.3, 0.2, -1.5, 10.0, 300.0, 85.0, 70.0, 9.0,
+        1.0, 1.0, 0.22, 5.0, 26.0, 190.0, 0.74, 3.2, 1.0, 28.0],   # K5 резистентность/кризис
+}
+# Сигмы шума по осям — порядка клинического разброса, не единичный куб
+Z24_AXIS_SIGMA = [2.5, 2.0, 2.5, 3.0, 0.4, 1.2, 0.8, 0.5, 0.5, 3.0, 28.0, 6.0,
+                  6.0, 3.0, 0.3, 0.25, 0.06, 0.9, 6.0, 18.0, 0.08, 0.8, 0.15, 6.0]
+
 def _fit_cluster_reference(cluster_id: int) -> None:
     """Лениво обучает Ledoit-Wolf модель кластера на детерминированных референсных
-    образцах (seed из REFERENCE_BLOBS) — честно помечены как reference, не пациенты."""
+    образцах вокруг клинического центроида (seed фиксирован) — честно помечены
+    reference, не пациенты. Масштаб осей = реальные единицы z24."""
     if cluster_id in _FITTED:
         return
     import random
     rng = random.Random(1000 + cluster_id)
-    meta = _ENGINE.CLUSTERS_METADATA
-    code = "K" + str(cluster_id + 1) + "_"
-    key = next((k for k in meta if k.startswith(code)), None)
-    if not key:
+    centroid = Z24_CLUSTER_CENTROIDS.get(cluster_id)
+    if centroid is None:
         return
-    base = meta[key]["umap_coords"]
     samples = []
     for _ in range(40):
-        row = [round(base[0] + (rng.random() - 0.5) * 2.0, 3), round(base[1] + (rng.random() - 0.5) * 1.4, 3)]
-        row += [round(rng.random(), 3) for _ in range(22)]
+        row = []
+        for i in range(24):
+            v = centroid[i] + rng.gauss(0.0, Z24_AXIS_SIGMA[i])
+            if i in (14, 15, 22):          # флаговые оси — держим в {0..1}
+                v = max(0.0, min(1.0, v))
+            elif i == 9:                   # therapy_day >= 1
+                v = max(1.0, v)
+            elif i in (10, 11, 12):        # Ctrough/PDC/KOP — неотрицательные
+                v = max(0.0, v)
+            row.append(round(v, 3))
         samples.append(row)
     _OT.fit_cluster_ledoit_wolf(samples, cluster_id=cluster_id)
     _FITTED.add(cluster_id)
