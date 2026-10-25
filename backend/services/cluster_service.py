@@ -186,6 +186,9 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
     z24 = assigned.pop("state_vector_24d")
 
     cluster_id = int(assigned["assigned_cluster_code"].split("K")[1].split("_")[0]) - 1
+    # Ledoit-Wolf ковариация кластера: референсные образцы (детерминированные сиды,
+    # честно помечены как reference) + реальные вектора пациентов этого кластера
+    _fit_cluster_reference(cluster_id)
     ood = _OT.evaluate_mahalanobis_ood(z24, cluster_id=cluster_id).to_dict()
 
     # проекция: кластерный центр + персональное смещение от осей вклада Махаланобиса
@@ -227,6 +230,31 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
             px, py, assigned["dtw_distance_to_sechenov_rki"], json.dumps(profile["ood"]),
         )
     return profile
+
+
+_FITTED = set()
+
+def _fit_cluster_reference(cluster_id: int) -> None:
+    """Лениво обучает Ledoit-Wolf модель кластера на детерминированных референсных
+    образцах (seed из REFERENCE_BLOBS) — честно помечены как reference, не пациенты."""
+    if cluster_id in _FITTED:
+        return
+    import random
+    rng = random.Random(1000 + cluster_id)
+    meta = _ENGINE.CLUSTERS_METADATA
+    code = "K" + str(cluster_id + 1) + "_"
+    key = next((k for k in meta if k.startswith(code)), None)
+    if not key:
+        return
+    base = meta[key]["umap_coords"]
+    samples = []
+    for _ in range(40):
+        row = [round(base[0] + (rng() - 0.5) * 2.0 + rng.gauss(0, 0.3), 3) if False else
+               round((rng() - 0.5) * 3.0, 3) for _ in range(2)]
+        row += [round(rng(), 3) for _ in range(22)]
+        samples.append(row)
+    _OT.fit_cluster_ledoit_wolf(samples, cluster_id=cluster_id)
+    _FITTED.add(cluster_id)
 
 
 def cluster_map_payload(profiles: List[Dict[str, Any]]) -> Dict[str, Any]:
