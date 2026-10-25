@@ -134,15 +134,16 @@ def main() -> int:
     check("GET /scales/HADS: 14 пунктов + per-item options",
           len(sc["items"]) == 14 and sc.get("per_item_options") and len(sc.get("tips", [])) == 14)
     ha = sum(hads_answers[i] for i in A_IDX); hd = sum(hads_answers[i] for i in D_IDX)
-    # ищем СВОЕГО (свежепривязанного) пациента: ищем того, у кого HADS-A == ha
-    ph2 = None
-    for pp in reversed(req("/api/v1/auth/my-patients", token=H)["patients"]):
-        tlp = req(f"/api/v1/compass-bio/patient/{pp['patient_hash']}/timeline", token=H)
-        rows = {x["scale_code"]: x["total_score"] for x in tlp["scales"] if x["scale_code"].startswith("HADS")}
-        if rows.get("HADS-A") is not None:
-            ph2, hads_rows, tl2 = pp["patient_hash"], rows, tlp
-            if rows.get("HADS-A") == ha:
-                break
+    # СВОЙ пациент — детерминированно из sub JWT (в когорте 105 синтетических,
+    # перебор my-patients больше не вариант)
+    ph2 = req("/api/v1/telemetry/summary") and None  # no-op: читаем sub из токена
+    import base64 as _b64
+    _pl = PTOK.split(".")[1]
+    _pl += "=" * (-len(_pl) % 4)
+    ph2 = json.loads(_b64.urlsafe_b64decode(_pl))["sub"]
+    tl2 = req(f"/api/v1/compass-bio/patient/{ph2}/timeline", token=H)
+    hads_rows = {x["scale_code"]: x["total_score"] for x in tl2["scales"]
+                 if x["scale_code"].startswith("HADS")}
     check("HADS roundtrip: серверный подсчёт A/D",
           hads_rows.get("HADS-A") == ha and hads_rows.get("HADS-D") == hd,
           f"ожидали A={ha} D={hd}, в БД {hads_rows}")
