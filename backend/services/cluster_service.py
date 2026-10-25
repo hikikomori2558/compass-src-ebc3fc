@@ -206,10 +206,13 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
                         if k.startswith(assigned["assigned_cluster_code"])), None)
     base = _ENGINE.CLUSTERS_METADATA[cluster_key]["umap_coords"] if cluster_key else [0.0, 0.0]
     contrib = ood["feature_contributions_to_d2"]
-    d2_total = sum(abs(v) for v in contrib.values()) or 1.0
-    top = sorted(contrib.items(), key=lambda x: -abs(x[1]))[:2]
-    px = round(base[0] + 0.9 * top[0][1] / d2_total, 3) if top else round(base[0], 3)
-    py = round(base[1] + (0.9 * top[1][1] / d2_total if len(top) > 1 else 0.0), 3)
+    # 2D-схема: кластерный центр + персональное смещение от центроида кластера
+    # по двум понятным осям (ΔGAD-7 и день терапии); честно: кластер и OOD — в 24D
+    cent = Z24_CLUSTER_CENTROIDS.get(cluster_id, [0.0] * 24)
+    dx = max(-1.4, min(1.4, (z24[2] - cent[2]) * 0.12))    # хуже по GAD-7 → правее
+    dy = max(-1.4, min(1.4, -(z24[9] - cent[9]) / 30.0))   # позже в курсе → выше
+    px = round(base[0] + dx, 3)
+    py = round(base[1] + dy, 3)
 
     profile = {
         "patient_hash": patient_hash,
@@ -271,7 +274,9 @@ Z24_CLUSTER_CENTROIDS = {
         1.0, 1.0, 0.22, 5.0, 26.0, 190.0, 0.74, 3.2, 1.0, 28.0],   # K5 резистентность/кризис
 }
 # Сигмы шума по осям — порядка клинического разброса, не единичный куб
-Z24_AXIS_SIGMA = [2.5, 2.0, 2.5, 3.0, 0.4, 1.2, 0.8, 0.5, 0.5, 3.0, 28.0, 6.0,
+# ось 9 (therapy_day): курс длится от 1 до 200+ дней — сигма широкая, иначе
+# каждый пациент 2-го месяца терапии «аномален» относительно центроида
+Z24_AXIS_SIGMA = [2.5, 2.0, 2.5, 3.0, 0.4, 1.2, 0.8, 0.5, 0.5, 40.0, 28.0, 6.0,
                   6.0, 3.0, 0.3, 0.25, 0.06, 0.9, 6.0, 18.0, 0.08, 0.8, 0.15, 6.0]
 
 def _fit_cluster_reference(cluster_id: int) -> None:
@@ -336,6 +341,6 @@ def cluster_map_payload(profiles: List[Dict[str, Any]]) -> Dict[str, Any]:
         "corridors": corridors,
         "honesty": {
             "reference_note": "референсные точки — траектории исследований, не пациенты",
-            "projection_note": "2D-проекция схематична; кластер и OOD считаются в 24D",
+            "projection_note": "2D-схема: смещение точки от центроида кластера = ΔGAD-7 (x) и день терапии (y); кластер и OOD считаются в исходном 24D",
         },
     }
