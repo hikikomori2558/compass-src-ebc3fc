@@ -210,10 +210,8 @@ class SafeCompassPipeline:
             },
             dynamics={"therapy_day": pick("therapy_day", 3.0)},
             pk_adherence={"m1_ctrough_pg_ml": c_res["pk_summary_168h"]["m1_ctrough_ss_pg_ml"]},
+            # v8: голосовые входы удалены из продукта; оси вектора — нейтральные константы
             biomarkers={
-                "experimental_voice_anx_class": pick("experimental_voice_anxiety_class", 1.0),
-                "experimental_voice_dep_class": pick("experimental_voice_depression_class", 0.0),
-                "voice_pause_ratio": pick("voice_pause_ratio", 0.18),
                 "questionnaire_response_sec_per_item": pick("resp_sec", 4.2),
             },
             biometrics_endocrine={

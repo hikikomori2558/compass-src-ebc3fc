@@ -31,7 +31,7 @@ class TrajectoryClusterEngine24D:
             "code": "K4",
             "title_ru": "Кластер К4: Скрытая диссимуляция и псевдокомплаенс",
             "benchmark": "Быстрое прокликивание анкет (< 4 с) при высоком акустическом скоре Kintsugi DAM и паузах речи.",
-            "control_action": "Включить углубленный голосовой и клинический опрос + уведомление лечащему врачу.",
+            "control_action": "Включить углубленный клинический опрос + уведомление лечащему врачу.",
             "umap_coords": [-2.3, -0.8],
         },
         "K5_RESISTANCE_OR_ACUTE_CRISIS": {
@@ -109,12 +109,10 @@ class TrajectoryClusterEngine24D:
             float(pk_adherence.get("pdc_adherence_pct", 95.0)),
             float(pk_adherence.get("kop25_score", 78.0)),
             float(pk_adherence.get("meal_30min_timing_rmse_min", 6.5)),
-            # Оси 14–15 — голосовые скоры: НАБЛЮДЕНИЕ (experimental), вне клинических
-            # решений (П1 реестра: DAM обучена на английской речи). Оси остаются в
-            # векторе, чтобы тренд-витрина видела динамику, но правила их не читают.
-            float(biomarkers.get("experimental_voice_anx_class", 1.0)),
-            float(biomarkers.get("experimental_voice_dep_class", 0.0)),
-            float(biomarkers.get("voice_pause_ratio", 0.18)),
+            # v8: ГОЛОСОВЫЕ ПРИЗНАКИ ПОЛНОСТЬЮ УДАЛЕНЫ ИЗ ПРОДУКТА. Позиции осей
+            # сохранены как нейтральные константы только ради ABI C-ядра (24D);
+            # ни правила, ни UI их не читают.
+            1.0, 0.0, 0.18,
             float(biomarkers.get("questionnaire_response_sec_per_item", 4.2)),
             float(biometrics_endocrine.get("hrv_rmssd_ms", 34.0)),
             float(biometrics_endocrine.get("baevsky_stress_index", 145.0)),
@@ -139,7 +137,6 @@ class TrajectoryClusterEngine24D:
         phq9 = z_24[3]
         therapy_day = z_24[9]
         m1_ctrough = z_24[10]
-        pause_ratio = z_24[16]
         resp_time_sec = z_24[17]
 
         ref_curve = [val for _, val in self.SECHENOV_36W_SIGH_A[: max(len(patient_sigh_a_history), 1)]]
@@ -149,11 +146,11 @@ class TrajectoryClusterEngine24D:
         if suicidal_score >= 1.0 or phq9 >= 20.0:
             cluster_key = "K5_RESISTANCE_OR_ACUTE_CRISIS"
             matched_rule = "суицидальные маркеры (композит п.9+C-SSRS >= 1) или PHQ-9 >= 20"
-        elif (resp_time_sec < 1.5 or phq9 <= 8.0) and pause_ratio >= 0.40:
-            # Только языконезависимая C-фича (доля пауз): голосовые классы DAM в
-            # решениях не участвуют (П1). Прокликивание + речевая заторможенность.
+        elif resp_time_sec < 1.5 and phq9 <= 8.0:
+            # v8: голосовые признаки удалены — диссимуляцию ловим поведенчески:
+            # прокликивание анкеты (< 1.5 с/вопрос) при заниженном самоотчёте.
             cluster_key = "K4_HIDDEN_DISSIMULATION_PSEUDOCOMPLIANCE"
-            matched_rule = "анкета за < 1.5 с/вопрос или PHQ-9 <= 8 при доле пауз речи >= 0.40"
+            matched_rule = "анкета заполнена быстрее 1.5 с/вопрос при PHQ-9 <= 8"
         elif therapy_day <= 7.0 and (reported_transient_drowsiness or m1_ctrough > 420.0):
             cluster_key = "K2_TRANSIENT_H1_ADAPTATION_DROPOUT_RISK"
             matched_rule = "день терапии <= 7 при сонливости (отчёт) или Ctrough М1 > 420 пг/мл"

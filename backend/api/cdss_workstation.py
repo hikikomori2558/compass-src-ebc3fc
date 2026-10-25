@@ -62,8 +62,6 @@ class EncounterEvaluationRequest(BaseModel):
     aviandr_interval_h: float = 12.0
     active_comedications: List[str] = Field(default_factory=list)
     telemetry_summary: Optional[Dict[str, float]] = None
-    raw_kintsugi_dep_score: float = 0.84
-    raw_kintsugi_anx_score: float = 0.87
     response_latency_sec: float = 4.2
 
 
@@ -123,14 +121,14 @@ def evaluate_clinical_encounter(req: EncounterEvaluationRequest) -> Dict[str, An
         egfr_norm=req.egfr_ml_min / 90.0,
         hard_stop_triggered=(len(hard_stops) > 0 or pk_sol.c_max_ng_ml >= 320.0),
         telemetry_summary=req.telemetry_summary,
-        raw_kintsugi_dep_score=req.raw_kintsugi_dep_score,
-        raw_kintsugi_anx_score=req.raw_kintsugi_anx_score,
+        # v8: голосовые скоры (Kintsugi DAM) удалены из продукта — передаём нейтраль
+        raw_kintsugi_dep_score=0.0,
+        raw_kintsugi_anx_score=0.0,
         response_latency_sec=req.response_latency_sec,
     )
 
     # 4. C11 Точные коалиционные значения Оуэна (4096 коалиций)
     dst_rep = bio_ctrl["evidential_dempster_shafer"]
-    bio_vec = bio_ctrl["acoustic_biomarkers"]
     pat_24d = DEFAULT_HEALTHY_BASELINE_24D.copy()
     pat_24d[0] = min(1.8, req.hama_score / 30.0)
     pat_24d[1] = min(1.8, req.madrs_score / 34.0)
@@ -140,8 +138,7 @@ def evaluate_clinical_encounter(req: EncounterEvaluationRequest) -> Dict[str, An
     pat_24d[6] = req.egfr_ml_min / 90.0
     pat_24d[8] = 0.65 if pk_sol.c_max_ng_ml >= 320.0 else 0.12
     pat_24d[9] = 1.0 if len(hard_stops) > 0 else 0.0
-    pat_24d[12] = bio_vec["glottal_tkeo_instability"]
-    pat_24d[15] = bio_vec["weibull_pause_shape_k"]
+    # v8: голосовые оси 12–15 в векторе Owen — нейтральные (не читаем)
     pat_24d[18] = dst_rep["dempster_conflict_k"]
     pat_24d[19] = dst_rep["dissimulation_index"]
     pat_24d[23] = 1.0 if (len(hard_stops) > 0 or pk_sol.c_max_ng_ml >= 320.0) else 0.0
@@ -206,7 +203,9 @@ def evaluate_clinical_encounter(req: EncounterEvaluationRequest) -> Dict[str, An
         "extracted_entities": [e.to_dict() for e in entities],
         "active_contraindications": hard_stops,
         "poppk_rk45": pk_sol.to_dict(),
-        "bio_and_micronets": bio_ctrl,
+        # v8: голосовые признаки не покидают сервер — из ответа вырезаны
+        "bio_and_micronets": {k: v for k, v in bio_ctrl.items()
+                              if k not in ("acoustic_biomarkers", "raw_dsp_telemetry")},
         "owen_xai": owen_xai.to_dict(),
         "cluster_24d_analysis": cluster_24d,
         # Карточки клинических фенотипов (6 целевых профилей): подсказки врачу,

@@ -150,9 +150,12 @@
   <!-- ================= ВКЛАДКА КОГОРТА ================= -->
   <div class="stab" data-stab-view="cohort" hidden>
     <div class="sb-sec" style="margin-top:12px">
-      <div class="sb-sec-t">Когорта терапии <span id="cohort-count2"></span></div>
+      <div class="sb-sec-t">Когорта терапии <span id="cohort-count2"></span>
+        <input id="cohort-search" class="cp-input" style="margin-left:10px;width:220px;font-size:12px"
+               placeholder="поиск: номер, кластер, ярлык">
+      </div>
       <table class="sb-table sb-table--cohort" id="cohort-table">
-        <thead><tr><th>Пациент</th><th>GAD-7</th><th>Δ</th><th>Приёмы</th><th>Пропуски</th><th></th></tr></thead>
+        <thead><tr><th>Пациент</th><th>Кластер</th><th>GAD-7</th><th>Δ</th><th>Приёмы</th><th>Пропуски</th><th>Действия</th></tr></thead>
         <tbody id="cohort-tbody"></tbody>
       </table>
       <div class="sb-actions">
@@ -309,7 +312,8 @@
       </div>
     </div>
   </div>
-  <div class="dash-foot">Решение принимает врач. COMPASS предупреждает и оформляет.</div>
+  <div class="dash-foot">Решение принимает врач. COMPASS предупреждает и оформляет.<br>
+    <span style="color:#7c2d12;font-weight:600">СТЕНД: все пациенты синтетические, данные вымышлены.</span></div>
 </div>
 
 <!-- модалки (внутри iframe) -->
@@ -320,6 +324,18 @@
     <div class="sb-modal-actions">
       <button type="button" class="cp-btn cp-btn-primary" id="btn-057-print">Печать</button>
       <button type="button" class="cp-btn" id="btn-057-close">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<div class="sb-modal" id="modal-demoqr" hidden>
+  <div class="sb-modal-box">
+    <h3>Вход от лица синтетического пациента</h3>
+    <p class="sb-note">Отсканируйте QR телефоном — откроется PWA этого пациента
+    (баннер «синтетические данные» в интерфейсе). Токен живёт 2 часа.</p>
+    <div id="demoqr-img" style="text-align:center"></div>
+    <div class="sb-modal-actions">
+      <button type="button" class="cp-btn" id="btn-demoqr-close">Закрыть</button>
     </div>
   </div>
 </div>

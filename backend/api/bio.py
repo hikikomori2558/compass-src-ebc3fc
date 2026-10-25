@@ -287,7 +287,7 @@ async def cluster_map(request: Request, principal: Principal = Depends(get_princ
         rows = await conn.fetch(
             "SELECT patient_hash_id::text AS patient_hash, z24, cluster_code, "
             "projection_x, projection_y, dtw, ood, computed_at "
-            "FROM patient_cluster_profiles ORDER BY computed_at DESC LIMIT 100")
+            "FROM patient_cluster_profiles ORDER BY computed_at DESC LIMIT 300")
     profiles = []
     for r in rows:
         profiles.append({

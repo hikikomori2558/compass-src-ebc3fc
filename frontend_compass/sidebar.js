@@ -314,26 +314,88 @@
       .then(function (d) {
         if (!d) return;
         cohortCache = d.patients || [];
-        var tb = $("cohort-tbody");
         $("tab-cohort-n").textContent = d.count ? "(" + d.count + ")" : "";
-        tb.innerHTML = cohortCache.length ? "" : "<tr><td colspan='6' class='sb-dim'>Пока никого.</td></tr>";
-        cohortCache.slice(0, 12).forEach(function (p, i) {
-          var delta = (p.gad7_last !== null && p.gad7_first !== null) ? p.gad7_last - p.gad7_first : null;
-          var tr = document.createElement("tr");
-          tr.innerHTML = "<td>П-" + (p.patient_hash || "").slice(0, 6) + "</td>" +
-            "<td>" + (p.gad7_first === null ? "—" : p.gad7_first) + " → <b>" + (p.gad7_last === null ? "—" : p.gad7_last) + "</b></td>" +
-            "<td>" + (delta === null ? "—" : (delta > 0 ? "+" : "") + delta) + "</td>" +
-            "<td>" + (p.doses_logged || 0) + "</td>" +
-            "<td>" + (p.doses_skipped || 0) + "</td>" +
-            "<td><button type='button' class='cp-btn cp-btn-sm' data-idx='" + i + "'>История</button></td>";
-          tr.querySelector("button").addEventListener("click", function () {
-            openPatientTimeline(p.patient_hash, "П-" + (p.patient_hash || "").slice(0, 6));
-          });
-          tb.appendChild(tr);
-        });
-        var side = $("cohort-list");
-        if (side) { /* мини-список на вкладке Пациент больше не нужен */ }
+        renderCohortTable("");
+        var search = $("cohort-search");
+        if (search && !search.__bound) {
+          search.__bound = true;
+          search.addEventListener("input", function () { renderCohortTable(search.value.trim().toLowerCase()); });
+        }
       });
+  }
+
+  /* Полная когорта (105 персон): ярлык, кластер с OOD-меткой, действия по строке.
+   * Демо-вход и QR — только для синтетических (сервер это гарантирует). */
+  function renderCohortTable(filter) {
+    var tb = $("cohort-tbody");
+    if (!tb) return;
+    var rows = cohortCache.filter(function (p) {
+      if (!filter) return true;
+      var hay = ((p.label || "") + " П-" + (p.patient_hash || "").slice(0, 6) + " " +
+                 (p.cluster || "")).toLowerCase();
+      return hay.indexOf(filter) >= 0;
+    });
+    $("cohort-count2").textContent = cohortCache.length
+      ? "(" + rows.length + " из " + cohortCache.length + ")"
+      : "";
+    tb.innerHTML = rows.length ? "" : "<tr><td colspan='7' class='sb-dim'>Никого не найдено.</td></tr>";
+    rows.forEach(function (p) {
+      var i = cohortCache.indexOf(p);
+      var delta = (p.gad7_last !== null && p.gad7_first !== null) ? p.gad7_last - p.gad7_first : null;
+      var name = (p.label || "П-" + (p.patient_hash || "").slice(0, 6));
+      var cl = (p.cluster || "").slice(0, 2);
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" + name + "</td>" +
+        "<td>" + (cl ? "<b>" + cl + "</b>" + (p.ood ? " <span title='Махаланобис OOD: вне границ кластера' style='color:#c0392b'>⊙OOD</span>" : "") : "<span class='sb-dim'>—</span>") + "</td>" +
+        "<td>" + (p.gad7_first === null ? "—" : p.gad7_first) + " → <b>" + (p.gad7_last === null ? "—" : p.gad7_last) + "</b></td>" +
+        "<td>" + (delta === null ? "—" : (delta > 0 ? "+" : "") + delta) + "</td>" +
+        "<td>" + (p.doses_logged || 0) + "</td>" +
+        "<td>" + (p.doses_skipped || 0) + "</td>" +
+        "<td>" +
+          "<button type='button' class='cp-btn cp-btn-sm' data-act='hist' data-idx='" + i + "'>История</button> " +
+          "<button type='button' class='cp-btn cp-btn-outline cp-btn-sm' data-act='qr' data-idx='" + i + "'>QR</button> " +
+          "<button type='button' class='cp-btn cp-btn-outline cp-btn-sm' data-act='demo' data-idx='" + i + "'>Войти</button>" +
+        "</td>";
+      tr.querySelectorAll("button[data-act]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          if (b.dataset.act === "hist") {
+            openPatientTimeline(p.patient_hash, name);
+          } else if (b.dataset.act === "qr") {
+            showDemoQR(p.patient_hash, name);
+          } else {
+            demoPatientLogin(p.patient_hash);
+          }
+        });
+      });
+      tb.appendChild(tr);
+    });
+  }
+
+  function showDemoQR(hash, label) {
+    call("/api/v1/auth/demo-patient-qr?patient_hash=" + hash)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        $("demoqr-img").innerHTML =
+          "<img src='data:image/png;base64," + d.qr_png_base64 + "' width='240' height='240' " +
+          "alt='QR входа " + (label || "") + "'>";
+        $("modal-demoqr").hidden = false;
+      });
+  }
+
+  function demoPatientLogin(hash) {
+    call("/api/v1/auth/demo-patient-login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ patient_hash: hash }),
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (res.ok) {
+          window.open("/static/pwa/index.html?demo=" + res.d.access_token, "_blank");
+        } else {
+          alert("Демо-вход не удался: " + (res.d.detail || ""));
+        }
+      }).catch(function (e) { alert("Сеть: " + e.message); });
   }
 
   /* Таймлайн пациента в дашборде по клику из когорты (и по алерту) */
@@ -537,6 +599,11 @@
           $("modal-sources").hidden = false;
         });
     });
+  }
+  var mQR = $("modal-demoqr");
+  if (mQR) {
+    $("btn-demoqr-close").addEventListener("click", function () { mQR.hidden = true; });
+    mQR.addEventListener("click", function (e) { if (e.target === mQR) mQR.hidden = true; });
   }
   var mSrc = $("modal-sources");
   if (mSrc) {

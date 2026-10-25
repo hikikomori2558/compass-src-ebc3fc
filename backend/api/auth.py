@@ -10,7 +10,7 @@ import json
 import os
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Dict, Optional, Tuple
 
 import qrcode
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -25,12 +25,14 @@ from backend.services.auth import (  # noqa: E402
     decode,
     mint_access,
     mint_bind,
+    mint_demo_access,
     mint_refresh,
     needs_rehash,
     principal_from_access,
     rehash_password,
     sha256_hex,
     verify_password,
+    mint_demo_access,
 )
 from backend.db.context import db_conn
 
@@ -247,6 +249,59 @@ async def create_invite(request: Request, principal: Principal = Depends(require
         # «недекодированного» токена: источник истины один
         expires_at=datetime.now(timezone.utc) + BIND_TTL,
     )
+
+
+class DemoLoginRequest(BaseModel):
+    patient_hash: str = Field(description="UUID синтетического пациента")
+
+
+@auth_router.post("/demo-patient-login", summary="[Врач] Демо-вход от лица СИНТЕТИЧЕСКОГО пациента")
+async def demo_patient_login(req: DemoLoginRequest, request: Request,
+                             doctor: Principal = Depends(require_doctor)) -> Dict[str, Any]:
+    """Жюри может «зайти за пациента» и увидеть его дневник/приёмы/опросники изнутри.
+    Разрешено ТОЛЬКО пациентам с is_synthetic=true (колоночный грант без PII);
+    реальных пациентов такой путь невозможен. Токен — обычный PATIENT-access
+    с клеимом demo (баннер в PWA), TTL 2 ч."""
+    from fastapi import HTTPException
+    pool = request.app.state.pg_pool
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    try:
+        pid = uuid.UUID(req.patient_hash)
+    except ValueError:
+        raise HTTPException(400, "patient_hash должен быть UUID")
+    # контекст врача: RLS не даст проверить чужого; колонка is_synthetic — без PII
+    async with db_conn(pool, role=doctor.role, user_id=doctor.sub) as conn:
+        # синтетичность проверяем СЕРВЕРОМ без RLS-зависимости: колоночный SELECT
+        # (patient_hash_id, is_synthetic) выдан роли приложения отдельным GRANT
+        is_syn = await conn.fetchval(
+            "SELECT is_synthetic FROM patient_pii_vault WHERE patient_hash_id = $1", pid)
+        attending = await conn.fetchval(
+            "SELECT 1 FROM doctor_patient_bindings WHERE doctor_id=$1 AND patient_hash_id=$2 "
+            "AND active", uuid.UUID(doctor.sub), pid)
+    if not is_syn or not attending:
+        raise HTTPException(403, "Демо-вход разрешён только для своих синтетических пациентов")
+    token = mint_demo_access(str(pid), "PATIENT")
+    return {"access_token": token, "demo": True,
+            "note": "Синтетический пациент: все данные вымышлены"}
+
+
+@auth_router.get("/demo-patient-qr", summary="[Врач] QR для входа от лица синтетического пациента")
+async def demo_patient_qr(patient_hash: str, request: Request,
+                          doctor: Principal = Depends(require_doctor)) -> Dict[str, Any]:
+    """QR со ссылкой PWA ?demo=<jwt>: жюри сканирует телефоном и попадает в аккаунт
+    синтетического пациента (баннер «синтетические данные» в интерфейсе)."""
+    import base64
+    import io
+
+    import qrcode
+    from fastapi import HTTPException
+    r = await demo_patient_login(DemoLoginRequest(patient_hash=patient_hash), request, doctor)
+    img = qrcode.make(f"{PATIENT_APP_URL}index.html?demo={r['access_token']}", box_size=8)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return {"qr_png_base64": base64.b64encode(buf.getvalue()).decode(),
+            "demo": True, "expires_in_hours": 2}
 
 
 @auth_router.post("/bind", response_model=TokenPair, status_code=201)

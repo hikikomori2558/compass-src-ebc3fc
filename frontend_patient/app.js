@@ -185,17 +185,6 @@
     refreshMsgThread();
   }
 
-  /* Напоминания: 2 слота (утро — приём, вечер — дневник); текст по неделе */
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.ready.then(function (reg) {
-      reg.active && reg.active.postMessage({
-        type: "SCHEDULE_REMINDERS",
-        slots: { morning: "09:00", evening: "20:00" },
-        week: Math.min(8, Math.max(1, Math.ceil(therapyDayEstimate() / 7))),
-      });
-    }).catch(function () {});
-  }
-
   /* ================= навигация ================= */
   function showView(name) {
     ["bind", "onboard", "home", "survey", "progress", "info"].forEach(function (v) {
@@ -241,42 +230,6 @@
     localStorage.setItem("compass_onboard_done", "1");
     enterHome();
   });
-  el("btn-notify").addEventListener("click", function () {
-    var st = el("notify-status");
-    if (!("Notification" in window)) {
-      st.textContent = "Этот браузер не умеет уведомления — но дневник работает и так.";
-      return;
-    }
-    Notification.requestPermission().then(function (perm) {
-      if (perm === "granted") {
-        st.textContent = "Готово: напоминание будет приходить вечером (20:00), пока дневник открыт.";
-        st.className = "error ok";
-        try {
-          new Notification("Клинический компас", {
-            body: "Напоминание включено — до встречи в 20:00",
-            icon: "icons/icon-192.png",
-          });
-        } catch (e) { /* демо-нотификация не критична */ }
-        scheduleEveningReminder();
-      } else {
-        st.textContent = "Уведомления выключены — напоминание можно включить позже в настройках сайта.";
-      }
-    });
-  });
-  var reminderTimer = null;
-  function scheduleEveningReminder() {
-    if (!("Notification" in window) || Notification.permission !== "granted") return;
-    if (reminderTimer) clearTimeout(reminderTimer);
-    (function tick() {
-      var now = new Date();
-      var at = new Date(); at.setHours(20, 0, 0, 0);
-      if (now > at) at.setDate(at.getDate() + 1);
-      reminderTimer = setTimeout(function () {
-        try { new Notification("Клинический компас", { body: "Полминуты для дневника — врач увидит динамику.", icon: "icons/icon-192.png" }); } catch (e) {}
-        scheduleEveningReminder();
-      }, at - now);
-    })();
-  }
 
   /* ================= чек-ин: 3 тапа ================= */
   var draft = { dose: null, mood: null, phq9: null, gad7: null, cssrs: null, item9: null,
@@ -861,6 +814,18 @@
 
   /* ================= init ================= */
   (function init() {
+    // Демо-вход от лица синтетического пациента (QR/кнопка из когорты врача):
+    // токен тот же PATIENT-access, клейм demo -> баннер «синтетические данные»
+    var demoTok = QS.get("demo");
+    if (demoTok) {
+      try {
+        var pay = JSON.parse(atob(demoTok.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+        if (pay.demo) document.documentElement.setAttribute("data-demo", "synthetic");
+      } catch (e) { /* не разбирается — просто не показываем баннер */ }
+      STORE.session = { access_token: demoTok };
+      localStorage.setItem("compass_patient_session", JSON.stringify(STORE.session));
+      history.replaceState(null, "", location.pathname);
+    }
     var tok = QS.get("token");
     if (tok) {
       el("bind-token").value = tok;
@@ -874,6 +839,5 @@
       navigator.serviceWorker.register("sw.js").catch(function () { });
     }
     window.addEventListener("online", flushQueue);
-    scheduleEveningReminder();
   })();
 })();

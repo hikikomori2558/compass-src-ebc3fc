@@ -44,28 +44,6 @@
       </span>
       <button type="button" class="duo-quit" id="btn-ob-done">Готово</button>
     </div>
-    <div class="duo-card">
-      <div class="duo-qicon">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M7 4h10a2 2 0 0 1 2 2v14l-7-3-7 3V6a2 2 0 0 1 2-2z" fill="none" stroke="#007d79" stroke-width="2" stroke-linejoin="round"/></svg>
-      </div>
-      <h2 class="duo-q">Добавьте дневник на экран «Домой»</h2>
-      <p class="duo-lead">Так он откроется одним касанием — как приложение.</p>
-      <ol class="duo-steps">
-        <li><b>iPhone (Safari):</b> кнопка «Поделиться» внизу → «На экран „Домой“».</li>
-        <li><b>Android (Chrome):</b> меню справа сверху → «Добавить на главный экран».</li>
-      </ol>
-    </div>
-    <div class="duo-card">
-      <div class="duo-qicon">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" fill="none" stroke="#007d79" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <h2 class="duo-q">Напоминание каждый вечер</h2>
-      <p class="duo-lead">Мягкое уведомление в 20:00 — заполнение займёт полминуты.</p>
-      <button type="button" id="btn-notify" class="duo-cta">Включить напоминание</button>
-      <div class="error" id="notify-status"></div>
-      <p class="hint">Если браузер спросит про уведомления — разрешите. Настройку можно
-        изменить в любой момент.</p>
-    </div>
     <button type="button" id="btn-ob-start" class="duo-cta">Начать</button>
   </section>
 
@@ -330,6 +308,13 @@
     При острых состояниях — врач или экстренные службы.</p>
 
   <script src="survey.js?v=5"></script>
-  <script src="app.js?v=5"></script>
+  <script>
+    // баннер показывается только при демо-клейме (data-demo на <html>)
+    window.addEventListener("DOMContentLoaded", function () {
+      var b = document.getElementById("syn-banner");
+      if (b && document.documentElement.getAttribute("data-demo") === "synthetic") b.hidden = false;
+    });
+  </script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

@@ -79,6 +79,13 @@ def mint_access(sub: str, role: str) -> str:
     return _mint({"sub": sub, "role": role, "typ": "access"}, ACCESS_TTL)
 
 
+def mint_demo_access(sub: str, role: str) -> str:
+    """Демо-токен «от лица синтетического пациента»: тот же PATIENT-access,
+    но с клеимом demo — PWA показывает баннер «синтетические данные».
+    Выдаётся ТОЛЬКО на is_synthetic пациентов (проверка в /auth/demo-patient-login)."""
+    return _mint({"sub": sub, "role": role, "typ": "access", "demo": True}, ACCESS_TTL)
+
+
 def mint_refresh(sub: str, role: str) -> str:
     return _mint({"sub": sub, "role": role, "typ": "refresh"}, REFRESH_TTL)
 
