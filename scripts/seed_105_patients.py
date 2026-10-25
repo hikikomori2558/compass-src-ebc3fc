@@ -311,6 +311,17 @@ async def main() -> int:
                 stats["ood_personas"] += 1
             stats["patients"] += 1
 
+        # К5 ведут ДВОЕ: психиатр (маршрут «обязательно») и невролог (демо-врач
+        # стенда — чтобы жюри видело всю когорту 105 из одного входа)
+        await conn.execute(
+            "INSERT INTO doctor_patient_bindings (doctor_id, patient_hash_id, consents, bound_at) "
+            "SELECT $1, v.patient_hash_id, b.consents, b.bound_at FROM patient_pii_vault v "
+            "JOIN doctor_patient_bindings b ON b.patient_hash_id = v.patient_hash_id "
+            "WHERE v.is_synthetic AND b.doctor_id = $2 "
+            "AND NOT EXISTS (SELECT 1 FROM doctor_patient_bindings b2 "
+            "WHERE b2.patient_hash_id = v.patient_hash_id AND b2.doctor_id = $1)",
+            neuro, psych)
+
         await conn.execute(
             "INSERT INTO audit_log (actor_id, action, entity, entity_id, details) VALUES "
             "(NULL,'SEED_105','system','synthetic_personas',$1::jsonb)",
