@@ -12,7 +12,7 @@ import json
 import uuid
 import datetime
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect, WebSocketException
 from fastapi.responses import JSONResponse
@@ -98,6 +98,28 @@ def _is_critical(c: CheckinRequest) -> bool:
 
 def _suicide_item_missing(c: CheckinRequest) -> bool:
     return c.phq9_item9 is None and c.cssrs is None
+
+
+@alerts_router.get("/patient/engagement",
+                   summary="[Пациент] Серверная вовлечённость: стрик, рекорд, очки (источник истины)")
+async def patient_engagement_status(request: Request,
+                                    patient: Principal = Depends(require_patient)) -> Dict[str, Any]:
+    from backend.db.context import db_conn
+    from datetime import date
+    pool = request.app.state.pg_pool
+    async with db_conn(pool, role="PATIENT", user_id=patient.sub) as conn:
+        row = await conn.fetchrow(
+            "SELECT streak_days, best_streak, total_points, last_checkin_date, badges "
+            "FROM patient_engagement WHERE patient_hash_id=$1", uuid.UUID(patient.sub))
+    if row is None:
+        return {"streak_days": 0, "best_streak": 0, "total_points": 0,
+                "checked_in_today": False, "badges": []}
+    return {
+        "streak_days": row["streak_days"], "best_streak": row["best_streak"],
+        "total_points": row["total_points"],
+        "checked_in_today": row["last_checkin_date"] == date.today(),
+        "badges": row["badges"] or [],
+    }
 
 
 # ------------------------------------------------------------------ чек-ин пациента
@@ -196,6 +218,30 @@ async def patient_checkin(req: CheckinRequest, request: Request,
             json.dumps([{"code": c, "severity": 1} for c in se_codes if c],
                        ensure_ascii=False),
             (req.diary or {}).get("note"),
+        )
+
+        # Вовлечённость (сервер = источник истины): транзакционный UPSERT в
+        # patient_engagement. Анти-давление: разрыв серии НЕ сжигает рекорд
+        # (best_streak сохраняется), новый день просто начинает серию заново.
+        await conn.execute(
+            "INSERT INTO patient_engagement "
+            "(patient_hash_id, streak_days, best_streak, total_points, last_checkin_date) "
+            "VALUES ($1, 1, 1, 10, current_date) "
+            "ON CONFLICT (patient_hash_id) DO UPDATE SET "
+            "streak_days = CASE WHEN patient_engagement.last_checkin_date = current_date "
+            "                 THEN patient_engagement.streak_days "
+            "                 WHEN patient_engagement.last_checkin_date = current_date - 1 "
+            "                 THEN patient_engagement.streak_days + 1 "
+            "                 ELSE 1 END, "
+            "best_streak = GREATEST(patient_engagement.best_streak, "
+            "    CASE WHEN patient_engagement.last_checkin_date = current_date - 1 "
+            "         THEN patient_engagement.streak_days + 1 "
+            "         WHEN patient_engagement.last_checkin_date = current_date "
+            "         THEN patient_engagement.streak_days ELSE 1 END), "
+            "total_points = patient_engagement.total_points + "
+            "    CASE WHEN patient_engagement.last_checkin_date = current_date THEN 0 ELSE 10 END, "
+            "last_checkin_date = current_date",
+            uuid.UUID(patient.sub),
         )
 
         # Фармаконадзор: жалобы из дневника → записи НЯ (adverse_events_and_risks).

@@ -96,15 +96,68 @@
     }
     return streak;
   }
-  function renderStreaks() {
-    var s = calcStreak();
+  function applyStreak(streak) {
     [["streak", "streak-n"], ["streak2", "streak2-n"], ["survey-streak", "survey-streak-n"], ["ob-streak", "ob-streak-n"]]
       .forEach(function (pair) {
         var wrap = el(pair[0]), n = el(pair[1]);
         if (!wrap) return;
-        wrap.hidden = s < 1;
-        if (n) n.textContent = String(s);
+        wrap.hidden = streak < 1;
+        if (n) n.textContent = String(streak);
       });
+  }
+
+  function renderStreaks() {
+    // Локальный расчёт — мгновенный отклик и офлайн; серверный — источник истины
+    applyStreak(calcStreak());
+    var t = STORE.session;
+    if (t && t.access_token) {
+      api("/api/v1/patient/engagement", {}, t.access_token)
+        .then(function (d) {
+          if (d && typeof d.streak_days === "number") {
+            applyStreak(d.streak_days);
+            localStorage.setItem(STREAK_KEY, String(d.streak_days));
+            renderMilestone(d);
+          }
+        }).catch(function () { /* офлайн: остаётся локальный */ });
+    }
+  }
+
+  /* Веха недели по коридорам РКИ — карточка без давления (Этап 6.3) */
+  function renderMilestone(eng) {
+    var box = el("milestone-card");
+    if (!box) return;
+    var day = therapyDayEstimate();
+    var week = Math.min(8, Math.max(1, Math.ceil(day / 7)));
+    var text = {
+      1: "Неделя 1 — период адаптации: сонливость и головокружение обычно уходят к 5–7 дню. Приём — за 30 минут до еды.",
+      2: "Неделя 2 — период, когда эффект начинает проявляться. Сон выравнивается раньше настроения.",
+      3: "Неделя 3 — поворот по РКИ: динамика тревоги становится заметной (Ivashchenko 2021).",
+      4: "Неделя 4 — контрольная точка КР МЗ РФ: врач оценивает ответ (редукция ≥25%).",
+      5: "Неделя 5+ — закрепление эффекта. Серия дней — ваш вклад в результат.",
+      6: "Неделя 6 — курс продолжается по плану врача.",
+      7: "Неделя 7 — эффект накапливается (РКИ III: ответ растёт к 32 нед).",
+      8: "Неделя 8 — контрольная точка КР МЗ РФ: ремиссия GAD-7 <5 — цель.",
+    }[week];
+    var extra = (eng.streak_days >= 3) ? " Серия: " + eng.streak_days + " дн. без пропусков — держится стабильно." : "";
+    box.hidden = false;
+    box.innerHTML = "<b>" + text + "</b>" + extra +
+      (eng.best_streak > eng.streak_days ? " <span class='sb-dim'>Рекорд: " + eng.best_streak + " дн.</span>" : "");
+  }
+
+  function therapyDayEstimate() {
+    var l = loadLog();
+    return Math.max(1, l.length);   // дней с чек-инами
+  }
+
+  /* Напоминания: 2 слота (утро — приём, вечер — дневник); текст по неделе */
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.ready.then(function (reg) {
+      reg.active && reg.active.postMessage({
+        type: "SCHEDULE_REMINDERS",
+        slots: { morning: "09:00", evening: "20:00" },
+        week: Math.min(8, Math.max(1, Math.ceil(therapyDayEstimate() / 7))),
+      });
+    }).catch(function () {});
   }
 
   /* ================= навигация ================= */
