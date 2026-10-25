@@ -209,6 +209,17 @@ import httpx
 EMC_UPSTREAM = os.getenv("EMC_UPSTREAM", "http://127.0.0.1:8100")
 _ROOT = Path(__file__).resolve().parent.parent
 _COMPASS_STATIC = _ROOT / "frontend_compass"
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon_stub():
+    # 1×1 PNG: у ЭМК/сайдбора своей иконки нет, а 404 в консоли жюри — шум
+    import base64
+
+    from fastapi.responses import Response
+    return Response(content=base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="),
+        media_type="image/png")
 if _COMPASS_STATIC.is_dir():
     app.mount("/static/compass", StaticFiles(directory=str(_COMPASS_STATIC), html=True), name="compass")
 
