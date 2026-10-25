@@ -195,6 +195,19 @@ def main() -> int:
     check("реестр источников заполнен", len(src.get("sources", [])) >= 10,
           f"{len(src.get('sources', []))}")
 
+    # 14. Канал коммуникации (задача 6 кейса): пациент ↔ лечащий врач
+    msg = req("/api/v1/patient/messages",
+              {"body": "Боевой тест: сообщение врачу", "thread_kind": "REGIMEN"}, PTOK)
+    check("пациент → врач: сообщение отправлено", msg.get("sent") is True)
+    import jwt as _pyjwt
+    _sub = _pyjwt.decode(PTOK, options={"verify_signature": False})["sub"]
+    rep = req(f"/api/v1/compass-bio/patient/{_sub}/messages",
+              {"body": "Боевой тест: ответ врача — ожидаемо, наблюдаем."}, H)
+    check("врач → пациент: ответ ушёл (RLS app_is_attending)", rep.get("sent") is True)
+    thr = req("/api/v1/patient/messages", token=PTOK)
+    roles = [m["sender_role"] for m in thr["messages"]]
+    check("тред содержит оба направления", "PATIENT" in roles and "DOCTOR" in roles, str(roles[:4]))
+
     print("=" * 70)
     if failures:
         print(f"ПРОВАЛЕНО: {failures}")
