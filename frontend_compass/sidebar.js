@@ -183,7 +183,7 @@
     var dec = d.compass_decision || {};
     var st = STATUS[d.overall_status] || { css: "amber", title: d.overall_status };
     var sv = $("sb-svetofor");
-    sv.className = "sb-svetofor " + st.css;
+    sv.className = "sb-svetofor hero-verdict hero-" + st.css;
     $("sb-status-title").textContent = st.title;
     $("sb-status-text").textContent = (dec.aviandr_decision_support || {}).headline || "";
 
@@ -403,8 +403,142 @@
   var dashPatientHash = null, dashPatientLabel = "";
   function openPatientTimeline(hash, label) {
     dashPatientHash = hash; dashPatientLabel = label || "";
+    renderPatientNote(hash, label);
     renderDash();
     $("dash").hidden = false;
+  }
+
+  /* ==== «Что изменилось с прошлого визита» — записка врача (панель + дашборд) ====
+   * Данные: /patient/{hash}/timeline (RLS). Никаких генеративных резюме:
+   * только факты из БД с датами — динамика шкал, НЯ, приёмы, стрик. */
+  function renderPatientNote(hash, label) {
+    var box = $("note-change-body");
+    if (!box) return;
+    box.innerHTML = "<span class='sb-dim'>Загружаю историю…</span>";
+    call("/api/v1/compass-bio/patient/" + hash + "/timeline")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (tl) {
+        if (!tl) return;
+        renderPatientNoteInto($("note-change-body"), $("gad-chart"), $("gad-chart-note"), tl, label);
+        // дашборд-версия той же записки
+        renderPatientNoteInto($("dash-facts"), $("dash-gad-chart"), $("dash-gad-note"), tl, label);
+        // НЯ-кнопки: панель + дашборд
+        var aes = tl.adverse_events || [];
+        var pb = $("btn-ae-1071-p"), row = $("dash-ae-row");
+        if (pb) pb.hidden = aes.length === 0;
+        if (pb) pb.dataset.ph = hash;
+        if (row) { row.hidden = aes.length === 0; row.dataset.ph = hash; }
+        renderMsgThreadFor($("dash-msg-thread"), tl);
+        renderMsgThreadFor($("tab-msg-thread"), tl);
+      }).catch(function () {
+        box.innerHTML = "<span class='sb-dim'>История недоступна (сеть).</span>";
+      });
+  }
+
+  function renderPatientNoteInto(factsBox, canvas, noteEl, tl, label) {
+    if (!factsBox) return;
+    var bits = [];
+    // 1. Динамика шкал: последние две точки каждой шкалы
+    var byScale = {};
+    (tl.scales || []).forEach(function (sc) {
+      if (sc.scale_code === "GAD-7" || sc.scale_code === "HADS-A" || sc.scale_code === "HADS-D" ||
+          sc.scale_code === "HAM-A" || sc.scale_code === "CGI") {
+        (byScale[sc.scale_code] = byScale[sc.scale_code] || []).push(sc);
+      }
+    });
+    var SCALE_RU = { "GAD-7": "Тревога GAD-7", "HADS-A": "HADS-тревога", "HADS-D": "HADS-депрессия",
+                     "HAM-A": "HAM-A (врач)", "CGI": "CGI (врач)" };
+    Object.keys(byScale).forEach(function (code) {
+      var arr = byScale[code].slice(-2);
+      if (arr.length >= 2) {
+        var d0 = new Date(arr[0].taken_at).toLocaleDateString("ru-RU");
+        var d1 = new Date(arr[1].taken_at).toLocaleDateString("ru-RU");
+        var delta = arr[1].total_score - arr[0].total_score;
+        var arrow = delta < 0 ? "↓" : delta > 0 ? "↑" : "→";
+        bits.push("<div class='note-line'><b>" + (SCALE_RU[code] || code) + "</b> " +
+          arr[0].total_score + " → <b class='" + (delta < 0 ? "imp" : delta > 0 ? "worse" : "") + "'>" +
+          arr[1].total_score + "</b> " + arrow + Math.abs(delta) +
+          " <span class='when'>" + d0 + " → " + d1 + "</span></div>");
+      } else if (arr.length === 1) {
+        bits.push("<div class='note-line'><b>" + (SCALE_RU[code] || code) + "</b> " + arr[0].total_score +
+          " <span class='when'>" + new Date(arr[0].taken_at).toLocaleDateString("ru-RU") + "</span></div>");
+      }
+    });
+    // 2. Приёмы за 7 дней + стрик
+    var adh = (tl.adherence || []).slice(0, 7);
+    if (adh.length) {
+      var taken = adh.filter(function (a) { return !a.dose_skipped; }).length;
+      var skips = adh.length - taken;
+      var times = adh.filter(function (a) { return a.intake_time; }).map(function (a) { return a.intake_time; });
+      bits.push("<div class='note-line'>Приёмы (7 дн.): <b>" + taken + "/" + adh.length + "</b>" +
+        (skips ? " · пропущено " + skips : " · без пропусков") +
+        (times.length ? " · приём в " + times[0] : "") + "</div>");
+    }
+    // 3. Жалобы/НЯ за период
+    var aes = (tl.adverse_events || []).slice(0, 4);
+    aes.forEach(function (a) {
+      bits.push("<div class='note-line'>НЯ: <b>" + a.meddra_term + "</b> CTCAE " + a.severity_ctcae +
+        " <span class='when'>" + new Date(a.reported_at).toLocaleDateString("ru-RU") +
+        (a.has_draft ? " · черновик 1071 готов" : "") + "</span></div>");
+    });
+    // 4. Жалобы словами из приёмов
+    var notes = (tl.adherence || []).filter(function (a) { return a.notes; }).slice(0, 3);
+    notes.forEach(function (a) {
+      bits.push("<div class='note-line'>Жалоба: «" + String(a.notes).replace(/[<>]/g, "") +
+        "» <span class='when'>" + new Date(a.taken_at).toLocaleDateString("ru-RU") + "</span></div>");
+    });
+    factsBox.innerHTML = bits.length ? bits.join("") :
+      "<span class='sb-dim'>Данных пока нет: пациент не отмечал приёмы и не заполнял шкалы.</span>";
+    // график GAD-7 с линиями КР
+    var gad = (byScale["GAD-7"] || []).slice(-10);
+    if (canvas && gad.length >= 2) {
+      canvas.hidden = false;
+      if (noteEl) noteEl.hidden = false;
+      drawGadTrend(canvas, gad.map(function (g) {
+        return { v: g.total_score, d: new Date(g.taken_at).toLocaleDateString("ru-RU") };
+      }));
+    } else if (canvas) {
+      canvas.hidden = true;
+      if (noteEl) noteEl.hidden = true;
+    }
+  }
+
+  /* График GAD-7: точки + линии КР МЗ РФ (ответ −50% от исходного, ремиссия <5) */
+  function drawGadTrend(cv, pts) {
+    var ctx = cv.getContext("2d");
+    var W = cv.width, H = cv.height, padL = 26, padB = 16, padT = 8;
+    ctx.clearRect(0, 0, W, H);
+    var maxV = 21;
+    var yOf = function (v) { return padT + (H - padT - padB) * (1 - v / maxV); };
+    var xOf = function (i) { return padL + (W - padL - 8) * (i / Math.max(1, pts.length - 1)); };
+    ctx.strokeStyle = "#e4e7eb"; ctx.font = "9px system-ui"; ctx.fillStyle = "#6b7280";
+    for (var k = 0; k <= 3; k++) {
+      var y = padT + (H - padT - padB) * k / 3;
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - 8, y); ctx.stroke();
+      ctx.fillText(String(Math.round(maxV * (1 - k / 3))), 4, y + 3);
+    }
+    ctx.save(); ctx.setLineDash([4, 4]);
+    var base = pts[0].v;
+    if (base > 0) {
+      var yr = yOf(Math.max(0, base * 0.5));
+      ctx.strokeStyle = "#d97706"; ctx.beginPath(); ctx.moveTo(padL, yr); ctx.lineTo(W - 8, yr); ctx.stroke();
+      ctx.fillStyle = "#d97706"; ctx.fillText("ответ −50%", padL + 4, yr - 3);
+    }
+    var yrem = yOf(5);
+    ctx.strokeStyle = "#1f8a4c"; ctx.beginPath(); ctx.moveTo(padL, yrem); ctx.lineTo(W - 8, yrem); ctx.stroke();
+    ctx.fillStyle = "#1f8a4c"; ctx.fillText("ремиссия <5", padL + 4, yrem - 3);
+    ctx.restore();
+    ctx.strokeStyle = "#161616"; ctx.lineWidth = 1.8; ctx.beginPath();
+    pts.forEach(function (p, i) { i ? ctx.lineTo(xOf(i), yOf(p.v)) : ctx.moveTo(xOf(i), yOf(p.v)); });
+    ctx.stroke();
+    ctx.fillStyle = "#161616";
+    pts.forEach(function (p, i) {
+      ctx.beginPath(); ctx.arc(xOf(i), yOf(p.v), 3, 0, 7); ctx.fill();
+    });
+    ctx.font = "9px system-ui"; ctx.fillStyle = "#6b7280";
+    ctx.fillText(pts[0].d, padL, H - 4);
+    var last = pts[pts.length - 1].d;
+    ctx.textAlign = "right"; ctx.fillText(last, W - 8, H - 4); ctx.textAlign = "left";
   }
 
   /* ==== HAM-A-14: шкала Гамильтона, заполняет ВРАЧ (Приложение КР МЗ РФ) ====
@@ -506,62 +640,63 @@
   }
 
   /* ==== Черновик извещения о НЯ (Приказ 1071) — формирует сервер, решает врач ==== */
-  var aeBtn = $("btn-ae-1071");
-  if (aeBtn) {
+  function requestDraft1071(ph, done) {
+    call("/api/v1/compass-bio/patient/" + ph + "/adverse-events/draft-1071", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) { done(res); })
+      .catch(function (e) { done({ ok: false, d: { detail: "сеть: " + e.message } }); });
+  }
+  document.querySelectorAll("#btn-ae-1071, .js-1071").forEach(function (aeBtn) {
     aeBtn.addEventListener("click", function () {
-      var row = $("dash-ae-row");
-      var ph = row && row.dataset.ph;
+      var ph = aeBtn.dataset.ph || ($("dash-ae-row") && $("dash-ae-row").dataset.ph);
       if (!ph) return;
       aeBtn.disabled = true;
-      var note = $("ae-note");
-      if (note) note.textContent = "Формирую черновик…";
-      call("/api/v1/compass-bio/patient/" + ph + "/adverse-events/draft-1071", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
-      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
-        .then(function (res) {
-          aeBtn.disabled = false;
-          if (res.ok) {
-            $("ae1071-body").textContent = res.d.draft_text;
-            $("modal-1071").hidden = false;
-            if (note) note.textContent = "Черновиков сформировано: " + res.d.drafts_formed;
-            renderDash();
-          } else if (note) {
-            note.textContent = "Ошибка: " + (res.d.detail || "не сформировано");
-          }
-        }).catch(function (e) {
-          aeBtn.disabled = false;
-          if (note) note.textContent = "Ошибка сети: " + e.message;
-        });
+      requestDraft1071(ph, function (res) {
+        aeBtn.disabled = false;
+        if (res.ok) {
+          $("ae1071-body").textContent = res.d.draft_text;
+          $("modal-1071").hidden = false;
+          var note = $("ae-note");
+          if (note) note.textContent = "Черновиков сформировано: " + res.d.drafts_formed;
+          renderDash();
+        } else {
+          var note2 = $("ae-note-panel") || $("ae-note");
+          if (note2) { note2.hidden = false; note2.textContent = "Ошибка: " + (res.d.detail || "не сформировано"); }
+        }
+      });
     });
+  });
+  /* Ответ пациенту: общая функция (дашборд + вкладка «Сообщения») */
+  function replyToPatient(ph, text, noteEl, btn) {
+    if (!ph) { noteEl.textContent = "Сначала выберите пациента."; return; }
+    if (text.length < 2) { noteEl.textContent = "Пусто."; return; }
+    btn.disabled = true;
+    call("/api/v1/compass-bio/patient/" + ph + "/messages", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body: text }),
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        btn.disabled = false;
+        if (res.ok) {
+          noteEl.textContent = "Отправлено — появится в PWA пациента.";
+          renderPatientNote(ph, dashPatientLabel);
+          renderDash();
+        } else noteEl.textContent = "Ошибка: " + (res.d.detail || "");
+      }).catch(function (e) { btn.disabled = false; noteEl.textContent = "Сеть: " + e.message; });
   }
-  /* Ответ пациенту в треде сопровождения */
   var msgReplyBtn = $("btn-msg-reply");
   if (msgReplyBtn) {
     msgReplyBtn.addEventListener("click", function () {
       var ph = dashPatientHash || (state.currentAlert && state.currentAlert.patient_hash);
-      var text = $("msg-reply").value.trim();
-      var note = $("msg-reply-note");
-      if (!ph) { note.textContent = "Сначала выберите пациента."; return; }
-      if (text.length < 2) { note.textContent = "Пусто."; return; }
-      msgReplyBtn.disabled = true;
-      call("/api/v1/compass-bio/patient/" + ph + "/messages", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: text }),
-      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
-        .then(function (res) {
-          msgReplyBtn.disabled = false;
-          if (res.ok) { $("msg-reply").value = ""; note.textContent = "Отправлено — появится в PWA пациента.";
-            renderDash(); }
-          else note.textContent = "Ошибка: " + (res.d.detail || "");
-        }).catch(function (e) { msgReplyBtn.disabled = false; note.textContent = "Сеть: " + e.message; });
+      replyToPatient(ph, $("msg-reply").value.trim(), $("msg-reply-note"), msgReplyBtn);
     });
   }
 
   /* ==== Осознанное несогласие → audit_log (против иллюзии понимания) ==== */
-  var disBtn = $("btn-disagree");
-  if (disBtn) {
+  document.querySelectorAll(".js-disagree, #btn-disagree").forEach(function (disBtn) {
     disBtn.addEventListener("click", function () { $("modal-disagree").hidden = false; });
-  }
+  });
   var mDis = $("modal-disagree");
   if (mDis) {
     $("btn-disagree-cancel").addEventListener("click", function () { mDis.hidden = true; });
@@ -569,21 +704,21 @@
     $("btn-disagree-ok").addEventListener("click", function () {
       var ph = dashPatientHash || (state.currentAlert && state.currentAlert.patient_hash);
       var note = $("disagree-action").value.trim();
-      if (!ph) { $("disagree-note").textContent = "Сначала выберите пациента."; return; }
+      var notes = document.querySelectorAll("#disagree-note, #disagree-note-panel");
+      if (!ph) { notes.forEach(function (n) { n.textContent = "Сначала выберите пациента."; }); return; }
       call("/api/v1/compass-bio/patient/" + ph + "/disagree", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ note: note }),
       }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
         .then(function (res) {
           mDis.hidden = true;
-          $("disagree-note").textContent = res.ok ? "Записано в аудит-лог." : ("Ошибка: " + (res.d.detail || ""));
-        }).catch(function (e) { $("disagree-note").textContent = "Ошибка сети: " + e.message; });
+          notes.forEach(function (n) { n.textContent = res.ok ? "Записано в аудит-лог." : ("Ошибка: " + (res.d.detail || "")); });
+        }).catch(function (e) { notes.forEach(function (n) { n.textContent = "Ошибка сети: " + e.message; }); });
     });
   }
 
   /* ==== Провенанс: реестр источников — клик по цифре → карточка ==== */
-  var srcBtn = $("btn-dash-sources");
-  if (srcBtn) {
+  document.querySelectorAll(".js-sources").forEach(function (srcBtn) {
     srcBtn.addEventListener("click", function () {
       call("/api/v1/compass-bio/sources")
         .then(function (r) { return r.ok ? r.json() : null; })
@@ -600,7 +735,7 @@
           $("modal-sources").hidden = false;
         });
     });
-  }
+  });
   var mQR = $("modal-demoqr");
   if (mQR) {
     $("btn-demoqr-close").addEventListener("click", function () { mQR.hidden = true; });
@@ -737,29 +872,67 @@
     ctx.stroke();
   }
 
+  /* ==== Вкладка «Сообщения»: выбор пациента + тред + ответ ==== */
+  function renderMsgPatientSelect(patients) {
+    var sel = $("msg-patient");
+    if (!sel) return;
+    var cur = sel.value;
+    sel.innerHTML = "<option value=''>— выберите пациента —</option>" +
+      patients.map(function (p) {
+        return "<option value='" + p.patient_hash + "'>" +
+          (p.label || "П-" + (p.patient_hash || "").slice(0, 6)) + "</option>";
+      }).join("");
+    if (cur) sel.value = cur;
+  }
+  function renderMsgThreadFor(box, tl) {
+    if (!box) return;
+    var msgs = (tl.messages || []).slice().reverse();
+    box.innerHTML = msgs.length ? msgs.map(function (m) {
+      return "<div class='dash-tl" + (m.sender_role === 'DOCTOR' ? " msg-doc" : "") + "'>" +
+        (m.sender_role === 'PATIENT' ? "<b>Пациент:</b> " : "<b>Врач:</b> ") +
+        String(m.body).replace(/[<>]/g, "") +
+        "<span class='when'>" + new Date(m.created_at).toLocaleString("ru-RU") + "</span></div>";
+    }).join("") : "<span class='sb-dim'>Сообщений пока нет.</span>";
+  }
+  var msgSel = $("msg-patient");
+  if (msgSel) {
+    msgSel.addEventListener("change", function () {
+      var ph = msgSel.value;
+      var thread = $("tab-msg-thread");
+      var reply = $("tab-msg-reply"), btn = $("btn-tab-msg-reply");
+      if (!ph) {
+        thread.innerHTML = "<span class='sb-dim'>Выберите пациента: здесь его тред из PWA.</span>";
+        reply.disabled = btn.disabled = true;
+        return;
+      }
+      reply.disabled = btn.disabled = false;
+      dashPatientHash = ph;
+      thread.innerHTML = "<span class='sb-dim'>Загружаю…</span>";
+      call("/api/v1/compass-bio/patient/" + ph + "/timeline")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (tl) {
+          if (!tl) return;
+          renderMsgThreadFor(thread, tl);
+          renderMsgThreadFor($("dash-msg-thread"), tl);
+        });
+    });
+  }
+  var tabMsgBtn = $("btn-tab-msg-reply");
+  if (tabMsgBtn) {
+    tabMsgBtn.addEventListener("click", function () {
+      replyToPatient($("msg-patient").value, $("tab-msg-reply").value.trim(),
+                     $("tab-msg-note"), tabMsgBtn);
+    });
+  }
+
   /* Когорта терапии: живые данные из БД (RLS врача) */
   function loadCohort() {
     call("/api/v1/auth/my-patients").then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (!d) return;
-        $("cohort-count").textContent = d.count ? "(" + d.count + ")" : "";
-        var box = $("cohort-list");
-        box.innerHTML = d.count ? "" : "<span class='sb-dim'>Пока никого — отправьте QR-приглашение.</span>";
-        (d.patients || []).slice(0, 6).forEach(function (p) {
-          var delta = (p.gad7_last !== null && p.gad7_first !== null) ? p.gad7_last - p.gad7_first : null;
-          var deltaHtml = delta === null ? "" :
-            "<span class='co-delta " + (delta < 0 ? "down" : (delta > 0 ? "up" : "")) + "'>" +
-            (delta > 0 ? "+" : "") + delta + "</span>";
-          var skip = p.doses_skipped ? ("пропусков: " + p.doses_skipped) : "без пропусков";
-          var hashShort = (p.patient_hash || "").slice(0, 8);
-          var div = document.createElement("div");
-          div.className = "sb-cohort-item";
-          div.innerHTML = "<div class='co-fio'>Пациент " + hashShort + deltaHtml + "</div>" +
-            "<div class='co-meta'>GAD-7: " + (p.gad7_first === null ? "—" : p.gad7_first) + " → <b>" +
-            (p.gad7_last === null ? "—" : p.gad7_last) + "</b> · " + skip +
-            " · приёмов: " + (p.doses_logged || 0) + " · с " + p.bound_since + "</div>";
-          box.appendChild(div);
-        });
+        var cc = $("cohort-count");
+        if (cc) cc.textContent = d.count ? "(" + d.count + ")" : "";
+        renderMsgPatientSelect(d.patients || []);
       });
   }
 
@@ -767,8 +940,13 @@
     call("/api/v1/telemetry/summary").then(function (r) { return r.ok ? r.json() : null; })
       .then(function (t) {
         if (!t) return;
-        $("sb-telemetry").textContent = "SLA: p95 = " + (t.p95_ms === null ? "—" : t.p95_ms.toFixed(1) + " мс") +
-          ", p99 = " + (t.p99_ms === null ? "—" : t.p99_ms.toFixed(1) + " мс") + ", запросов: " + t.requests_observed;
+        var line = "p95 = " + (t.p95_ms === null ? "—" : t.p95_ms.toFixed(1) + " мс") +
+          " • p99 = " + (t.p99_ms === null ? "—" : t.p99_ms.toFixed(1) + " мс") +
+          " • запросов: " + t.requests_observed;
+        var el = $("sys-sla");
+        if (el) el.textContent = line;
+        var old = $("sb-telemetry");
+        if (old) old.textContent = "телеметрия: " + line;
       });
   }
 
@@ -982,92 +1160,10 @@
       }
     }
     if (alertPh) {
-      call("/api/v1/compass-bio/patient/" + alertPh + "/timeline")
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (tl) {
-          if (!tl) return;
-          var bits = [];
-          if (dashPatientLabel) bits.push("<div class='dash-tl'><b>Пациент:</b> " + dashPatientLabel + "</div>");
-          (tl.scales || []).slice(0, 4).forEach(function (s) {
-            bits.push("<div class='dash-tl'><b>" + s.scale_code + "</b> " + s.total_score +
-              " <span class='when'>" + new Date(s.taken_at).toLocaleDateString("ru-RU") +
-              (s.delta_prev !== null && s.delta_prev !== undefined ? " (Δ " + s.delta_prev + ")" : "") + "</span></div>");
-          });
-          (tl.adherence || []).slice(0, 3).forEach(function (a) {
-            bits.push("<div class='dash-tl'>приём " + (a.dose_skipped ? "пропущен" : "принят") +
-              " <span class='when'>" + new Date(a.taken_at).toLocaleDateString("ru-RU") +
-              (a.intake_time ? " в " + a.intake_time : "") +
-              (a.notes ? " • «" + a.notes + "»" : "") + "</span></div>");
-          });
-          // Нежелательные реакции: честный список из adverse_events_and_risks
-          var aes = tl.adverse_events || [];
-          aes.slice(0, 6).forEach(function (a) {
-            bits.push("<div class='dash-tl'>НЯ: <b>" + a.meddra_term + "</b> CTCAE " + a.severity_ctcae +
-              " (" + (a.related_to_drug || "?").toLowerCase() + ")" +
-              " <span class='when'>" + new Date(a.reported_at).toLocaleDateString("ru-RU") +
-              (a.has_draft ? " • черновик 1071 готов" : "") + "</span></div>");
-          });
-          // Тред сообщений пациент ↔ врач (задача 6)
-          var mrow = $("dash-msg-thread");
-          if (mrow) {
-            mrow.dataset.ph = alertPh;
-            var msgs = tl.messages || [];
-            mrow.innerHTML = msgs.length ? msgs.reverse().map(function (m) {
-              return "<div class='dash-tl" + (m.sender_role === 'DOCTOR' ? " msg-doc" : "") + "'>" +
-                (m.sender_role === 'PATIENT' ? "<b>Пациент:</b> " : "<b>Врач:</b> ") +
-                String(m.body).replace(/[<>]/g, "") +
-                "<span class='when'>" + new Date(m.created_at).toLocaleString("ru-RU") + "</span></div>";
-            }).join("") : "<span class='sb-dim'>Сообщений пока нет.</span>";
-          }
-          var aeRow = $("dash-ae-row");
-          if (aeRow) {
-            aeRow.hidden = aes.length === 0;
-            aeRow.dataset.ph = alertPh;
-            aeRow.dataset.hasNew = aes.some(function (a) { return !a.has_draft; }) ? "1" : "";
-          }
-          // «Факты действия препарата»: подсветка паттернов из дневника
-          var facts = [];
-          var adh = tl.adherence || [];
-          var notes = adh.filter(function (a) { return a.notes; });
-          if (notes.length) {
-            facts.push({ ok: false, t: "Жалобы пациента (направлены врачу): " +
-              notes.slice(0, 3).map(function (a) { return a.notes; }).join("; ") });
-          }
-          var skips = adh.filter(function (a) { return a.dose_skipped; }).length;
-          if (skips > 0) {
-            facts.push({ ok: false, t: "Пропусков доз: " + skips + " из " + adh.length +
-              " — приверженность " + Math.round(100 * (adh.length - skips) / Math.max(1, adh.length)) + "%" });
-          }
-          var intakeTimes = adh.filter(function (a) { return a.intake_time; }).map(function (a) { return a.intake_time; });
-          if (intakeTimes.length >= 3) {
-            var uniq = Array.from(new Set(intakeTimes));
-            facts.push({ ok: true, t: "Время приёма стабильно: " + uniq.join(", ") +
-              (uniq.length === 1 ? " — режим соблюдается" : " — время «плавает», стоит уточнить") });
-          }
-          var diaryFacts = adh.filter(function (a) { return a.diary; });
-          var sxCount = 0;
-          diaryFacts.forEach(function (a) {
-            try { var d = typeof a.diary === "string" ? JSON.parse(a.diary) : a.diary;
-              if (d && d.symptoms && String(d.symptoms).indexOf("Ничего") < 0) sxCount += 1;
-            } catch (e) {}
-          });
-          if (sxCount > 0) {
-            facts.push({ ok: false, t: "Переносимость: симптомы отмечены в " + sxCount + " из " +
-              diaryFacts.length + " дневников — ожидаемо для первых недель, динамику смотрим в графике" });
-          }
-          if (adh.length >= 5 && skips === 0) {
-            facts.push({ ok: true, t: "Приверженность 100% за " + adh.length + " дней — режим усваивается" });
-          }
-          var factsBox = $("dash-facts");
-          if (factsBox) factsBox.innerHTML = facts.length ? facts.map(function (f) {
-            return "<div class='dash-tl' style='border-left:3px solid " + (f.ok ? "#4a7c59" : "#a65b4b") +
-              ";padding-left:8px'><b>" + (f.ok ? "OK" : "ВНИМАНИЕ") + "</b> — " + f.t + "</div>";
-          }).join("") : "<span class='sb-dim'>Данных дневника пока мало.</span>";
-
-          tlBox.innerHTML = bits.length ? bits.join("") : "<span class='sb-dim'>История пуста.</span>";
-        }).catch(function () {});
-    } else {
-      tlBox.innerHTML = "<span class='sb-dim'>Таймлайн доступен по пациенту из уведомления.</span>";
+      // записка «Что изменилось» рендерится одной функцией для панели и дашборда
+      renderPatientNote(alertPh, dashPatientLabel);
+    } else if (tlBox) {
+      tlBox.innerHTML = "";
     }
     var stMap = {
       GREEN_IN_LABEL: "green", AMBER_DATA_REQUIRED: "amber", AMBER_REVIEW: "amber",
@@ -1079,7 +1175,7 @@
       RED_CRITICAL_ALERT: "КРАСНЫЙ — экстренный психиатр",
     };
     if (d) {
-      sv.className = "sb-svetofor dash-sv " + (stMap[d.overall_status] || "amber");
+      sv.className = "sb-svetofor dash-sv hero-verdict hero-" + (stMap[d.overall_status] || "amber").replace("green", "green");
       $("dash-status").textContent = stTitle[d.overall_status] || d.overall_status;
       $("dash-status-text").textContent = ((dec.aviandr_decision_support || {}).headline || "");
       var pk = (dec.c_core_pk_and_safety || {}).pk_summary_168h;

@@ -31,7 +31,8 @@
     <nav class="sb-tabs">
       <button type="button" class="sb-tab sb-tab--on" data-stab="patient">Пациент</button>
       <button type="button" class="sb-tab" data-stab="cohort">Когорта <span id="tab-cohort-n"></span></button>
-      <button type="button" class="sb-tab" data-stab="analytics">Аналитика</button>
+      <button type="button" class="sb-tab" data-stab="messages">Сообщения</button>
+      <button type="button" class="sb-tab" data-stab="system">Система</button>
     </nav>
     <div class="sb-head-actions">
       <button type="button" class="sb-bell" id="btn-bell" title="Уведомления" hidden>
@@ -74,75 +75,57 @@
     <div class="sb-conn" id="sb-conn">соединение: проверка…</div>
   </div>
 
-  <div class="sb-body-content" id="sb-content" hidden>
+  <div class="sb-body-content note" id="sb-content" hidden>
 
-    <div class="sb-svetofor" id="sb-svetofor">
+    <!-- ГЕРОЙ: вердикт + что требуется от вас (единственное место с красным) -->
+    <div class="hero-verdict" id="sb-svetofor">
       <div class="sb-svetofor-head" id="sb-status-title">—</div>
       <div class="sb-svetofor-text" id="sb-status-text">—</div>
+      <div id="routing-body" class="hero-routing">—</div>
+      <div class="hero-actions">
+        <button type="button" class="act-link js-disagree">Не согласен — почему?</button>
+        <span class="sb-dim" id="disagree-note-panel"></span>
+      </div>
     </div>
 
-    <section class="sb-sec" id="sec-confirm">
-      <div class="sb-sec-t">Подтверждения врача <span class="sb-badge-amber" id="confirm-count">0</span></div>
+    <!-- ЧТО ИЗМЕНИЛОСЬ С ПРОШЛОГО ВИЗИТА (динамика/жалобы/приёмы — запиской) -->
+    <section class="note-sec" id="sec-change">
+      <div class="note-sec-t">Что изменилось с прошлого визита</div>
+      <div id="note-change-body" class="note-list"><span class="sb-dim">Выберите пациента в «Когорте» (кнопка «История») или разберите карту из ЭМК.</span></div>
+      <canvas id="gad-chart" width="400" height="130" hidden></canvas>
+      <div class="sb-dim" id="gad-chart-note" hidden>линии КР МЗ РФ: пунктир — уровень ответа (−50% от исходного) и ремиссии (GAD-7 &lt; 5)</div>
+    </section>
+
+    <!-- Требуется от врача: подтверждения/данные/ОХЛП -->
+    <section class="note-sec" id="sec-confirm">
+      <div class="note-sec-t">Требуется от вас <span class="sb-badge-amber" id="confirm-count">0</span></div>
       <div class="sb-note">Неизвестное не даёт зелёного статуса: подтвердите отсутствие — разбор повторится.</div>
       <div id="confirm-list"></div>
-    </section>
-
-    <section class="sb-sec" id="sec-datareq" hidden>
-      <div class="sb-sec-t">Недостающие данные</div>
       <div id="datareq-list"></div>
-    </section>
-
-    <section class="sb-sec" id="sec-findings" hidden>
-      <div class="sb-sec-t">Предупреждения ОХЛП (движок правил)</div>
       <div id="findings-list"></div>
     </section>
 
-    <section class="sb-sec">
-      <div class="sb-sec-t">Фармакокинетика 168 ч (RK45, C-ядро)</div>
-      <canvas id="pk-chart" width="412" height="150"></canvas>
-      <div class="sb-pk-legend">
-        <span><i class="sw sw-p"></i>маритупирдин</span>
-        <span><i class="sw sw-m"></i>метаболит M1</span>
-      </div>
-      <div class="sb-pk-nums" id="pk-nums">—</div>
-    </section>
-
-    <section class="sb-sec" id="sec-routing">
-      <div class="sb-sec-t">Маршрутизация</div>
-      <div id="routing-body">—</div>
-    </section>
-
-    <section class="sb-sec" id="sec-cohort">
-      <div class="sb-sec-t">Когорта терапии <span id="cohort-count"></span></div>
-      <div id="cohort-list" class="sb-cohort"></div>
-    </section>
-
-    <section class="sb-sec" id="sec-xai" hidden>
-      <div class="sb-sec-t">XAI: топ-факторы (SHAP, ГОСТ Р 59921)</div>
-      <table class="sb-table" id="xai-table"></table>
-    </section>
-
-    <section class="sb-sec" id="sec-cbr" hidden>
-      <div class="sb-sec-t">Похожие когорты РКИ (CBR)</div>
-      <div id="cbr-list"></div>
-    </section>
-
-    <section class="sb-sec" id="sec-passport" hidden>
-      <div class="sb-sec-t">Паспорт провенанса решения</div>
-      <div class="sb-passport" id="passport-body"></div>
-    </section>
-
-    <section class="sb-sec" id="sec-warn" hidden>
-      <div class="sb-sec-t">Предупреждения и допущения</div>
+    <!-- Предупреждения и допущения: сворачиваемые -->
+    <details class="note-details" id="sec-warn" hidden>
+      <summary>Предупреждения и допущения</summary>
       <div class="sb-warnbox" id="warn-body"></div>
+    </details>
+
+    <!-- ДЕЙСТВИЯ -->
+    <section class="note-sec">
+      <div class="note-sec-t">Действия</div>
+      <div class="act-row">
+        <button type="button" class="act-link" id="btn-057">Направление ф. 057/у-04 →</button>
+        <button type="button" class="act-link" id="btn-qr">QR-приглашение пациенту →</button>
+        <button type="button" class="act-link js-1071" id="btn-ae-1071-p" hidden>Черновик извещения 1071 (НЯ) →</button>
+        <button type="button" class="act-link js-sources">Источники цифр →</button>
+      </div>
+      <div class="sb-dim" id="ae-note-panel" hidden></div>
     </section>
 
-    <div class="sb-actions">
-      <button type="button" class="cp-btn cp-btn-primary cp-btn-block" id="btn-057">Сформировать ф. 057/у-04</button>
-      <button type="button" class="cp-btn cp-btn-outline cp-btn-block" id="btn-qr">QR-приглашение пациенту</button>
-    </div>
-    <div class="sb-foot">Решение принимает врач. Система предупреждает и оформляет.<br>
-      <span id="sb-telemetry">телеметрия: —</span> &bull; <span id="sb-ws">WS: —</span></div>
+    <div class="sb-foot">Решение принимает врач. COMPASS предупреждает и оформляет.<br>
+      Технология решения — вкладка «Система».<br>
+      <span id="sb-telemetry" hidden></span><span id="sb-ws" hidden></span></div>
   </div>
 
   </div><!-- /stab patient -->
@@ -165,9 +148,32 @@
     </div>
   </div>
 
-  <!-- ================= ВКЛАДКА АНАЛИТИКА ================= -->
-  <div class="stab" data-stab-view="analytics" hidden>
+  <!-- ================= ВКЛАДКА СООБЩЕНИЯ ================= -->
+  <div class="stab" data-stab-view="messages" hidden>
     <div class="sb-sec" style="margin-top:12px">
+      <div class="sb-sec-t">Переписка с пациентами</div>
+      <select id="msg-patient" class="cp-input" style="width:100%;font-size:12px">
+        <option value="">— выберите пациента —</option>
+      </select>
+      <div id="tab-msg-thread" class="dash-timeline" style="margin-top:8px">
+        <span class="sb-dim">Выберите пациента: здесь его тред из PWA.</span>
+      </div>
+      <div class="dash-actions-row">
+        <input id="tab-msg-reply" class="cp-input" style="flex:1" placeholder="Ответ пациенту (уходит в его PWA)" disabled>
+        <button type="button" class="cp-btn cp-btn-primary cp-btn-sm" id="btn-tab-msg-reply" disabled>Ответить</button>
+      </div>
+      <span class="sb-dim" id="tab-msg-note"></span>
+    </div>
+  </div>
+
+  <!-- ================= ВКЛАДКА СИСТЕМА (технология — для жюри, не для приёма) ================= -->
+  <div class="stab" data-stab-view="system" hidden>
+    <div class="sb-sec" style="margin-top:12px">
+      <div class="sb-note"><b>Технологический контур.</b> Эти блоки объясняют, КАК COMPASS
+        считает решение (провенанс, объяснимость, метрики). Врачу в приёме они не нужны —
+        клиническая картина на вкладке «Пациент».</div>
+    </div>
+    <div class="sb-sec" style="margin-top:8px">
       <div class="sb-sec-t">What-if: фенотип CYP2D6 → кривая концентрации</div>
       <div class="sb-note">Решатель ОДУ Рунге—Кутты—Фельберга 4(5) пересчитывает 168-часовую
         кривую маритупирдина для выбранного фенотипа. Пропуски доз учтены в модели
@@ -187,6 +193,39 @@
         исполняются в C-ядре за микросекунды) сортируют пациента по маршруту наблюдения.
         Решение всё равно принимает врач — сети лишь подсвечивают, на кого смотреть внимательнее.</div>
       <div id="mn-cards"></div>
+    </div>
+
+    <div class="sb-sec">
+      <div class="sb-sec-t">Фармакокинетика 168 ч (RK45, C-ядро) — текущий разбор</div>
+      <canvas id="pk-chart" width="412" height="150"></canvas>
+      <div class="sb-pk-legend">
+        <span><i class="sw sw-p"></i>маритупирдин</span>
+        <span><i class="sw sw-m"></i>метаболит M1</span>
+      </div>
+      <div class="sb-pk-nums" id="pk-nums">—</div>
+    </div>
+
+    <div class="sb-sec" id="sec-xai" hidden>
+      <div class="sb-sec-t">XAI: топ-факторы (SHAP, ГОСТ Р 59921)</div>
+      <table class="sb-table" id="xai-table"></table>
+    </div>
+
+    <div class="sb-sec" id="sec-cbr" hidden>
+      <div class="sb-sec-t">Похожие когорты РКИ (CBR)</div>
+      <div id="cbr-list"></div>
+    </div>
+
+    <div class="sb-sec" id="sec-passport" hidden>
+      <div class="sb-sec-t">Паспорт провенанса решения</div>
+      <div class="sb-passport" id="passport-body"></div>
+    </div>
+
+    <div class="sb-sec">
+      <div class="sb-sec-t">Метрики платформы (живые)</div>
+      <div class="dash-sla" id="sys-sla">—</div>
+      <div class="sb-actions">
+        <button type="button" class="cp-btn cp-btn-outline cp-btn-sm js-sources">Источники цифр</button>
+      </div>
     </div>
 
     <div class="sb-sec">
@@ -229,63 +268,40 @@
   <div class="dash-grid">
     <!-- Крупное состояние -->
     <div class="dash-zone"><span class="dash-zone__p">ПРЕДЛОЖИТЬ</span>
-      <span class="sb-dim">система предлагает — из правил КР и данных, без вывода раньше данных</span></div>
-    <div class="dash-card dash-card--state">
-      <div class="sb-sec-t">Состояние последнего разбора</div>
+      <span class="sb-dim">система предлагает — из правил КР и данных; решение и ответственность — врача</span></div>
+    <div class="dash-card dash-card--state dash-card--wide">
       <div class="sb-svetofor dash-sv" id="dash-sv">
         <div class="sb-svetofor-head" id="dash-status">—</div>
-        <div class="sb-svetofor-text" id="dash-status-text">Разбор ещё не запускался — откройте карту в ЭМК и нажмите закладку COMPASS.</div>
+        <div class="sb-svetofor-text" id="dash-status-text">Разбор ещё не запускался — откройте карту в ЭМК и нажмите закладку COMPASS, либо выберите пациента в «Когорте».</div>
       </div>
       <div class="dash-kv" id="dash-kv"></div>
       <div class="dash-actions-row">
-        <button type="button" class="cp-btn cp-btn-outline cp-btn-sm" id="btn-disagree">Не согласен — почему?</button>
+        <button type="button" class="act-link" id="btn-dash-057">Направление ф. 057/у-04 →</button>
+        <button type="button" class="act-link" id="btn-dash-qr">QR-приглашение пациенту →</button>
+        <button type="button" class="act-link" id="btn-disagree">Не согласен — почему?</button>
         <span class="sb-dim" id="disagree-note"></span>
       </div>
     </div>
 
     <!-- Уведомления -->
     <div class="dash-card">
-      <div class="sb-sec-t">Уведомления <span id="dash-notif-count"></span></div>
+      <div class="sb-sec-t">Требует реакции <span id="dash-notif-count"></span></div>
       <div id="dash-notif-items" class="dash-notifs"><span class="sb-dim">Пока пусто.</span></div>
     </div>
 
-    <!-- Тренд PK -->
-    <div class="dash-card">
-      <div class="sb-sec-t">Фармакокинетика 168 ч</div>
-      <canvas id="dash-pk" width="760" height="240"></canvas>
-      <div class="sb-pk-nums" id="dash-pk-nums">—</div>
-    </div>
-
     <div class="dash-zone"><span class="dash-zone__p">ПРОВЕРИТЬ</span>
-      <span class="sb-dim">факты для проверки: дневник, НЯ, шкалы — цифры кликабельны до источника</span></div>
-    <!-- Кластеризация траекторий (24D → 2D, Махаланобис, Вассерштейн) -->
-    <div class="dash-card dash-card--map">
-      <div class="sb-sec-t">Кластеризация траектории (24D → 2D)</div>
-      <canvas id="dash-cluster" width="760" height="300"></canvas>
-      <div class="dash-kv" id="dash-cluster-kv"></div>
-    </div>
-
-    <!-- Факты действия препарата: подсветка паттернов из дневника -->
-    <div class="dash-card">
-      <div class="sb-sec-t">Факты действия препарата (из дневника пациента)</div>
-      <div id="dash-facts" class="dash-timeline"><span class="sb-dim">Заполнится из дневника выбранного пациента.</span></div>
-    </div>
-
-    <!-- История пациента из БД (RLS): шкалы, приверженность, алерты, НЯ -->
-    <div class="dash-card">
-      <div class="sb-sec-t">История пациента (БД, RLS)</div>
-      <div id="dash-timeline" class="dash-timeline"><span class="sb-dim">Откроется для привязанных пациентов из уведомлений.</span></div>
+      <span class="sb-dim">что изменилось у пациента: динамика, жалобы, приёмы — запиской, цифры кликабельны до источника</span></div>
+    <!-- Что изменилось (записка): динамика + факты + история БД + НЯ -->
+    <div class="dash-card dash-card--wide">
+      <div class="note-sec-t">Что изменилось с прошлого визита</div>
+      <canvas id="dash-gad-chart" width="640" height="150" hidden></canvas>
+      <div class="sb-dim" id="dash-gad-note" hidden>линии КР МЗ РФ: ответ (−50% от исходного) и ремиссия (GAD-7 &lt; 5)</div>
+      <div id="dash-facts" class="dash-timeline"><span class="sb-dim">Выберите пациента в «Когорте» (История) или разберите карту из ЭМК.</span></div>
+      <div id="dash-timeline" class="dash-timeline"></div>
       <div class="dash-actions-row" id="dash-ae-row" hidden>
         <button type="button" class="cp-btn cp-btn-outline cp-btn-sm" id="btn-ae-1071">Черновик извещения 1071 (НЯ)</button>
         <span class="sb-dim" id="ae-note"></span>
       </div>
-      <div class="sb-sec-t" style="margin-top:10px">Сообщения пациента</div>
-      <div id="dash-msg-thread" class="dash-timeline"></div>
-      <div class="dash-actions-row">
-        <input id="msg-reply" class="cp-input" style="flex:1" placeholder="Ответ пациенту (уходит в его PWA)">
-        <button type="button" class="cp-btn cp-btn-primary cp-btn-sm" id="btn-msg-reply">Ответить</button>
-      </div>
-      <span class="sb-dim" id="msg-reply-note"></span>
     </div>
 
     <!-- HAM-A-14: клиницистская шкала Гамильтона, заполняет врач (КР МЗ РФ) -->
@@ -299,16 +315,39 @@
       </div>
     </div>
 
-    <div class="dash-zone"><span class="dash-zone__p">РЕШИТЬ</span>
-      <span class="sb-dim">действия врача — решение и ответственность остаются у вас (Условие 3)</span></div>
+    <!-- Сообщения -->
+    <div class="dash-card">
+      <div class="sb-sec-t">Сообщения пациента</div>
+      <div id="dash-msg-thread" class="dash-timeline"><span class="sb-dim">Выберите пациента.</span></div>
+      <div class="dash-actions-row">
+        <input id="msg-reply" class="cp-input" style="flex:1" placeholder="Ответ пациенту (уходит в его PWA)">
+        <button type="button" class="cp-btn cp-btn-primary cp-btn-sm" id="btn-msg-reply">Ответить</button>
+      </div>
+      <span class="sb-dim" id="msg-reply-note"></span>
+    </div>
+
+    <div class="dash-zone"><span class="dash-zone__p">СИСТЕМА</span>
+      <span class="sb-dim">технология решения: PK, 24D-кластеры, метрики — врачу в приёме не нужен, жюри видно всё</span></div>
+    <!-- Тренд PK -->
+    <div class="dash-card">
+      <div class="sb-sec-t">Фармакокинетика 168 ч (RK45)</div>
+      <canvas id="dash-pk" width="760" height="240"></canvas>
+      <div class="sb-pk-nums" id="dash-pk-nums">—</div>
+    </div>
+
+    <!-- Кластеризация траекторий (24D → 2D, Махаланобис, Вассерштейн) -->
+    <div class="dash-card dash-card--map">
+      <div class="sb-sec-t">Кластеризация траектории (24D → 2D)</div>
+      <canvas id="dash-cluster" width="760" height="300"></canvas>
+      <div class="dash-kv" id="dash-cluster-kv"></div>
+    </div>
+
     <!-- SLA -->
     <div class="dash-card">
       <div class="sb-sec-t">Метрики платформы (живые)</div>
       <div class="dash-sla" id="dash-sla">—</div>
       <div class="dash-actions-row">
-        <button type="button" class="cp-btn cp-btn-outline cp-btn-sm" id="btn-dash-057">ф. 057/у-04</button>
-        <button type="button" class="cp-btn cp-btn-outline cp-btn-sm" id="btn-dash-qr">QR пациенту</button>
-        <button type="button" class="cp-btn cp-btn-outline cp-btn-sm" id="btn-dash-sources">Источники</button>
+        <button type="button" class="cp-btn cp-btn-outline cp-btn-sm js-sources">Источники цифр</button>
       </div>
     </div>
   </div>
