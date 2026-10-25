@@ -208,14 +208,16 @@
 
     /* недостающие данные */
     var req = d.data_required || [];
-    $("sec-datareq").hidden = req.length === 0;
+    var secReq = $("sec-datareq");
+    if (secReq) secReq.hidden = req.length === 0;
     $("datareq-list").innerHTML = req.map(function (g) {
       return "<div class='sb-datareq'><b>" + (g.field || "?") + "</b> — " + (g.why_needed || "") + "</div>";
     }).join("");
 
     /* находки правил ОХЛП */
     var findings = (dec.rules_engine || {}).findings || [];
-    $("sec-findings").hidden = findings.length === 0;
+    var secFin = $("sec-findings");
+    if (secFin) secFin.hidden = findings.length === 0;
     $("findings-list").innerHTML = findings.map(function (f) {
       var red = f.severity === "HARD_STOP"; var src = f.source || {};
       return "<div class='sb-datareq' style='border-left-color:" + (red ? "#da1e28" : "#f1c21b") +
