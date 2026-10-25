@@ -332,6 +332,11 @@ async def patient_timeline(patient_hash: str, request: Request,
             "SELECT taken_at, dose_skipped, intake_time, notes, diary, event_uuid "
             "FROM medication_adherence_logs "
             "WHERE patient_hash_id=$1 ORDER BY taken_at DESC LIMIT 60", ph)
+        aes = await conn.fetch(
+            "SELECT ae_id, meddra_term, severity_ctcae, related_to_drug, reported_at, "
+            "roszdravnadzor_draft IS NOT NULL AS has_draft "
+            "FROM adverse_events_and_risks WHERE patient_hash_id=$1 "
+            "ORDER BY reported_at DESC LIMIT 20", ph)
 
     return {
         "patient_hash": patient_hash,
@@ -339,6 +344,7 @@ async def patient_timeline(patient_hash: str, request: Request,
         "alerts": [{**dict(a), "reasons": _json.loads(a["reasons"]) if a["reasons"] else []}
                    for a in alerts],
         "adherence": [dict(x) for x in adherence],
+        "adverse_events": [dict(a) for a in aes],
         "note": "RLS: врач видит только своих пациентов; чужие списки пусты",
     }
 
