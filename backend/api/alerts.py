@@ -165,6 +165,7 @@ async def patient_checkin(req: CheckinRequest, request: Request,
             json.dumps(req.diary) if req.diary else None, req.event_uuid,
         )
 
+        diary_symptoms = (req.diary or {}).get("symptoms") or []
         # Дневник → patient_diary_entries (UPSERT по дню): источник «фактов
         # действия» (intake_time × жалобы, RMSE «до еды», стрик).
         _CHIP2CODE = {
