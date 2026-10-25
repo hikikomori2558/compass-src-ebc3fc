@@ -688,7 +688,8 @@
           (tl.adherence || []).slice(0, 3).forEach(function (a) {
             bits.push("<div class='dash-tl'>приём " + (a.dose_skipped ? "пропущен" : "принят") +
               " <span class='when'>" + new Date(a.taken_at).toLocaleDateString("ru-RU") +
-              (a.pdc_pct !== null ? " • PDC " + a.pdc_pct + "%" : "") + "</span></div>");
+              (a.intake_time ? " в " + a.intake_time : "") +
+              (a.notes ? " • «" + a.notes + "»" : "") + "</span></div>");
           });
           // «Факты действия препарата»: подсветка паттернов из дневника
           var facts = [];
