@@ -91,7 +91,7 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
             "WHERE patient_hash_id=$1 ORDER BY taken_at", ph)
         hads = await conn.fetch(
             "SELECT scale_code, total_score FROM patient_scale_assessments "
-            "WHERE patient_hash_id=$1 AND scale_code LIKE 'HADS%' ORDER BY taken_at DESC", ph)
+            "WHERE patient_hash_id=$1 AND scale_code IN ('HADS-A','HADS-D') ORDER BY taken_at DESC", ph)
 
     if not gad_rows and not logs:
         return None  # данных нет — профиль не выдумываем

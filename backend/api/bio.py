@@ -447,11 +447,53 @@ async def submit_scale(code: str, payload: ScaleSubmit, request: Request,
         ph = _uuid.UUID(patient.sub)
         items = _json.dumps({"answers": payload.answers}, ensure_ascii=False)
         async with db_conn(pool, role="PATIENT", user_id=patient.sub) as conn:
-            await conn.execute(
+            # taken_at фиксируем один раз: подшкалы HADS-A/D должны попасть в БД
+            # с тем же временем, что и общий балл (иначе графики разъезжаются)
+            taken_at = await conn.fetchval(
                 "INSERT INTO patient_scale_assessments (patient_hash_id, scale_code, total_score, items, taken_at) "
-                "VALUES ($1,$2,$3,$4::jsonb, now())",
+                "VALUES ($1,$2,$3,$4::jsonb, now()) RETURNING taken_at",
                 ph, result["scale_code"], result["total_score"], items)
+            if code.upper() == "HADS":
+                for sub_code, sub_total in (("HADS-A", result["hads_a"]), ("HADS-D", result["hads_d"])):
+                    await conn.execute(
+                        "INSERT INTO patient_scale_assessments (patient_hash_id, scale_code, total_score, items, taken_at) "
+                        "VALUES ($1,$2,$3,$4::jsonb, $5)",
+                        ph, sub_code, sub_total, items, taken_at)
     result["stored"] = pool is not None
+    return result
+
+
+@bio_router.post("/patient/{patient_hash}/clinician-scale",
+                 summary="[Врач] Записать клиницистскую шкалу (HAM-A / CGI) по пациенту")
+async def submit_clinician_scale(patient_hash: str, code: str, payload: ScaleSubmit,
+                                 request: Request, principal: Principal = Depends(get_principal)) -> Dict[str, Any]:
+    """HAM-A-14 и CGI заполняет ВРАЧ на приёме (КР МЗ РФ: шкала Гамильтона —
+    врачебная оценка). Пишем под ролью врача: RLS сам проверит app_is_attending."""
+    import json as _json
+    import uuid as _uuid
+
+    from backend.db.context import db_conn
+    from fastapi import HTTPException
+
+    if principal.role not in ("DOCTOR_PSYCHIATRIST", "DOCTOR_NEUROLOGIST", "DOCTOR_GP", "ADMIN_METHODOLOGIST"):
+        raise HTTPException(403, "Клиницистские шкалы заполняет врач")
+    if code.upper() not in ("HAM-A", "CGI"):
+        raise HTTPException(400, "Этот эндпоинт — только для клиницистских шкал (HAM-A, CGI)")
+    result = score_answers(code.upper(), payload.answers)
+    if "error" in result:
+        raise HTTPException(400, result["error"])
+    pool = getattr(request.app.state, "pg_pool", None)
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    ph = _uuid.UUID(patient_hash)
+    items = _json.dumps({"answers": payload.answers, "filled_by_role": principal.role},
+                        ensure_ascii=False)
+    async with db_conn(pool, role=principal.role, user_id=principal.sub) as conn:
+        await conn.execute(
+            "INSERT INTO patient_scale_assessments (patient_hash_id, scale_code, total_score, items, taken_at) "
+            "VALUES ($1,$2,$3,$4::jsonb, now())",
+            ph, result["scale_code"], result["total_score"], items)
+    result["stored"] = True
     return result
 
 
