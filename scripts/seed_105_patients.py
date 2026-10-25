@@ -24,7 +24,7 @@ import json
 import os
 import sys
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time as dtime, timedelta, timezone
 
 import asyncpg
 
@@ -258,7 +258,8 @@ async def main() -> int:
                     "taken, before_meal_30min, side_effects, mood_score, anxiety_score, "
                     "sleep_score, notes) VALUES ($1, current_date - make_interval(days => $2::int), "
                     "$3, $4, $5, $6::jsonb, $7, $8, $9, $10)",
-                    P, d_ago, (None if skipped else f"{it}:00"), not skipped,
+                    P, d_ago,
+                    (None if skipped else dtime(int(it[:2]), int(it[3:5]))), not skipped,
                     ((day * 7 + n) % 10) > 0, json.dumps(se, ensure_ascii=False),
                     max(1, 5 - g_cur // 5), max(1, min(10, g_cur // 2 + 1)),
                     max(1, 10 - g_cur // 3), chip)
