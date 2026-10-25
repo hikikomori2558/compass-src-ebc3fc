@@ -263,7 +263,8 @@ async def patient_cluster_profile(patient_hash: str, request: Request,
     pool = getattr(request.app.state, "pg_pool", None)
     if pool is None:
         raise HTTPException(503, "БД недоступна")
-    profile = await compute_profile_from_db(pool, patient_hash)
+    profile = await compute_profile_from_db(pool, patient_hash,
+                                            caller_role=principal.role, caller_id=principal.sub)
     if profile is None:
         raise HTTPException(404, "У пациента нет данных для кластеризации (нет шкал и приёмов)")
     return profile

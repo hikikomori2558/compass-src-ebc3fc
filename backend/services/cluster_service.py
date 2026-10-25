@@ -64,13 +64,16 @@ def _sechenov_zscore(gad7_series: List[Tuple[int, float]]) -> float:
     return round(max(-3.0, min(3.0, (ref_val - last_val) / max(1.0, ref_val) * 3.0)), 3)
 
 
-async def compute_profile_from_db(pool, patient_hash: str) -> Optional[Dict[str, Any]]:
+async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = "",
+                                  caller_id: str = "") -> Optional[Dict[str, Any]]:
     """Считает и персистит кластерный профиль пациента из реальных строк БД.
 
+    Чтение — под контекстом вызывающего (RLS: врач видит своих, пациент — себя).
+    Запись — под AUTH_SERVICE (как при привязке).
     Возвращает dict профиля или None, если у пациента нет данных (ни одной шкалы).
     """
     ph = uuid.UUID(patient_hash)
-    async with db_conn(pool, role="AUTH_SERVICE", user_id=patient_hash) as conn:
+    async with db_conn(pool, role=caller_role or "AUTH_SERVICE", user_id=caller_id or patient_hash) as conn:
         gad_rows = await conn.fetch(
             "SELECT total_score, taken_at FROM patient_scale_assessments "
             "WHERE patient_hash_id=$1 AND scale_code IN ('GAD-7','ГТР-7') ORDER BY taken_at", ph)
