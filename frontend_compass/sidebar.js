@@ -1214,21 +1214,24 @@
       ctx.fillStyle = "#4a5d68";
       ctx.fillText(l.label, pt[0] - 22, pt[1] + 24);
     });
-    // пациенты (реальные)
+    // пациенты (реальные). Подпись — только при зуме ≥ 1.6: 105 подписей
+    // без зума превращаются в чёрное пятно (было на скрине жюри)
     d.patients.forEach(function (p) {
       var pt = P([p.x, p.y]);
       var col = CLUSTER_COLORS[(p.cluster || "").split("_")[0]] || "#15171a";
       ctx.beginPath(); ctx.arc(pt[0], pt[1], p.ood ? 6 : 5.5, 0, 7);
       ctx.fillStyle = col; ctx.fill();
       if (p.ood) { ctx.strokeStyle = "#c0392b"; ctx.lineWidth = 2; ctx.stroke(); }
-      ctx.font = "700 11px system-ui"; ctx.fillStyle = "#15171a";
-      ctx.fillText("П-" + p.hash6, pt[0] + 8, pt[1] - 8);
+      if (clusterMap.scale >= 1.6) {
+        ctx.font = "700 11px system-ui"; ctx.fillStyle = "#15171a";
+        ctx.fillText("П-" + p.hash6, pt[0] + 8, pt[1] - 8);
+      }
     });
     // легенда
     ctx.fillStyle = "#525252"; ctx.font = "11px system-ui";
     ctx.fillText("серые точки — референсные траектории исследований (не пациенты)", 12, 18);
     ctx.fillText("цветные — ваши пациенты (RLS); красный контур = OOD, без экстраполяции", 12, 34);
-    ctx.fillText("колесо — зум • перетаскивание фона — панорама • клик — карточка пациента", 12, H - 10);
+    ctx.fillText("колесо — зум (подписи пациентов от 1.6x) • перетаскивание — панорама • клик — карточка", 12, H - 10);
   }
 
   function bindClusterCanvasEvents() {
