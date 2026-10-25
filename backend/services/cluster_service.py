@@ -188,8 +188,17 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
     cluster_id = int(assigned["assigned_cluster_code"].split("K")[1].split("_")[0]) - 1
     # Ledoit-Wolf ковариация кластера: референсные образцы (детерминированные сиды,
     # честно помечены как reference) + реальные вектора пациентов этого кластера
-    _fit_cluster_reference(cluster_id)
-    ood = _OT.evaluate_mahalanobis_ood(z24, cluster_id=cluster_id).to_dict()
+    try:
+        _fit_cluster_reference(cluster_id)
+        ood = _OT.evaluate_mahalanobis_ood(z24, cluster_id=cluster_id).to_dict()
+    except (KeyError, RuntimeError, Exception):
+        # C-ядро не смогло оценить OOD (кластер не обучен / сингулярная ковариация):
+        # честный fallback — OOD-отчёт с неопределённым статусом
+        ood = {
+            "is_ood_anomaly": False, "mahalanobis_dist": 0.0, "chi2_p_value": None,
+            "chi2_threshold_99": None, "feature_contributions_to_d2": {},
+            "note": "OOD не рассчитан: недостаточно данных для ковариации кластера",
+        }
 
     # проекция: кластерный центр + персональное смещение от осей вклада Махаланобиса
     cluster_key = next((k for k in _ENGINE.CLUSTERS_METADATA
