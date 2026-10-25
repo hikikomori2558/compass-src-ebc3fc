@@ -986,6 +986,32 @@
           "<div><b>Бенчмарк:</b> " + (clu.clinical_benchmark || "—") + "</div>" +
           (clu.clinical_use ? "<div class='sb-dim'>" + clu.clinical_use + "</div>" : "");
       }
+    } else if (alertPh) {
+      // Пациент из БД (без разбора ЭМК): карта строится из cluster-map API,
+      // KV — из персонального кластер-профиля (24D, OOD, приверженность)
+      bindClusterCanvasEvents();
+      drawClusterMap(null);
+      call("/api/v1/compass-bio/patient/" + alertPh + "/cluster-profile", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+      }).then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (cp) {
+          if (!cp) return;
+          var cur = dashPatientHash || (state.currentAlert && state.currentAlert.patient_hash);
+          if (cur !== alertPh) return;
+          var ood = cp.ood || {};
+          var tops = (ood.top_contributions || []).slice(0, 2)
+            .map(function (c) { return c[0]; }).join(", ");
+          $("dash-cluster-kv").dataset.ph = alertPh;
+          $("dash-cluster-kv").innerHTML =
+            "<div><b>Кластер:</b> " + (cp.cluster_title || cp.cluster_code) + "</div>" +
+            "<div><b>DTW до траектории Сеченова (36 нед)</b> " + (cp.dtw || "—") + "</div>" +
+            "<div><b>Махаланобис D²:</b> " + (ood.mahalanobis_dist !== undefined && ood.mahalanobis_dist !== null ? Number(ood.mahalanobis_dist).toFixed(1) : "—") +
+            " • OOD: " + (ood.is_ood_anomaly ? "<b style='color:#c0392b'>вне границ — экстраполяции нет</b>" : "в коридоре кластера") +
+            (tops ? " • вклад: " + tops : "") + "</div>" +
+            "<div><b>Приверженность (PDC):</b> " + ((cp.facts || {}).pdc || "—") + "% • приёмов: " +
+            ((cp.facts || {}).doses_logged || 0) + " • пропусков: " + ((cp.facts || {}).skips || 0) + "</div>" +
+            ((cp.imputed_inputs || []).length ? "<div class='sb-dim'>Оси по умолчанию (нет данных): " + cp.imputed_inputs.join(", ") + "</div>" : "");
+        }).catch(function () {});
     }
     // уведомления
     call("/api/v1/alerts/unconfirmed").then(function (r) { return r.ok ? r.json() : null; })
