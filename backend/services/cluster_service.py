@@ -249,8 +249,8 @@ def _fit_cluster_reference(cluster_id: int) -> None:
     base = meta[key]["umap_coords"]
     samples = []
     for _ in range(40):
-        row = [round(base[0] + (rng() - 0.5) * 2.0, 3), round(base[1] + (rng() - 0.5) * 1.4, 3)]
-        row += [round(rng(), 3) for _ in range(22)]
+        row = [round(base[0] + (rng.random() - 0.5) * 2.0, 3), round(base[1] + (rng.random() - 0.5) * 1.4, 3)]
+        row += [round(rng.random(), 3) for _ in range(22)]
         samples.append(row)
     _OT.fit_cluster_ledoit_wolf(samples, cluster_id=cluster_id)
     _FITTED.add(cluster_id)
