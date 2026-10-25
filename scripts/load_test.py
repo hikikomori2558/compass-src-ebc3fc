@@ -10,7 +10,7 @@
 #   benchmarks/load_results.json + benchmarks/plots/fig6_load_profile.png
 #
 # Запуск: scripts/load_test.py [BASE_URL] [TOKEN_FILE]
-#   (токен минтится автоматически тем же дев-секретом; LOGIN rate-limit в нагрузку не входит)
+#   (токен — честный вход по логину/паролю из окружения, как у реального врача)
 import asyncio
 import json
 import os
@@ -78,8 +78,13 @@ async def run_scenario(name, path, payload, total, conc, token):
 async def main() -> int:
     import httpx
 
-    from backend.services.auth import mint_access
-    token = mint_access("load-test", "DOCTOR_PSYCHIATRIST")
+    async with httpx.AsyncClient() as c:
+        r = await c.post(BASE + "/api/v1/auth/login", json={
+            "login": os.getenv("COMPASS_LOGIN", "neuro.ivlanov"),
+            "password": os.getenv("COMPASS_PASSWORD", "compass-demo-2026"),
+        })
+        r.raise_for_status()
+        token = r.json()["access_token"]
 
     # прогрев C-ядра и соединений
     async with httpx.AsyncClient() as c:
