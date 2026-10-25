@@ -280,7 +280,8 @@ async def patient_timeline(patient_hash: str, request: Request,
             "FROM clinical_alerts_and_routing WHERE patient_hash_id=$1 "
             "ORDER BY created_at DESC LIMIT 30", ph)
         adherence = await conn.fetch(
-            "SELECT taken_at, dose_skipped, pdc_pct, kop25_score FROM medication_adherence_logs "
+            "SELECT taken_at, dose_skipped, intake_time, notes, diary, event_uuid "
+            "FROM medication_adherence_logs "
             "WHERE patient_hash_id=$1 ORDER BY taken_at DESC LIMIT 60", ph)
 
     return {

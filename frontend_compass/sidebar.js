@@ -690,6 +690,45 @@
               " <span class='when'>" + new Date(a.taken_at).toLocaleDateString("ru-RU") +
               (a.pdc_pct !== null ? " • PDC " + a.pdc_pct + "%" : "") + "</span></div>");
           });
+          // «Факты действия препарата»: подсветка паттернов из дневника
+          var facts = [];
+          var adh = tl.adherence || [];
+          var notes = adh.filter(function (a) { return a.notes; });
+          if (notes.length) {
+            facts.push({ ok: false, t: "Жалобы пациента (направлены врачу): " +
+              notes.slice(0, 3).map(function (a) { return a.notes; }).join("; ") });
+          }
+          var skips = adh.filter(function (a) { return a.dose_skipped; }).length;
+          if (skips > 0) {
+            facts.push({ ok: false, t: "Пропусков доз: " + skips + " из " + adh.length +
+              " — приверженность " + Math.round(100 * (adh.length - skips) / Math.max(1, adh.length)) + "%" });
+          }
+          var intakeTimes = adh.filter(function (a) { return a.intake_time; }).map(function (a) { return a.intake_time; });
+          if (intakeTimes.length >= 3) {
+            var uniq = Array.from(new Set(intakeTimes));
+            facts.push({ ok: true, t: "Время приёма стабильно: " + uniq.join(", ") +
+              (uniq.length === 1 ? " — режим соблюдается" : " — время «плавает», стоит уточнить") });
+          }
+          var diaryFacts = adh.filter(function (a) { return a.diary; });
+          var sxCount = 0;
+          diaryFacts.forEach(function (a) {
+            try { var d = typeof a.diary === "string" ? JSON.parse(a.diary) : a.diary;
+              if (d && d.symptoms && String(d.symptoms).indexOf("Ничего") < 0) sxCount += 1;
+            } catch (e) {}
+          });
+          if (sxCount > 0) {
+            facts.push({ ok: false, t: "Переносимость: симптомы отмечены в " + sxCount + " из " +
+              diaryFacts.length + " дневников — ожидаемо для первых недель, динамику смотрим в графике" });
+          }
+          if (adh.length >= 5 && skips === 0) {
+            facts.push({ ok: true, t: "Приверженность 100% за " + adh.length + " дней — режим усваивается" });
+          }
+          var factsBox = $("dash-facts");
+          if (factsBox) factsBox.innerHTML = facts.length ? facts.map(function (f) {
+            return "<div class='dash-tl' style='border-left:3px solid " + (f.ok ? "#4a7c59" : "#a65b4b") +
+              ";padding-left:8px'><b>" + (f.ok ? "OK" : "ВНИМАНИЕ") + "</b> — " + f.t + "</div>";
+          }).join("") : "<span class='sb-dim'>Данных дневника пока мало.</span>";
+
           tlBox.innerHTML = bits.length ? bits.join("") : "<span class='sb-dim'>История пуста.</span>";
         }).catch(function () {});
     } else {
