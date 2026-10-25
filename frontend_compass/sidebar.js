@@ -449,7 +449,11 @@
     var SCALE_RU = { "GAD-7": "Тревога GAD-7", "HADS-A": "HADS-тревога", "HADS-D": "HADS-депрессия",
                      "HAM-A": "HAM-A (врач)", "CGI": "CGI (врач)" };
     Object.keys(byScale).forEach(function (code) {
-      var arr = byScale[code].slice(-2);
+      // timeline приходит newest-first (ORDER BY taken_at DESC) — разворачиваем
+      // в хронологию, иначе улучшение показывается как ухудшение
+      var arr = byScale[code].slice().sort(function (a, b) {
+        return new Date(a.taken_at) - new Date(b.taken_at);
+      }).slice(-2);
       if (arr.length >= 2) {
         var d0 = new Date(arr[0].taken_at).toLocaleDateString("ru-RU");
         var d1 = new Date(arr[1].taken_at).toLocaleDateString("ru-RU");
@@ -490,7 +494,9 @@
     factsBox.innerHTML = bits.length ? bits.join("") :
       "<span class='sb-dim'>Данных пока нет: пациент не отмечал приёмы и не заполнял шкалы.</span>";
     // график GAD-7 с линиями КР
-    var gad = (byScale["GAD-7"] || []).slice(-10);
+    var gad = (byScale["GAD-7"] || []).slice().sort(function (a, b) {
+      return new Date(a.taken_at) - new Date(b.taken_at);
+    }).slice(-10);
     if (canvas && gad.length >= 2) {
       canvas.hidden = false;
       if (noteEl) noteEl.hidden = false;
