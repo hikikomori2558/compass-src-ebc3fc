@@ -1,694 +1,728 @@
 {
-  "schema_version": "2026.10.v2.6",
-  "HotReloadSupported": true,
-  "human_in_the_loop_disclaimer": "Клинический ассистент подготовил структурированную сводку, выявил факторы риска и сформировал проект рекомендаций. Окончательное клиническое решение и назначение терапии подтверждает только лечащий врач (Условие №7).",
-  "psychometric_scales_registry": {
-    "HADS": {
-      "code": "HADS",
-      "title_ru": "Госпитальная шкала тревоги и депрессии (HADS-A / HADS-D)",
-      "target_role": "PATIENT_SELF_REPORT",
-      "items_count": 14,
-      "subscales": [
-        "HADS_A",
-        "HADS_D"
-      ],
-      "validation_passport": {
-        "authors_ru": "Морозова М.А., Потанин С.С., Бениашвили А.Г. и соавт.",
-        "year": 2023,
-        "citation": "Валидация русскоязычной версии Госпитальной шкалы тревоги и депрессии (HADS) в общей популяции, 2023",
-        "license_type": "Validated Russian Clinical Adaptation (Academic/Clinical Use)",
-        "recommended_by_minzdrav_kr": true
-      },
-      "cutoffs": {
-        "0_7": {
-          "level": "NORMAL",
-          "label_ru": "Норма (отсутствие достоверно выраженных симптомов)"
-        },
-        "8_10": {
-          "level": "SUBCLINICAL",
-          "label_ru": "Субклинически выраженная тревога / депрессия"
-        },
-        "11_21": {
-          "level": "CLINICAL",
-          "label_ru": "Клинически выраженная тревога / депрессия"
-        }
-      }
+ "schema_version": "2026.10.v2.6",
+ "HotReloadSupported": true,
+ "human_in_the_loop_disclaimer": "Клинический ассистент подготовил структурированную сводку, выявил факторы риска и сформировал проект рекомендаций. Окончательное клиническое решение и назначение терапии подтверждает только лечащий врач (Условие №7).",
+ "psychometric_scales_registry": {
+  "HADS": {
+   "code": "HADS",
+   "title_ru": "Госпитальная шкала тревоги и депрессии (HADS-A / HADS-D)",
+   "target_role": "PATIENT_SELF_REPORT",
+   "items_count": 14,
+   "subscales": [
+    "HADS_A",
+    "HADS_D"
+   ],
+   "validation_passport": {
+    "authors_ru": "Морозова М.А., Потанин С.С., Бениашвили А.Г. и соавт.",
+    "year": 2023,
+    "citation": "Валидация русскоязычной версии Госпитальной шкалы тревоги и депрессии (HADS) в общей популяции, 2023",
+    "license_type": "Validated Russian Clinical Adaptation (Academic/Clinical Use)",
+    "recommended_by_minzdrav_kr": true
+   },
+   "cutoffs": {
+    "0_7": {
+     "level": "NORMAL",
+     "label_ru": "Норма (отсутствие достоверно выраженных симптомов)"
     },
-    "PHQ-9": {
-      "code": "PHQ-9",
-      "title_ru": "Опросник здоровья пациента (тяжесть депрессии PHQ-9)",
-      "target_role": "PATIENT_SELF_REPORT",
-      "items_count": 9,
-      "critical_item_index": 9,
-      "validation_passport": {
-        "authors_ru": "Погосова Н.В., Довженко Т.В. и др. (2014); Золотарева А.А. (2023)",
-        "year": 2023,
-        "citation": "Золотарева А.А. Диагностика депрессии: психометрическая оценка русскоязычной версии PHQ-9 // Клиническая и специальная психология. 2023;12(4)",
-        "license_type": "Public Domain (Pfizer Inc. — free for clinical & commercial use without permission)",
-        "recommended_by_minzdrav_kr": true
-      },
-      "cutoffs": {
-        "0_4": {
-          "level": "NONE",
-          "label_ru": "Депрессивная симптоматика отсутствует"
-        },
-        "5_9": {
-          "level": "MILD",
-          "label_ru": "Легкая депрессия"
-        },
-        "10_14": {
-          "level": "MODERATE",
-          "label_ru": "Умеренная депрессия"
-        },
-        "15_19": {
-          "level": "MODERATELY_SEVERE",
-          "label_ru": "Умеренно тяжелая депрессия"
-        },
-        "20_27": {
-          "level": "SEVERE",
-          "label_ru": "Тяжелая депрессия (требуется обязательная консультация психиатра)"
-        }
-      }
+    "8_10": {
+     "level": "SUBCLINICAL",
+     "label_ru": "Субклинически выраженная тревога / депрессия"
     },
-    "GAD-7": {
-      "code": "GAD-7",
-      "title_ru": "Шкала генерализованного тревожного расстройства (ГТР-7 / GAD-7)",
-      "target_role": "PATIENT_SELF_REPORT",
-      "items_count": 7,
-      "validation_passport": {
-        "authors_ru": "Золотарева А.А.",
-        "year": 2023,
-        "citation": "Золотарева А.А. Адаптация русскоязычной версии шкалы генерализованного тревожного расстройства (GAD-7) // Консультативная психология и психотерапия. 2023;31(4)",
-        "license_type": "Public Domain (Pfizer Inc. — free for clinical & commercial use)",
-        "recommended_by_minzdrav_kr": true
-      },
-      "cutoffs": {
-        "0_4": {
-          "level": "MINIMAL",
-          "label_ru": "Минимальная тревога"
-        },
-        "5_9": {
-          "level": "MILD",
-          "label_ru": "Легкая тревога"
-        },
-        "10_14": {
-          "level": "MODERATE",
-          "label_ru": "Умеренная тревога"
-        },
-        "15_21": {
-          "level": "SEVERE",
-          "label_ru": "Выраженная (тяжелая) тревога"
-        }
-      }
-    },
-    "C-SSRS": {
-      "code": "C-SSRS",
-      "title_ru": "Колумбийская шкала серьезности суицидальных намерений (скрининг)",
-      "target_role": "CLINICIAN_AND_TRIAGE",
-      "items_count": 6,
-      "validation_passport": {
-        "authors_ru": "КР Минздрава РФ (адаптация Columbia Lighthouse Project)",
-        "year": 2024,
-        "citation": "Клинические рекомендации Минздрава РФ «Депрессивный эпизод, Рекуррентное депрессивное расстройство» (2024)",
-        "license_type": "Free for Clinical & Healthcare Use (Columbia Lighthouse Project)",
-        "recommended_by_minzdrav_kr": true
-      },
-      "cutoffs": {
-        "0": {
-          "level": "NO_RISK",
-          "label_ru": "Суицидальный риск не выявлен"
-        },
-        "1_3": {
-          "level": "MODERATE_SUICIDAL_RISK",
-          "label_ru": "Суицидальные мысли (ОБЯЗАТЕЛЬНО направление к психиатру по ст. 23 Закона № 3185-1)"
-        },
-        "4_6": {
-          "level": "ACUTE_CRITICAL_RISK",
-          "label_ru": "Активный суицидальный план/намерение (КРИТИЧЕСКИЙ АЛЕРТ по ст. 29 п. «а» Закона № 3185-1)"
-        }
-      }
-    },
-    "SIGH-A": {
-      "code": "SIGH-A",
-      "title_ru": "Структурированное интервью шкалы тревоги Гамильтона (HAMA / SIGH-A)",
-      "target_role": "CLINICIAN_RATED",
-      "items_count": 14,
-      "validation_passport": {
-        "authors_ru": "Кинкулькина М.А., Волель Б.А., Морозова М.А. и соавт. (применялась в РКИ Авиандра)",
-        "year": 2025,
-        "citation": "Неврология, нейропсихиатрия, психосоматика. 2025;17(6):44–53",
-        "license_type": "Public Domain Clinical Scale",
-        "recommended_by_minzdrav_kr": true
-      },
-      "cutoffs": {
-        "0_7": {
-          "level": "REMISSION",
-          "label_ru": "Ремиссия (отсутствие тревоги, <= 7 баллов)"
-        },
-        "8_17": {
-          "level": "MILD",
-          "label_ru": "Легкая тревога"
-        },
-        "18_24": {
-          "level": "MODERATE",
-          "label_ru": "Умеренная тревога"
-        },
-        "25_56": {
-          "level": "SEVERE",
-          "label_ru": "Тяжелая тревога"
-        }
-      }
-    },
-    "MADRS": {
-      "code": "MADRS",
-      "title_ru": "Шкала Монтгомери — Асберг для оценки депрессии",
-      "target_role": "CLINICIAN_RATED",
-      "items_count": 10,
-      "validation_passport": {
-        "authors_ru": "КР Минздрава РФ (2024); РКИ Авиандра (Кинкулькина М.А., Волель Б.А., 2025)",
-        "year": 2024,
-        "citation": "Клинические рекомендации Минздрава РФ «Депрессивный эпизод, РДР» (2024)",
-        "license_type": "Standard Clinical Scale",
-        "recommended_by_minzdrav_kr": true
-      },
-      "cutoffs": {
-        "0_6": {
-          "level": "NORMAL",
-          "label_ru": "Отсутствие депрессии (ремиссия)"
-        },
-        "7_19": {
-          "level": "MILD",
-          "label_ru": "Малый депрессивный эпизод"
-        },
-        "20_34": {
-          "level": "MODERATE",
-          "label_ru": "Умеренный депрессивный эпизод"
-        },
-        "35_60": {
-          "level": "SEVERE",
-          "label_ru": "Большой (тяжелый) депрессивный эпизод"
-        }
-      }
-    },
-    "KOP-25": {
-      "code": "KOP-25",
-      "title_ru": "Российский количественный опросник приверженности лечению (КОП-25)",
-      "target_role": "PATIENT_SELF_REPORT",
-      "items_count": 25,
-      "validation_passport": {
-        "authors_ru": "Николаев Н.А., Скирденко Ю.П. (РНМОТ)",
-        "year": 2018,
-        "citation": "Национальное руководство РНМОТ «Приверженность лечению»",
-        "license_type": "Russian National Medical Society of Therapists (РНМОТ) Standard",
-        "recommended_by_minzdrav_kr": true
-      },
-      "cutoffs": {
-        "0_49": {
-          "level": "LOW",
-          "label_ru": "Низкая приверженность (высокий риск самостоятельной отмены ЛП!)"
-        },
-        "50_69": {
-          "level": "MEDIUM",
-          "label_ru": "Средняя приверженность (требуется цифровой контроль приема)"
-        },
-        "70_100": {
-          "level": "HIGH",
-          "label_ru": "Высокая приверженность терапии"
-        }
-      }
-    },
-    "MDQ": {
-      "code": "MDQ",
-      "title_ru": "Опросник расстройств настроения (скрининг БАР / гипомании)",
-      "target_role": "PATIENT_SELF_REPORT",
-      "items_count": 13,
-      "validation_passport": {
-        "authors_ru": "КР Минздрава РФ по БАР и депрессии",
-        "year": 2024,
-        "citation": "Скрининг биполярного спектра перед назначением антидепрессантов",
-        "license_type": "Clinical Screening Standard",
-        "recommended_by_minzdrav_kr": true
-      },
-      "cutoffs": {
-        "0_6": {
-          "level": "NEGATIVE",
-          "label_ru": "Признаков БАР не выявлено"
-        },
-        "7_13": {
-          "level": "POSITIVE_BIPOLAR_SCREEN",
-          "label_ru": "Подозрение на БАР (ОБЯЗАТЕЛЬНО направление к психиатру, риск инверсии аффекта!)"
-        }
-      }
+    "11_21": {
+     "level": "CLINICAL",
+     "label_ru": "Клинически выраженная тревога / депрессия"
     }
+   }
   },
-  "aviandr_clinical_trials_reference_corridors": {
-    "GAD_36_WEEKS_SECHENOV_2025": {
-      "study_title": "Долгосрочная терапия ГТР препаратом Авиандр (36 недель, Сеченовский Университет)",
-      "authors": "Кинкулькина М.А., Волель Б.А., Смолярчук Е.А., Иващенко А.В., Иващенко А.А. и соавт. (2025)",
-      "journal": "Неврология, нейропсихиатрия, психосоматика. 2025;17(6):44–53",
-      "sample_size": 98,
-      "response_rate_pct": 83.7,
-      "remission_rate_pct": 66.7,
-      "sigh_a_trajectory": [
-        {
-          "week": 0,
-          "mean": 22.06,
-          "sd": 5.8
-        },
-        {
-          "week": 2,
-          "mean": 19.12,
-          "sd": 5.91
-        },
-        {
-          "week": 8,
-          "mean": 14.12,
-          "sd": 5.44
-        },
-        {
-          "week": 16,
-          "mean": 9.84,
-          "sd": 5.44
-        },
-        {
-          "week": 24,
-          "mean": 7.44,
-          "sd": 5.13
-        },
-        {
-          "week": 36,
-          "mean": 6.9,
-          "sd": 6.2
-        }
-      ],
-      "madrs_trajectory": [
-        {
-          "week": 0,
-          "mean": 14.6,
-          "sd": 7.62
-        },
-        {
-          "week": 36,
-          "mean": 4.15,
-          "sd": 5.33
-        }
-      ],
-      "moca_trajectory": [
-        {
-          "week": 0,
-          "mean": 27.4,
-          "sd": 1.91
-        },
-        {
-          "week": 36,
-          "mean": 29.0,
-          "sd": 1.54
-        }
-      ],
-      "response_pct": 83.7,
-      "remission_pct": 66.7,
-      "madrs": {
-        "baseline": 14.6,
-        "sd_baseline": 7.62,
-        "final": 4.15,
-        "sd_final": 5.33
-      },
-      "moca": {
-        "baseline": 27.4,
-        "sd_baseline": 1.91,
-        "final": 29.0,
-        "sd_final": 1.54,
-        "p_lt": 0.001
-      }
+  "PHQ-9": {
+   "code": "PHQ-9",
+   "title_ru": "Опросник здоровья пациента (тяжесть депрессии PHQ-9)",
+   "target_role": "PATIENT_SELF_REPORT",
+   "items_count": 9,
+   "critical_item_index": 9,
+   "validation_passport": {
+    "authors_ru": "Погосова Н.В., Довженко Т.В. и др. (2014); Золотарева А.А. (2023)",
+    "year": 2023,
+    "citation": "Золотарева А.А. Диагностика депрессии: психометрическая оценка русскоязычной версии PHQ-9 // Клиническая и специальная психология. 2023;12(4)",
+    "license_type": "Public Domain (Pfizer Inc. — free for clinical & commercial use without permission)",
+    "recommended_by_minzdrav_kr": true
+   },
+   "cutoffs": {
+    "0_4": {
+     "level": "NONE",
+     "label_ru": "Депрессивная симптоматика отсутствует"
     },
-    "POST_COVID_ADAPTATION_4_WEEKS_2024": {
-      "study_title": "РКИ III фазы при пост-COVID тревоге и расстройстве адаптации",
-      "authors": "Попова В.Б., Антонова Е.А. и соавт. (2024)",
-      "journal": "Журнал неврологии и психиатрии им. С.С. Корсакова. 2024;124(7):1–8",
-      "sample_size": 109,
-      "week_1_reduction_pct": 40.0,
-      "week_4_responder_rate_pct": 83.0,
-      "week_4_remission_rate_pct": 74.4,
-      "ham_a_trajectory": {
-        "baseline": 20.4,
-        "day14": 12.2,
-        "day28": 6.2,
-        "post_treatment": 4.7
-      },
-      "reduction_day28_pct": 69.4,
-      "response_day28_pct": 83.49,
-      "remission_hama_le7_day28_pct": 68.81,
-      "remission_last_visit_pct": 79.8,
-      "madrs_change": -8.0,
-      "madrs_reduction_pct": 61.9,
-      "vas_asthenia_mm": {
-        "change": -38.3,
-        "reduction_pct": 63.6
-      },
-      "sds_change": -8.5,
-      "dsst_correct": {
-        "change": 5.0,
-        "growth_pct": 13.2
-      },
-      "completion_28d_pct": 92.7,
-      "extended_to_42d_pct": 7.3
+    "5_9": {
+     "level": "MILD",
+     "label_ru": "Легкая депрессия"
     },
-    "RCT3_GAD_MOROZOVA_2024": {
-      "design": "РКИ III фазы при ГТР, n=160 (3:1: 121 маритупирдин 40 мг/сут vs 39 плацебо), 8 недель двойного слепого этапа + 24 недели открытой терапии + 4 недели наблюдения",
-      "primary_endpoint": {
-        "sigh_a_change_week8": {
-          "drug": -11.97,
-          "sd_drug": 7.6,
-          "placebo": -8.21,
-          "sd_placebo": 6.2,
-          "between_group": 3.76,
-          "p": 0.006
-        },
-        "response_50pct_week8": {
-          "drug_pct": 36.97,
-          "drug_n": 44,
-          "placebo_pct": 15.38,
-          "placebo_n": 6,
-          "p": 0.012
-        }
-      },
-      "open_phase": {
-        "week16": {
-          "sigh_a_change": -16.08,
-          "response_pct": 65.75
-        },
-        "week24": {
-          "sigh_a_change": -20.28,
-          "response_pct": 86.67
-        },
-        "week32": {
-          "sigh_a_change": -22.53,
-          "response_pct": 89.47,
-          "remission_sigh_a_le7_pct": 68.42,
-          "n_completed": 133
-        }
-      },
-      "secondary_week8": {
-        "sigh_a_psychic": {
-          "drug": -5.71,
-          "placebo": -3.82,
-          "p": 0.008
-        },
-        "sigh_a_somatic": {
-          "drug": -6.27,
-          "placebo": -4.39,
-          "p": 0.018
-        },
-        "madrs": {
-          "drug": -6.54,
-          "placebo": -3.55,
-          "p_lt": 0.001,
-          "week32": -11.38
-        },
-        "sds_functioning": {
-          "drug": -5.4,
-          "placebo": -2.89,
-          "p": 0.024,
-          "week32": -10.91
-        },
-        "tmt_a_sec": {
-          "drug": -9.39,
-          "placebo": -7.58,
-          "p": 0.676
-        },
-        "tmt_b_sec": {
-          "drug": -22.35,
-          "placebo": -18.63,
-          "p": 0.704
-        },
-        "vas_daytime_sleepiness": {
-          "drug": -11.41,
-          "placebo": -10.95,
-          "p": 0.955
-        },
-        "treatment_related_ae": {
-          "drug_pct": 9.0,
-          "placebo_pct": 10.0
-        }
-      },
-      "usage": "Эталонный коридор ответа/ремиссии для стратификации К1–К5 и графиков динамики."
+    "10_14": {
+     "level": "MODERATE",
+     "label_ru": "Умеренная депрессия"
     },
-    "RCT2_GAD_IVASHCHENKO_2021": {
-      "design": "РКИ II фазы при ГТР, n=129, 8 недель, 17 центров",
-      "ham_a_reduction_week8_pct": {
-        "dose40": 53.7,
-        "dose60": 47.7,
-        "placebo": 16.3,
-        "p_lt": 0.001
-      },
-      "early_effect_week1_pct": -27,
-      "any_ae_safety": {
-        "n": [
-          42,
-          44,
-          43
-        ],
-        "dose40_pct": 28.6,
-        "dose60_pct": 45.5,
-        "placebo_pct": 27.9
-      },
-      "somnolence_pct": {
-        "dose40": 2.4,
-        "dose60": 15.9,
-        "placebo": 2.3
-      },
-      "usage": "Обоснование дозы 40 мг/сут и профиля транзиторной сонливости 1–5 дня."
+    "15_19": {
+     "level": "MODERATELY_SEVERE",
+     "label_ru": "Умеренно тяжелая депрессия"
     },
-    "PANIC_RCT3_2025": {
-      "design": "РКИ III фазы при паническом расстройстве, n=288, 12 недель, открытый пароксетин",
-      "pdss_change": {
-        "drug": -4.99,
-        "comparator_paroxetine": -2.28,
-        "p": 0.047
-      },
-      "usage": "Off-Label: паническое расстройство — фаза III завершена (маршрут OFF_LABEL_PHASE3)."
-    },
-    "ADAPTATION_OPEN_2026": {
-      "design": "Пострегистрационное открытое исследование при расстройствах адаптации, n=452, 6 недель",
-      "remission_sigh_a_week6_pct": 72.35,
-      "usage": "Off-Label поддержка маршрута при F43.2 (открытые данные, без плацебо — см. open_label_disclaimer)."
+    "20_27": {
+     "level": "SEVERE",
+     "label_ru": "Тяжелая депрессия (требуется обязательная консультация психиатра)"
     }
+   }
   },
-  "therapy_options_grls_catalog": {
-    "AVIANDR": {
-      "trade_name": "Авиандр®",
-      "inn": "Маритупирдин (Maritupirdine)",
-      "ru_number": "ЛП-№(002445)-(РГ-RU) от 31.05.2023",
-      "ath_code": "N05BX",
-      "in_label_icd10": [
-        "F41.1",
-        "F41.9",
-        "F43.2",
-        "R45.7",
-        "Z60.0"
-      ],
-      "completed_phase3_off_label_icd10": {
-        "F41.0": "Паническое расстройство: успешно завершено КИ III фазы (Сеченовский Университет, март 2026, N=228). До внесения показания в ОХЛП ГРЛС назначение возможно только по решению врача / врачебной комиссии (ВК).",
-        "F33": "Рекуррентное депрессивное расстройство: КИ III фазы. Требуется решение врача / ВК."
-      },
-      "dosing_regimen": "По 1 таблетке (20 мг) 2 раза в сутки (утром и вечером) строго за 30 минут до еды, не разжёвывая. Суточная доза — 40 мг. При пропуске дозы НЕ принимать двойную дозу.",
-      "receptor_profile": "Мультитаргетный антагонист: высокоаффинный антагонизм к 5-HT7 (Ki = 0.153 нМ — основная мишень), а также 5-HT6, 5-HT2A/5-HT2C, пресинаптическим α2A/α2B/α2C-адренорецепторам и H1-гистаминовым рецепторам. Прямого взаимодействия с ГАМК-А рецепторами НЕТ (нет бензодиазепиновой зависимости и синдрома отмены), ингибирования обратного захвата моноаминов (SERT/NET/DAT) НЕТ (нет типичной для СИОЗС сексуальной дисфункции и набора веса).",
-      "dosing_rationale": "Оптимальная доза 40 мг/сут (20 мг × 2 р/сут) обоснована РКИ II (Ivashchenko 2021, n=129): снижение HAM-A на 53.7% при 40 мг/сут против 47.7% при 60 мг/сут и 16.3% на плацебо (p<0.001) при частоте сонливости 2.4% против 15.9% на 60 мг/сут."
+  "GAD-7": {
+   "code": "GAD-7",
+   "title_ru": "Шкала генерализованного тревожного расстройства (ГТР-7 / GAD-7)",
+   "target_role": "PATIENT_SELF_REPORT",
+   "items_count": 7,
+   "validation_passport": {
+    "authors_ru": "Золотарева А.А.",
+    "year": 2023,
+    "citation": "Золотарева А.А. Адаптация русскоязычной версии шкалы генерализованного тревожного расстройства (GAD-7) // Консультативная психология и психотерапия. 2023;31(4)",
+    "license_type": "Public Domain (Pfizer Inc. — free for clinical & commercial use)",
+    "recommended_by_minzdrav_kr": true
+   },
+   "cutoffs": {
+    "0_4": {
+     "level": "MINIMAL",
+     "label_ru": "Минимальная тревога"
+    },
+    "5_9": {
+     "level": "MILD",
+     "label_ru": "Легкая тревога"
+    },
+    "10_14": {
+     "level": "MODERATE",
+     "label_ru": "Умеренная тревога"
+    },
+    "15_21": {
+     "level": "SEVERE",
+     "label_ru": "Выраженная (тяжелая) тревога"
     }
+   }
   },
-  "evidence_grades": {
-    "schema_note": "PROVEN — доказано в плацебо-контролируемых РКИ; SECONDARY — подтверждено как вторичный исход; PROMISING — доклиника + открытые исследования, в РКИ отличия от плацебо незначимы. СППВР маркирует эффекты этим статусом в подсказках врачу.",
-    "anxiolytic": {
-      "level": "PROVEN",
-      "evidence": "Плацебо-контролируемые РКИ при ГТР: фаза II p<0.001 (Ivashchenko 2021), фаза III p=0.006 (Морозова 2024, SIGH-A −11.97 vs −8.21)."
+  "C-SSRS": {
+   "code": "C-SSRS",
+   "title_ru": "Колумбийская шкала серьезности суицидальных намерений (скрининг)",
+   "target_role": "CLINICIAN_AND_TRIAGE",
+   "items_count": 6,
+   "validation_passport": {
+    "authors_ru": "КР Минздрава РФ (адаптация Columbia Lighthouse Project)",
+    "year": 2024,
+    "citation": "Клинические рекомендации Минздрава РФ «Депрессивный эпизод, Рекуррентное депрессивное расстройство» (2024)",
+    "license_type": "Free for Clinical & Healthcare Use (Columbia Lighthouse Project)",
+    "recommended_by_minzdrav_kr": true
+   },
+   "cutoffs": {
+    "0": {
+     "level": "NO_RISK",
+     "label_ru": "Суицидальный риск не выявлен"
     },
-    "antidepressant": {
-      "level": "SECONDARY",
-      "evidence": "Редукция сопутствующей депрессивной симптоматики (HAM-D/MADRS) в рамках ГТР, p<0.001. НЕ является доказательством монотерапии самостоятельного депрессивного расстройства: РКИ при РДР и ПТСР заявлены в программе разработки, отдельные публикации требуют подтверждения."
+    "1_3": {
+     "level": "MODERATE_SUICIDAL_RISK",
+     "label_ru": "Суицидальные мысли (ОБЯЗАТЕЛЬНО направление к психиатру по ст. 23 Закона № 3185-1)"
     },
-    "anti_asthenic": {
-      "level": "PROMISING",
-      "evidence": "Доклинические предпосылки (Ivachtchenko 2016, 5-HT6/5-HT7 и α2-механизмы) и позитивная динамика в открытых исследованиях (ВАШ-А −63.6% в постковидном). В РКИ III межгрупповых различий не показано."
-    },
-    "pro_cognitive": {
-      "level": "PROMISING",
-      "evidence": "Открытые: MoCA 27.40→29.00 (p<0.001), DSST +13.2%. В РКИ III разница с плацебо незначима: TMT-A p=0.676, TMT-B p=0.704."
-    },
-    "daytime_sleepiness_neutral": {
-      "level": "SECONDARY",
-      "evidence": "Дневная сонливость по ВАШ в РКИ III не отличалась от плацебо (p=0.955); транзиторная сонливость 1–5 дня — известное явление адаптации (ОХЛП)."
+    "4_6": {
+     "level": "ACUTE_CRITICAL_RISK",
+     "label_ru": "Активный суицидальный план/намерение (КРИТИЧЕСКИЙ АЛЕРТ по ст. 29 п. «а» Закона № 3185-1)"
     }
+   }
   },
-  "open_label_disclaimer": "Открытые фазы (8–32 недели при ГТР) и исследования при расстройствах адаптации не имели плацебо-контроля: в них нельзя полностью отделить фармакологический эффект от естественного восстановления. Данные постковидной тревоги нельзя автоматически переносить на все стрессовые расстройства.",
-  "monitoring_schedule": {
-    "visit_0_baseline": {
-      "title": "Визит 0 (исходно)",
-      "actions": [
-        "верификация диагноза (ГТР F41.1 / расстройство адаптации F43.2)",
-        "SIGH-A / HAM-A, CGI, оценка функционирования (SDS)",
-        "исключение 8 противопоказаний ОХЛП (СКФ, Чайлд-Пью, ИМАО, эпилепсия, лактаза, беременность, возраст, гиперчувствительность)",
-        "аудит сопутствующей терапии: седативные, серотонинергические, ингибиторы CYP2D6"
-      ]
+  "SIGH-A": {
+   "code": "SIGH-A",
+   "title_ru": "Структурированное интервью шкалы тревоги Гамильтона (HAMA / SIGH-A)",
+   "target_role": "CLINICIAN_RATED",
+   "items_count": 14,
+   "validation_passport": {
+    "authors_ru": "Кинкулькина М.А., Волель Б.А., Морозова М.А. и соавт. (применялась в РКИ Авиандра)",
+    "year": 2025,
+    "citation": "Неврология, нейропсихиатрия, психосоматика. 2025;17(6):44–53",
+    "license_type": "Public Domain Clinical Scale",
+    "recommended_by_minzdrav_kr": true
+   },
+   "cutoffs": {
+    "0_7": {
+     "level": "REMISSION",
+     "label_ru": "Ремиссия (отсутствие тревоги, <= 7 баллов)"
     },
-    "week_2": {
-      "title": "Неделя 2",
-      "actions": [
-        "ранняя динамика тревоги, сна и переносимости (транзиторная сонливость 1–5 дня — ожидаема)"
-      ]
+    "8_17": {
+     "level": "MILD",
+     "label_ru": "Легкая тревога"
     },
-    "week_4": {
-      "title": "Неделя 4",
-      "actions": [
-        "клинический ответ (≥25% снижения SIGH-A/HAM-A), функционирование, приверженность"
-      ]
+    "18_24": {
+     "level": "MODERATE",
+     "label_ru": "Умеренная тревога"
     },
-    "week_8": {
-      "title": "Неделя 8",
-      "actions": [
-        "итоговая оценка ответа и целесообразности продолжения терапии"
-      ]
+    "25_56": {
+     "level": "SEVERE",
+     "label_ru": "Тяжелая тревога"
     }
+   }
   },
-  "therapy_review_triggers": {
-    "intolerance": {
-      "condition": "выраженная сонливость/головокружение/нарушения внимания, клинически значимые НЯ, подозрение на серьёзную НР или лекарственное взаимодействие",
-      "action": "пересмотр схемы: снижение дозы/отмена, проверка DDI, при серьёзной НР — фармаконадзор (Приказ № 1071) и психиатр"
+  "MADRS": {
+   "code": "MADRS",
+   "title_ru": "Шкала Монтгомери — Асберг для оценки депрессии",
+   "target_role": "CLINICIAN_RATED",
+   "items_count": 10,
+   "validation_passport": {
+    "authors_ru": "КР Минздрава РФ (2024); РКИ Авиандра (Кинкулькина М.А., Волель Б.А., 2025)",
+    "year": 2024,
+    "citation": "Клинические рекомендации Минздрава РФ «Депрессивный эпизод, РДР» (2024)",
+    "license_type": "Standard Clinical Scale",
+    "recommended_by_minzdrav_kr": true
+   },
+   "cutoffs": {
+    "0_6": {
+     "level": "NORMAL",
+     "label_ru": "Отсутствие депрессии (ремиссия)"
     },
-    "insufficient_response": {
-      "condition": "нет клинически значимого улучшения к контрольной точке (снижение тревоги < 25% к 4-й неделе)",
-      "doctor_checklist": [
-        "проверить фактическую приверженность (PDC, дневник доз)",
-        "пересмотреть первичный диагноз",
-        "оценить коморбидность (щитовидная железа, анемия, ХОБЛ, синдром апноэ)",
-        "скорректировать стратегию или направить к психиатру"
-      ]
+    "7_19": {
+     "level": "MILD",
+     "label_ru": "Малый депрессивный эпизод"
+    },
+    "20_34": {
+     "level": "MODERATE",
+     "label_ru": "Умеренный депрессивный эпизод"
+    },
+    "35_60": {
+     "level": "SEVERE",
+     "label_ru": "Большой (тяжелый) депрессивный эпизод"
     }
+   }
   },
-  "differential_diagnosis": {
-    "gad_vs_adaptation": {
-      "gad": {
-        "icd10": "F41.1",
-        "icd11": "6B00",
-        "core": "генерализованное беспокойство в течение нескольких месяцев БЕЗ обязательной привязки к стрессору"
-      },
-      "adaptation": {
-        "icd10": "F43.2",
-        "icd11": "6B43",
-        "required": [
-          "идентифицируемый стрессор",
-          "фиксация на стрессоре (руминации)",
-          "нарушение повседневного функционирования"
-        ],
-        "timing": "развитие обычно в течение 1 месяца от стрессора; длительность до 6 месяцев после прекращения стрессора"
-      },
-      "rule": "если картина полностью удовлетворяет критериям ГТР — диагноз расстройства адаптации дополнительно НЕ выставляется"
+  "KOP-25": {
+   "code": "KOP-25",
+   "title_ru": "Российский количественный опросник приверженности лечению (КОП-25)",
+   "target_role": "PATIENT_SELF_REPORT",
+   "items_count": 25,
+   "validation_passport": {
+    "authors_ru": "Николаев Н.А., Скирденко Ю.П. (РНМОТ)",
+    "year": 2018,
+    "citation": "Национальное руководство РНМОТ «Приверженность лечению»",
+    "license_type": "Russian National Medical Society of Therapists (РНМОТ) Standard",
+    "recommended_by_minzdrav_kr": true
+   },
+   "cutoffs": {
+    "0_49": {
+     "level": "LOW",
+     "label_ru": "Низкая приверженность (высокий риск самостоятельной отмены ЛП!)"
+    },
+    "50_69": {
+     "level": "MEDIUM",
+     "label_ru": "Средняя приверженность (требуется цифровой контроль приема)"
+    },
+    "70_100": {
+     "level": "HIGH",
+     "label_ru": "Высокая приверженность терапии"
     }
+   }
   },
-  "patient_phenotypes": {
-    "GAD_ACTIVE_DRIVER": {
-      "title": "ГТР + активный работающий пациент за рулём",
-      "detect": {
-        "any_text": [
-          "водит авто",
-          "водитель",
-          "за рулём",
-          "вождение"
-        ],
-        "fields": {
-          "drives_vehicle": true
-        }
-      },
-      "advisory": [
-        "акцент на сохранение дневного функционирования без «ватного» состояния",
-        "обязательное предупреждение: воздержаться от вождения при транзиторной сонливости/головокружении в первые дни",
-        "мониторинг концентрации внимания и работоспособности"
-      ]
+  "MDQ": {
+   "code": "MDQ",
+   "title_ru": "Опросник расстройств настроения (скрининг БАР / гипомании)",
+   "target_role": "PATIENT_SELF_REPORT",
+   "items_count": 13,
+   "validation_passport": {
+    "authors_ru": "КР Минздрава РФ по БАР и депрессии",
+    "year": 2024,
+    "citation": "Скрининг биполярного спектра перед назначением антидепрессантов",
+    "license_type": "Clinical Screening Standard",
+    "recommended_by_minzdrav_kr": true
+   },
+   "cutoffs": {
+    "0_6": {
+     "level": "NEGATIVE",
+     "label_ru": "Признаков БАР не выявлено"
     },
-    "SSRI_NEGATIVE_EXPERIENCE": {
-      "title": "Негативный прошлый опыт СИОЗС/СИОЗСН",
-      "detect": {
-        "any_text": [
-          "отмену эсциталопрам",
-          "отмена сертралин",
-          "непереносимость сиозс",
-          "сексуальная дисфункция"
-        ],
-        "fields": {
-          "failed_first_line_ssri": true,
-          "slc6a4_htr2a_ssri_intolerance": true
-        }
-      },
-      "advisory": [
-        "маритупирдин — альтернатива с иной рецепторной логикой (без блокады SERT, без типичной сексуальной дисфункции)",
-        "честно информировать о профиле переносимости",
-        "мониторинг сексуальной функции, тревоги первых недель и приверженности"
-      ]
-    },
-    "SSRI_START_ANXIETY": {
-      "title": "Стартовая тревога при начале СИОЗС/СИОЗСН",
-      "detect": {
-        "any_text": [
-          "стартовая тревога",
-          "ажитация на",
-          "усиление тревоги после назначения"
-        ]
-      },
-      "advisory": [
-        "совместное применение — НЕ автоматическая «прикрывающая терапия для всех», а строго индивидуальное решение",
-        "обязательный аудит лекарственных взаимодействий (CYP2D6) и инструкции",
-        "мониторинг признаков серотонинергических НЯ"
-      ]
-    },
-    "PARTIAL_RESPONSE_RESIDUAL_ANXIETY": {
-      "title": "Частичный ответ на антидепрессант с остаточным тревожным хвостом",
-      "detect": {
-        "any_text": [
-          "остаточная тревога",
-          "тревога сохраняется на фоне",
-          "частичный ответ"
-        ]
-      },
-      "advisory": [
-        "алгоритм: оценка остаточной симптоматики → межлекарственные взаимодействия → серотонинергические риски",
-        "только затем рассматривать комбинированную стратегию; нежелание повышать дозу учесть отдельно"
-      ]
-    },
-    "BENZO_DEPENDENCE_RISK": {
-      "title": "Тревога с высоким риском зависимости от бензодиазепинов",
-      "detect": {
-        "any_text": [
-          "феназепам",
-          "алпразолам",
-          "бензодиазепин",
-          "синдром отмены после отмены"
-        ],
-        "fields": {
-          "benzo_long_term_history": true
-        }
-      },
-      "advisory": [
-        "скрипт управления ожиданиями: маритупирдин действует с 1-й недели, а не через минуты как ГАМК-модуляторы",
-        "но не формирует бензодиазепиновой «ловушки» (нет взаимодействия с ГАМК-А)",
-        "мониторинг риска самовольного приёма БДЗ"
-      ]
-    },
-    "POST_COVID_STRESS_ANXIETY": {
-      "title": "Пост-COVID / стресс-ассоциированная тревога лёгкой и средней тяжести",
-      "detect": {
-        "any_text": [
-          "после covid",
-          "постковид",
-          "u09.9",
-          "расстройство адаптации"
-        ],
-        "fields": {
-          "icd10_code": "F43.2"
-        }
-      },
-      "advisory": [
-        "фокус: купирование тревоги, астении и нарушений сна курсом 4 недели (при необходимости до 6)",
-        "цель — возвращение к обычному ритму жизни (коридор: HAM-A 20.4 → 6.2 к 28-му дню, n=109)"
-      ]
+    "7_13": {
+     "level": "POSITIVE_BIPOLAR_SCREEN",
+     "label_ru": "Подозрение на БАР (ОБЯЗАТЕЛЬНО направление к психиатру, риск инверсии аффекта!)"
     }
+   }
+  },
+  "HADS-A": {
+   "title_ru": "Госпитальная шкала тревоги и депрессии HADS — подшкала тревоги (A)",
+   "source": "Приложение Г1 КР МЗ РФ «Генерализованное тревожное расстройство» (ID 457)",
+   "items": 7,
+   "max_score": 21,
+   "bands": "0–7 норма · 8–10 субклинически · ≥11 клинически значимо",
+   "purpose": "подшкала HADS: пишется вместе с общим баллом HADS"
+  },
+  "HADS-D": {
+   "title_ru": "Госпитальная шкала тревоги и депрессии HADS — подшкала депрессии (D)",
+   "source": "Приложение Г1 КР МЗ РФ «Генерализованное тревожное расстройство» (ID 457)",
+   "items": 7,
+   "max_score": 21,
+   "bands": "0–7 норма · 8–10 субклинически · ≥11 клинически значимо",
+   "purpose": "подшкала HADS: пишется вместе с общим баллом HADS"
+  },
+  "HAM-A": {
+   "title_ru": "Шкала Гамильтона для оценки тревоги HAM-A (14 пунктов) — заполняет врач",
+   "source": "Hamilton, 1959; КР МЗ РФ (ID 457): психический фактор 1–6+14, соматический 7–13",
+   "items": 14,
+   "max_score": 56,
+   "bands": "<14 тревога не выявляется · 14–27 клинически значимая · ≥28 тяжёлая; ответ ≥50% редукция; ремиссия ≤7",
+   "responder": "DOCTOR",
+   "purpose": "клиницистская шкала врача: POST /clinician-scale"
+  },
+  "CGI": {
+   "title_ru": "Общее клиническое впечатление CGI-S / CGI-I — заполняет врач",
+   "source": "Guy, 1976 (ECDEU)",
+   "items": 2,
+   "max_score": 14,
+   "bands": "CGI-S тяжесть 1–7 · CGI-I динамика 1–7; интерпретируются раздельно",
+   "responder": "DOCTOR",
+   "purpose": "клиницистская шкала врача: POST /clinician-scale"
   }
+ },
+ "aviandr_clinical_trials_reference_corridors": {
+  "GAD_36_WEEKS_SECHENOV_2025": {
+   "study_title": "Долгосрочная терапия ГТР препаратом Авиандр (36 недель, Сеченовский Университет)",
+   "authors": "Кинкулькина М.А., Волель Б.А., Смолярчук Е.А., Иващенко А.В., Иващенко А.А. и соавт. (2025)",
+   "journal": "Неврология, нейропсихиатрия, психосоматика. 2025;17(6):44–53",
+   "sample_size": 98,
+   "response_rate_pct": 83.7,
+   "remission_rate_pct": 66.7,
+   "sigh_a_trajectory": [
+    {
+     "week": 0,
+     "mean": 22.06,
+     "sd": 5.8
+    },
+    {
+     "week": 2,
+     "mean": 19.12,
+     "sd": 5.91
+    },
+    {
+     "week": 8,
+     "mean": 14.12,
+     "sd": 5.44
+    },
+    {
+     "week": 16,
+     "mean": 9.84,
+     "sd": 5.44
+    },
+    {
+     "week": 24,
+     "mean": 7.44,
+     "sd": 5.13
+    },
+    {
+     "week": 36,
+     "mean": 6.9,
+     "sd": 6.2
+    }
+   ],
+   "madrs_trajectory": [
+    {
+     "week": 0,
+     "mean": 14.6,
+     "sd": 7.62
+    },
+    {
+     "week": 36,
+     "mean": 4.15,
+     "sd": 5.33
+    }
+   ],
+   "moca_trajectory": [
+    {
+     "week": 0,
+     "mean": 27.4,
+     "sd": 1.91
+    },
+    {
+     "week": 36,
+     "mean": 29.0,
+     "sd": 1.54
+    }
+   ],
+   "response_pct": 83.7,
+   "remission_pct": 66.7,
+   "madrs": {
+    "baseline": 14.6,
+    "sd_baseline": 7.62,
+    "final": 4.15,
+    "sd_final": 5.33
+   },
+   "moca": {
+    "baseline": 27.4,
+    "sd_baseline": 1.91,
+    "final": 29.0,
+    "sd_final": 1.54,
+    "p_lt": 0.001
+   }
+  },
+  "POST_COVID_ADAPTATION_4_WEEKS_2024": {
+   "study_title": "РКИ III фазы при пост-COVID тревоге и расстройстве адаптации",
+   "authors": "Попова В.Б., Антонова Е.А. и соавт. (2024)",
+   "journal": "Журнал неврологии и психиатрии им. С.С. Корсакова. 2024;124(7):1–8",
+   "sample_size": 109,
+   "week_1_reduction_pct": 40.0,
+   "week_4_responder_rate_pct": 83.0,
+   "week_4_remission_rate_pct": 74.4,
+   "ham_a_trajectory": {
+    "baseline": 20.4,
+    "day14": 12.2,
+    "day28": 6.2,
+    "post_treatment": 4.7
+   },
+   "reduction_day28_pct": 69.4,
+   "response_day28_pct": 83.49,
+   "remission_hama_le7_day28_pct": 68.81,
+   "remission_last_visit_pct": 79.8,
+   "madrs_change": -8.0,
+   "madrs_reduction_pct": 61.9,
+   "vas_asthenia_mm": {
+    "change": -38.3,
+    "reduction_pct": 63.6
+   },
+   "sds_change": -8.5,
+   "dsst_correct": {
+    "change": 5.0,
+    "growth_pct": 13.2
+   },
+   "completion_28d_pct": 92.7,
+   "extended_to_42d_pct": 7.3
+  },
+  "RCT3_GAD_MOROZOVA_2024": {
+   "design": "РКИ III фазы при ГТР, n=160 (3:1: 121 маритупирдин 40 мг/сут vs 39 плацебо), 8 недель двойного слепого этапа + 24 недели открытой терапии + 4 недели наблюдения",
+   "primary_endpoint": {
+    "sigh_a_change_week8": {
+     "drug": -11.97,
+     "sd_drug": 7.6,
+     "placebo": -8.21,
+     "sd_placebo": 6.2,
+     "between_group": 3.76,
+     "p": 0.006
+    },
+    "response_50pct_week8": {
+     "drug_pct": 36.97,
+     "drug_n": 44,
+     "placebo_pct": 15.38,
+     "placebo_n": 6,
+     "p": 0.012
+    }
+   },
+   "open_phase": {
+    "week16": {
+     "sigh_a_change": -16.08,
+     "response_pct": 65.75
+    },
+    "week24": {
+     "sigh_a_change": -20.28,
+     "response_pct": 86.67
+    },
+    "week32": {
+     "sigh_a_change": -22.53,
+     "response_pct": 89.47,
+     "remission_sigh_a_le7_pct": 68.42,
+     "n_completed": 133
+    }
+   },
+   "secondary_week8": {
+    "sigh_a_psychic": {
+     "drug": -5.71,
+     "placebo": -3.82,
+     "p": 0.008
+    },
+    "sigh_a_somatic": {
+     "drug": -6.27,
+     "placebo": -4.39,
+     "p": 0.018
+    },
+    "madrs": {
+     "drug": -6.54,
+     "placebo": -3.55,
+     "p_lt": 0.001,
+     "week32": -11.38
+    },
+    "sds_functioning": {
+     "drug": -5.4,
+     "placebo": -2.89,
+     "p": 0.024,
+     "week32": -10.91
+    },
+    "tmt_a_sec": {
+     "drug": -9.39,
+     "placebo": -7.58,
+     "p": 0.676
+    },
+    "tmt_b_sec": {
+     "drug": -22.35,
+     "placebo": -18.63,
+     "p": 0.704
+    },
+    "vas_daytime_sleepiness": {
+     "drug": -11.41,
+     "placebo": -10.95,
+     "p": 0.955
+    },
+    "treatment_related_ae": {
+     "drug_pct": 9.0,
+     "placebo_pct": 10.0
+    }
+   },
+   "usage": "Эталонный коридор ответа/ремиссии для стратификации К1–К5 и графиков динамики."
+  },
+  "RCT2_GAD_IVASHCHENKO_2021": {
+   "design": "РКИ II фазы при ГТР, n=129, 8 недель, 17 центров",
+   "ham_a_reduction_week8_pct": {
+    "dose40": 53.7,
+    "dose60": 47.7,
+    "placebo": 16.3,
+    "p_lt": 0.001
+   },
+   "early_effect_week1_pct": -27,
+   "any_ae_safety": {
+    "n": [
+     42,
+     44,
+     43
+    ],
+    "dose40_pct": 28.6,
+    "dose60_pct": 45.5,
+    "placebo_pct": 27.9
+   },
+   "somnolence_pct": {
+    "dose40": 2.4,
+    "dose60": 15.9,
+    "placebo": 2.3
+   },
+   "usage": "Обоснование дозы 40 мг/сут и профиля транзиторной сонливости 1–5 дня."
+  },
+  "PANIC_RCT3_2025": {
+   "design": "РКИ III фазы при паническом расстройстве, n=288, 12 недель, открытый пароксетин",
+   "pdss_change": {
+    "drug": -4.99,
+    "comparator_paroxetine": -2.28,
+    "p": 0.047
+   },
+   "usage": "Off-Label: паническое расстройство — фаза III завершена (маршрут OFF_LABEL_PHASE3)."
+  },
+  "ADAPTATION_OPEN_2026": {
+   "design": "Пострегистрационное открытое исследование при расстройствах адаптации, n=452, 6 недель",
+   "remission_sigh_a_week6_pct": 72.35,
+   "usage": "Off-Label поддержка маршрута при F43.2 (открытые данные, без плацебо — см. open_label_disclaimer)."
+  }
+ },
+ "therapy_options_grls_catalog": {
+  "AVIANDR": {
+   "trade_name": "Авиандр®",
+   "inn": "Маритупирдин (Maritupirdine)",
+   "ru_number": "ЛП-№(002445)-(РГ-RU) от 31.05.2023",
+   "ath_code": "N05BX",
+   "in_label_icd10": [
+    "F41.1",
+    "F41.9",
+    "F43.2",
+    "R45.7",
+    "Z60.0"
+   ],
+   "completed_phase3_off_label_icd10": {
+    "F41.0": "Паническое расстройство: успешно завершено КИ III фазы (Сеченовский Университет, март 2026, N=228). До внесения показания в ОХЛП ГРЛС назначение возможно только по решению врача / врачебной комиссии (ВК).",
+    "F33": "Рекуррентное депрессивное расстройство: КИ III фазы. Требуется решение врача / ВК."
+   },
+   "dosing_regimen": "По 1 таблетке (20 мг) 2 раза в сутки (утром и вечером) строго за 30 минут до еды, не разжёвывая. Суточная доза — 40 мг. При пропуске дозы НЕ принимать двойную дозу.",
+   "receptor_profile": "Мультитаргетный антагонист: высокоаффинный антагонизм к 5-HT7 (Ki = 0.153 нМ — основная мишень), а также 5-HT6, 5-HT2A/5-HT2C, пресинаптическим α2A/α2B/α2C-адренорецепторам и H1-гистаминовым рецепторам. Прямого взаимодействия с ГАМК-А рецепторами НЕТ (нет бензодиазепиновой зависимости и синдрома отмены), ингибирования обратного захвата моноаминов (SERT/NET/DAT) НЕТ (нет типичной для СИОЗС сексуальной дисфункции и набора веса).",
+   "dosing_rationale": "Оптимальная доза 40 мг/сут (20 мг × 2 р/сут) обоснована РКИ II (Ivashchenko 2021, n=129): снижение HAM-A на 53.7% при 40 мг/сут против 47.7% при 60 мг/сут и 16.3% на плацебо (p<0.001) при частоте сонливости 2.4% против 15.9% на 60 мг/сут."
+  }
+ },
+ "evidence_grades": {
+  "schema_note": "PROVEN — доказано в плацебо-контролируемых РКИ; SECONDARY — подтверждено как вторичный исход; PROMISING — доклиника + открытые исследования, в РКИ отличия от плацебо незначимы. СППВР маркирует эффекты этим статусом в подсказках врачу.",
+  "anxiolytic": {
+   "level": "PROVEN",
+   "evidence": "Плацебо-контролируемые РКИ при ГТР: фаза II p<0.001 (Ivashchenko 2021), фаза III p=0.006 (Морозова 2024, SIGH-A −11.97 vs −8.21)."
+  },
+  "antidepressant": {
+   "level": "SECONDARY",
+   "evidence": "Редукция сопутствующей депрессивной симптоматики (HAM-D/MADRS) в рамках ГТР, p<0.001. НЕ является доказательством монотерапии самостоятельного депрессивного расстройства: РКИ при РДР и ПТСР заявлены в программе разработки, отдельные публикации требуют подтверждения."
+  },
+  "anti_asthenic": {
+   "level": "PROMISING",
+   "evidence": "Доклинические предпосылки (Ivachtchenko 2016, 5-HT6/5-HT7 и α2-механизмы) и позитивная динамика в открытых исследованиях (ВАШ-А −63.6% в постковидном). В РКИ III межгрупповых различий не показано."
+  },
+  "pro_cognitive": {
+   "level": "PROMISING",
+   "evidence": "Открытые: MoCA 27.40→29.00 (p<0.001), DSST +13.2%. В РКИ III разница с плацебо незначима: TMT-A p=0.676, TMT-B p=0.704."
+  },
+  "daytime_sleepiness_neutral": {
+   "level": "SECONDARY",
+   "evidence": "Дневная сонливость по ВАШ в РКИ III не отличалась от плацебо (p=0.955); транзиторная сонливость 1–5 дня — известное явление адаптации (ОХЛП)."
+  }
+ },
+ "open_label_disclaimer": "Открытые фазы (8–32 недели при ГТР) и исследования при расстройствах адаптации не имели плацебо-контроля: в них нельзя полностью отделить фармакологический эффект от естественного восстановления. Данные постковидной тревоги нельзя автоматически переносить на все стрессовые расстройства.",
+ "monitoring_schedule": {
+  "visit_0_baseline": {
+   "title": "Визит 0 (исходно)",
+   "actions": [
+    "верификация диагноза (ГТР F41.1 / расстройство адаптации F43.2)",
+    "SIGH-A / HAM-A, CGI, оценка функционирования (SDS)",
+    "исключение 8 противопоказаний ОХЛП (СКФ, Чайлд-Пью, ИМАО, эпилепсия, лактаза, беременность, возраст, гиперчувствительность)",
+    "аудит сопутствующей терапии: седативные, серотонинергические, ингибиторы CYP2D6"
+   ]
+  },
+  "week_2": {
+   "title": "Неделя 2",
+   "actions": [
+    "ранняя динамика тревоги, сна и переносимости (транзиторная сонливость 1–5 дня — ожидаема)"
+   ]
+  },
+  "week_4": {
+   "title": "Неделя 4",
+   "actions": [
+    "клинический ответ (≥25% снижения SIGH-A/HAM-A), функционирование, приверженность"
+   ]
+  },
+  "week_8": {
+   "title": "Неделя 8",
+   "actions": [
+    "итоговая оценка ответа и целесообразности продолжения терапии"
+   ]
+  }
+ },
+ "therapy_review_triggers": {
+  "intolerance": {
+   "condition": "выраженная сонливость/головокружение/нарушения внимания, клинически значимые НЯ, подозрение на серьёзную НР или лекарственное взаимодействие",
+   "action": "пересмотр схемы: снижение дозы/отмена, проверка DDI, при серьёзной НР — фармаконадзор (Приказ № 1071) и психиатр"
+  },
+  "insufficient_response": {
+   "condition": "нет клинически значимого улучшения к контрольной точке (снижение тревоги < 25% к 4-й неделе)",
+   "doctor_checklist": [
+    "проверить фактическую приверженность (PDC, дневник доз)",
+    "пересмотреть первичный диагноз",
+    "оценить коморбидность (щитовидная железа, анемия, ХОБЛ, синдром апноэ)",
+    "скорректировать стратегию или направить к психиатру"
+   ]
+  }
+ },
+ "differential_diagnosis": {
+  "gad_vs_adaptation": {
+   "gad": {
+    "icd10": "F41.1",
+    "icd11": "6B00",
+    "core": "генерализованное беспокойство в течение нескольких месяцев БЕЗ обязательной привязки к стрессору"
+   },
+   "adaptation": {
+    "icd10": "F43.2",
+    "icd11": "6B43",
+    "required": [
+     "идентифицируемый стрессор",
+     "фиксация на стрессоре (руминации)",
+     "нарушение повседневного функционирования"
+    ],
+    "timing": "развитие обычно в течение 1 месяца от стрессора; длительность до 6 месяцев после прекращения стрессора"
+   },
+   "rule": "если картина полностью удовлетворяет критериям ГТР — диагноз расстройства адаптации дополнительно НЕ выставляется"
+  }
+ },
+ "patient_phenotypes": {
+  "GAD_ACTIVE_DRIVER": {
+   "title": "ГТР + активный работающий пациент за рулём",
+   "detect": {
+    "any_text": [
+     "водит авто",
+     "водитель",
+     "за рулём",
+     "вождение"
+    ],
+    "fields": {
+     "drives_vehicle": true
+    }
+   },
+   "advisory": [
+    "акцент на сохранение дневного функционирования без «ватного» состояния",
+    "обязательное предупреждение: воздержаться от вождения при транзиторной сонливости/головокружении в первые дни",
+    "мониторинг концентрации внимания и работоспособности"
+   ]
+  },
+  "SSRI_NEGATIVE_EXPERIENCE": {
+   "title": "Негативный прошлый опыт СИОЗС/СИОЗСН",
+   "detect": {
+    "any_text": [
+     "отмену эсциталопрам",
+     "отмена сертралин",
+     "непереносимость сиозс",
+     "сексуальная дисфункция"
+    ],
+    "fields": {
+     "failed_first_line_ssri": true,
+     "slc6a4_htr2a_ssri_intolerance": true
+    }
+   },
+   "advisory": [
+    "маритупирдин — альтернатива с иной рецепторной логикой (без блокады SERT, без типичной сексуальной дисфункции)",
+    "честно информировать о профиле переносимости",
+    "мониторинг сексуальной функции, тревоги первых недель и приверженности"
+   ]
+  },
+  "SSRI_START_ANXIETY": {
+   "title": "Стартовая тревога при начале СИОЗС/СИОЗСН",
+   "detect": {
+    "any_text": [
+     "стартовая тревога",
+     "ажитация на",
+     "усиление тревоги после назначения"
+    ]
+   },
+   "advisory": [
+    "совместное применение — НЕ автоматическая «прикрывающая терапия для всех», а строго индивидуальное решение",
+    "обязательный аудит лекарственных взаимодействий (CYP2D6) и инструкции",
+    "мониторинг признаков серотонинергических НЯ"
+   ]
+  },
+  "PARTIAL_RESPONSE_RESIDUAL_ANXIETY": {
+   "title": "Частичный ответ на антидепрессант с остаточным тревожным хвостом",
+   "detect": {
+    "any_text": [
+     "остаточная тревога",
+     "тревога сохраняется на фоне",
+     "частичный ответ"
+    ]
+   },
+   "advisory": [
+    "алгоритм: оценка остаточной симптоматики → межлекарственные взаимодействия → серотонинергические риски",
+    "только затем рассматривать комбинированную стратегию; нежелание повышать дозу учесть отдельно"
+   ]
+  },
+  "BENZO_DEPENDENCE_RISK": {
+   "title": "Тревога с высоким риском зависимости от бензодиазепинов",
+   "detect": {
+    "any_text": [
+     "феназепам",
+     "алпразолам",
+     "бензодиазепин",
+     "синдром отмены после отмены"
+    ],
+    "fields": {
+     "benzo_long_term_history": true
+    }
+   },
+   "advisory": [
+    "скрипт управления ожиданиями: маритупирдин действует с 1-й недели, а не через минуты как ГАМК-модуляторы",
+    "но не формирует бензодиазепиновой «ловушки» (нет взаимодействия с ГАМК-А)",
+    "мониторинг риска самовольного приёма БДЗ"
+   ]
+  },
+  "POST_COVID_STRESS_ANXIETY": {
+   "title": "Пост-COVID / стресс-ассоциированная тревога лёгкой и средней тяжести",
+   "detect": {
+    "any_text": [
+     "после covid",
+     "постковид",
+     "u09.9",
+     "расстройство адаптации"
+    ],
+    "fields": {
+     "icd10_code": "F43.2"
+    }
+   },
+   "advisory": [
+    "фокус: купирование тревоги, астении и нарушений сна курсом 4 недели (при необходимости до 6)",
+    "цель — возвращение к обычному ритму жизни (коридор: HAM-A 20.4 → 6.2 к 28-му дню, n=109)"
+   ]
+  }
+ }
 }

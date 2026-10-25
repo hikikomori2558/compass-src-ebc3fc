@@ -431,9 +431,10 @@
       renderStep();
     };
     var got = function () { done += 1; if (done >= 2) launch(); };
-    api("/api/v1/compass-bio/scales/GAD-7", {}, null)
+    var tk = (STORE.session && STORE.session.access_token) || null;
+    api("/api/v1/compass-bio/scales/GAD-7", {}, tk)
       .then(function (d) { defs.gad = d; got(); }).catch(got);
-    api("/api/v1/compass-bio/scales/HADS", {}, null)
+    api("/api/v1/compass-bio/scales/HADS", {}, tk)
       .then(function (d) { defs.hads = d; got(); }).catch(got);
     // защита от зависшего запроса: через 4 с стартуем на том, что есть
     setTimeout(function () { if (done < 2) { done = 2; launch(); } }, 4000);
