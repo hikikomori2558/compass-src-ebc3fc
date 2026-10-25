@@ -406,6 +406,14 @@
     // записка пациента живёт в панели: прячем инструкцию, показываем контент
     var empty = $("sb-empty"), content = $("sb-content");
     if (empty && content) { empty.hidden = true; content.hidden = false; }
+    // герой без разбора ЭМК: объясняем, что появится, а не три прочерка
+    if (!state.lastResult) {
+      $("sb-status-title").textContent = "Пациент выбран: " + (label || "");
+      $("sb-status-text").textContent =
+        "Вердикт по показаниям появится после разбора карты в ЭМК (закладка COMPASS). " +
+        "Ниже — что изменилось у пациента по данным дневника и шкал.";
+      $("routing-body").textContent = "";
+    }
     renderPatientNote(hash, label);
     renderDash();
     $("dash").hidden = false;
