@@ -501,3 +501,42 @@ BEGIN
   END LOOP;
 END $$;
 GRANT USAGE, SELECT ON SEQUENCE patient_diary_entries_entry_id_seq TO compass_api;
+
+-- ----------------------------------------------------------------------------
+-- v7: профили кластеризации пациентов — персист 24D-вектора, кластера, проекции,
+-- DTW и OOD-отчёта (c_core/ot_xai_mahalanobis.c). Наполняется при analyze-and-route
+-- привязанного пациента и бэкфиллом из истории шкал/приверженности.
+CREATE TABLE IF NOT EXISTS patient_cluster_profiles (
+  profile_id       bigserial PRIMARY KEY,
+  patient_hash_id  uuid NOT NULL UNIQUE REFERENCES patient_pii_vault(patient_hash_id),
+  z24              jsonb NOT NULL,
+  cluster_code     text NOT NULL,
+  projection_x     real NOT NULL,
+  projection_y     real NOT NULL,
+  dtw              real,
+  ood              jsonb,
+  computed_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_pcp_cluster ON patient_cluster_profiles (cluster_code);
+ALTER TABLE patient_cluster_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patient_cluster_profiles FORCE ROW LEVEL SECURITY;
+CREATE POLICY pcp_select ON patient_cluster_profiles FOR SELECT USING (
+  app_current_role() = 'ADMIN_METHODOLOGIST'
+  OR (app_current_role() IN ('DOCTOR_PSYCHIATRIST','DOCTOR_NEUROLOGIST','DOCTOR_GP') AND app_is_attending(patient_hash_id))
+  OR (app_current_role() = 'PATIENT' AND patient_hash_id = app_current_user_id())
+);
+CREATE POLICY pcp_insert ON patient_cluster_profiles FOR INSERT WITH CHECK (
+  app_current_role() = 'ADMIN_METHODOLOGIST'
+  OR app_current_role() = 'AUTH_SERVICE'
+  OR (app_current_role() = 'PATIENT' AND patient_hash_id = app_current_user_id())
+);
+CREATE POLICY pcp_update ON patient_cluster_profiles FOR UPDATE USING (
+  app_current_role() = 'ADMIN_METHODOLOGIST' OR app_current_role() = 'AUTH_SERVICE'
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON patient_cluster_profiles TO compass_api;
+DO $$ DECLARE r text;
+BEGIN
+  FOR r IN SELECT rolname FROM pg_roles WHERE rolname LIKE 'DOCTOR%' OR rolname IN ('PATIENT','ADMIN_METHODOLOGIST','AUTH_SERVICE')
+  LOOP EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON patient_cluster_profiles TO %I', r);
+  END LOOP;
+END $$;

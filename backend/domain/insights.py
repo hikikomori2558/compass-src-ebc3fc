@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/domain/insights.py — аналитика дневника: «как препарат действует
 # ИМЕННО на этого человека». Врач получает факты, не вероятности:
 #   * транзиторная адаптация (сонливость дни 1–5) — ожидаема, совпадает с РКИ;
@@ -11,7 +12,7 @@ from typing import Any, Dict, List
 from backend.domain.side_effects import GUIDANCE
 
 
-def _rmse_meal_30min(rows: List[Dict[str, Any]]) -> float | None:
+def _rmse_meal_30min(rows: List[Dict[str, Any]]) -> Optional[float]:
     """Насколько время приёма отклоняется от правила «за 30 минут до еды».
     before_meal_30min bool; intake_time — фактическое время."""
     marks = [r["before_meal_30min"] for r in rows if r.get("before_meal_30min") is not None]
@@ -23,7 +24,7 @@ def _rmse_meal_30min(rows: List[Dict[str, Any]]) -> float | None:
 
 def build_insights(*, therapy_day: int | None, diary: List[Dict[str, Any]],
                    scales: List[Dict[str, Any]], alerts: List[Dict[str, Any]],
-                   adherence_pct: float | None) -> Dict[str, Any]:
+                   adherence_pct: Optional[float]) -> Dict[str, Any]:
     facts: List[Dict[str, Any]] = []
     warnings: List[Dict[str, Any]] = []
 

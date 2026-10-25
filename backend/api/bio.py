@@ -251,6 +251,53 @@ async def register_new_scale_plugin(req: CustomScalePluginRequest, request: Requ
     return result
 
 
+@bio_router.post("/patient/{patient_hash}/cluster-profile",
+                 summary="[Кластеризация] Вычислить и сохранить профиль: 24D → кластер K1–K5 → OOD (C-ядро)")
+async def patient_cluster_profile(patient_hash: str, request: Request,
+                                  principal: Principal = Depends(get_principal)) -> Dict[str, Any]:
+    """Строит кластерный профиль из реальных строк БД (шкалы, приверженность, время
+    приёма), персистит в patient_cluster_profiles, возвращает OOD-отчёт C-ядра.
+    RLS: врач — только свои пациенты, пациент — только себя."""
+    from backend.services.cluster_service import compute_profile_from_db
+    from fastapi import HTTPException
+    pool = getattr(request.app.state, "pg_pool", None)
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    profile = await compute_profile_from_db(pool, patient_hash)
+    if profile is None:
+        raise HTTPException(404, "У пациента нет данных для кластеризации (нет шкал и приёмов)")
+    return profile
+
+
+@bio_router.get("/cluster-map",
+                summary="[Кластеризация] Карта: кластеры K1–K5, референсные траектории РКИ, пациенты (RLS)")
+async def cluster_map(request: Request, principal: Principal = Depends(get_principal)) -> Dict[str, Any]:
+    """Интерактивная карта кластеризации. Пациенты — реальные профили из
+    patient_cluster_profiles (RLS отрезает чужих). Референсные точки — траектории
+    исследований, честно помечены reference: true. Махаланобис-эллипс — параметры
+    Ledoit-Wolf ковариации кластеров (c_core/ot_xai_mahalanobis.c)."""
+    from backend.services.cluster_service import cluster_map_payload
+    from backend.db.context import db_conn
+    pool = getattr(request.app.state, "pg_pool", None)
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    async with db_conn(pool, role=principal.role, user_id=principal.sub) as conn:
+        rows = await conn.fetch(
+            "SELECT patient_hash_id::text AS patient_hash, z24, cluster_code, "
+            "projection_x, projection_y, dtw, ood, computed_at "
+            "FROM patient_cluster_profiles ORDER BY computed_at DESC LIMIT 100")
+    profiles = []
+    for r in rows:
+        profiles.append({
+            "patient_hash": r["patient_hash"], "z24": json.loads(r["z24"]) if isinstance(r["z24"], str) else r["z24"],
+            "cluster_code": r["cluster_code"], "projection_x": r["projection_x"],
+            "projection_y": r["projection_y"], "dtw": r["dtw"],
+            "ood": (r["ood"] if isinstance(r["ood"], dict) else json.loads(r["ood"])) if r["ood"] else {},
+            "facts": {},
+        })
+    return cluster_map_payload(profiles)
+
+
 @bio_router.get("/patient/{patient_hash}/timeline",
                 summary="[Динамика] Реальная история пациента: шкалы, алерты, приверженность (RLS)")
 async def patient_timeline(patient_hash: str, request: Request,
