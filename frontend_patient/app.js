@@ -824,6 +824,8 @@
       } catch (e) { /* не разбирается — просто не показываем баннер */ }
       STORE.session = { access_token: demoTok };
       localStorage.setItem("compass_patient_session", JSON.stringify(STORE.session));
+      // демо-вход жюри: онбординг уже пройден «пациентом» — сразу в его дом
+      localStorage.setItem("compass_onboard_done", "1");
       history.replaceState(null, "", location.pathname);
     }
     var tok = QS.get("token");
