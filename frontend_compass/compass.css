@@ -172,6 +172,8 @@ textarea.cp-input { height: auto; padding: 8px 11px; resize: vertical; }
 .dash-actions-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 #dash-pk { width: 100%; height: auto; }
 #dash-cluster { width: 100%; height: auto; }
+.dash-card--map { grid-column: span 2; }
+@media (max-width: 900px) { .dash-card--map { grid-column: span 1; } }
 .dash-tl { font-size: 12px; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
 .dash-tl b { color: #0043ce; }
 .dash-tl .when { color: #8d8d8d; font-size: 10.5px; }
