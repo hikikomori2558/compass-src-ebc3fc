@@ -86,6 +86,10 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
         bound = await conn.fetchrow(
             "SELECT bound_at FROM doctor_patient_bindings "
             "WHERE patient_hash_id=$1 ORDER BY bound_at DESC LIMIT 1", ph)
+        icd_row = await conn.fetchrow(
+            "SELECT icd10_primary FROM ehr_encounters_parsed "
+            "WHERE patient_hash_id=$1 AND icd10_primary IS NOT NULL "
+            "ORDER BY created_at DESC LIMIT 1", ph)
         logs = await conn.fetch(
             "SELECT dose_skipped, intake_time, notes, diary, taken_at FROM medication_adherence_logs "
             "WHERE patient_hash_id=$1 ORDER BY taken_at", ph)
@@ -180,9 +184,10 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
     )
 
     sigh_history = [v for _, v in gad7_series]
+    icd10 = icd_row["icd10_primary"] if icd_row else "F41.1"
     assigned = _ENGINE.assign_cluster(
         z24, patient_sigh_a_history=sigh_history,
-        reported_transient_drowsiness=drowsiness_reported, icd10_code="F41.1")
+        reported_transient_drowsiness=drowsiness_reported, icd10_code=icd10)
     z24 = assigned.pop("state_vector_24d")
 
     cluster_id = int(assigned["assigned_cluster_code"].split("K")[1].split("_")[0]) - 1

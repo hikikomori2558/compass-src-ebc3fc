@@ -335,7 +335,14 @@ async def my_patients(request: Request, doctor: Principal = Depends(require_doct
                        AND m.dose_skipped) AS doses_skipped,
                    (SELECT count(*) FROM medication_adherence_logs m
                      WHERE m.patient_hash_id = b.patient_hash_id) AS doses_logged,
-                   b.bound_at::date AS bound_since
+                   b.bound_at::date AS bound_since,
+                   -- ярлык синтетической персоны (жюри выбирает «кого посмотреть»);
+                   -- у реальных пациентов поля нет — в UI покажется «П-xxxxxx»
+                   b.consents->>'label' AS label,
+                   (SELECT c.cluster_code FROM patient_cluster_profiles c
+                     WHERE c.patient_hash_id = b.patient_hash_id LIMIT 1) AS cluster,
+                   (SELECT (c.ood->>'is_ood_anomaly')::boolean FROM patient_cluster_profiles c
+                     WHERE c.patient_hash_id = b.patient_hash_id LIMIT 1) AS ood
             -- Zero-PII: JOIN к patient_pii_vault невозможен и не нужен — роль
             -- приложения не имеет гранта на vault BY DESIGN; врач видит ФИО в ЭМК.
             FROM doctor_patient_bindings b

@@ -83,6 +83,9 @@ CREATE TABLE patient_pii_vault (
   birth_date      date,
   sex             smallint CHECK (sex IN (0, 1)),   -- 0 = Ж, 1 = М (как в C-ядре)
   key_version     smallint NOT NULL DEFAULT 1,
+  -- v8: признак синтетического пациента стенда. Демо-вход «от лица пациента»
+  -- разрешён ТОЛЬКО синтетическим (is_synthetic) — реальных ПДн в стенде нет.
+  is_synthetic    boolean NOT NULL DEFAULT false,
   created_at      timestamptz NOT NULL DEFAULT now()
 );
 
@@ -464,6 +467,9 @@ GRANT USAGE ON SCHEMA public TO compass_api;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO compass_api;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO compass_api;
 REVOKE ALL ON patient_pii_vault FROM compass_api;
+-- v8: демо-вход «от лица пациента» проверяет только признак синтетичности.
+-- Колоночный грант: PII-колонки (fio/phone/snils/birth) остаются недоступны роли приложения.
+GRANT SELECT (patient_hash_id, is_synthetic) ON patient_pii_vault TO compass_api;
 REVOKE ALL ON audit_log FROM compass_api;
 GRANT INSERT ON audit_log TO compass_api;
 
