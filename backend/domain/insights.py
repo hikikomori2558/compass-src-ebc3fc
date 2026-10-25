@@ -73,6 +73,60 @@ def build_insights(*, therapy_day: int | None, diary: List[Dict[str, Any]],
                                      "потом менять препарат",
                           "evidence": "ОХЛП: режим приёма — часть эффективности и переносимости"})
 
+    # --- 2b. время приёма × жалобы: жалобы чаще в утренние или вечерние приёмы?
+    def _hhmm(v):
+        try:
+            hh, mm = str(v).split(":")[:2]
+            return int(hh) * 60 + int(mm)
+        except (ValueError, AttributeError, TypeError):
+            return None
+
+    timed = [( _hhmm(d.get("intake_time")),
+               bool(d.get("side_effects"))) for d in diary if d.get("intake_time")]
+    if len(timed) >= 3:
+        known = [t for t, _ in timed if t is not None]
+        if known:
+            med = sorted(known)[len(known) // 2]
+            n_early = sum(1 for t, _ in timed if t is not None and t <= med)
+            n_late = sum(1 for t, _ in timed if t is not None and t > med)
+            if n_early >= 2 and n_late >= 2:
+                se_early = sum(1 for t, se in timed if t is not None and t <= med and se)
+                se_late = sum(1 for t, se in timed if t is not None and t > med and se)
+                r_e, r_l = se_early / n_early, se_late / n_late
+                if abs(r_e - r_l) >= 0.30:
+                    when = "утренних" if r_e > r_l else "вечерних"
+                    facts.append({
+                        "fact": f"Жалобы чаще в дни с {when} приёмами "
+                                f"({max(r_e, r_l):.0%} против {min(r_e, r_l):.0%} дней)",
+                        "verdict": "Связь времени приёма с переносимостью этого пациента: "
+                                   "кандидат на обсуждение — смещение времени приёма. Решение — врач.",
+                        "evidence": "Факт действия v2: intake_time × дневник жалоб",
+                    })
+
+    # --- 2c. пропуски → провал концентрации на RK45-кривой
+    skipped_days = sorted(str(d["entry_date"]) for d in diary if d.get("taken") is False)
+    if skipped_days:
+        facts.append({
+            "fact": f"Пропущено приёмов: {len(skipped_days)} (последний — {skipped_days[-1]})",
+            "verdict": "Каждый пропуск — провал концентрации на RK45-кривой: Ctrough М1 "
+                       "восстанавливается не сразу, жалобы в эти дни отражают фармакокинетику, "
+                       "а не «препарат не работает». RK45-прогноз при полном соблюдении — вкладка What-if.",
+            "evidence": "PK-модель: Ctrough(SS) ≈ 310 пг/мл; интермиттирующие концентрации — RK45",
+        })
+
+    # --- 2d. фенотип-подсказка: сонливость 1-й недели при соблюдённом режиме
+    first_week_se = [d for d in diary
+                     if d.get("therapy_day") is not None and 1 <= d["therapy_day"] <= 7
+                     and d.get("side_effects")]
+    if first_week_se and (rmse is None or rmse >= 70.0):
+        facts.append({
+            "fact": f"Реакции 1-й недели ({len(first_week_se)} дн.) при соблюдённом режиме приёма",
+            "verdict": "Профиль, ПОХОЖИЙ на замедленный метаболизм (IM/PM): экспозиция 1,5–2× "
+                       "выше ожидаемой. МАРКЕР, НЕ ДИАГНОЗ: подтверждение — только генотипирование "
+                       "CYP2D6; проверить what-if PM в COMPASS перед решением о дозе.",
+            "evidence": "CYP2D6: PM — 1,5–2× экспозиция (слайд 12 доклада); ОХЛП: медленный метаболизм",
+        })
+
     # --- 3. пропуски доз и приверженность
     if adherence_pct is not None:
         if adherence_pct < 80:
