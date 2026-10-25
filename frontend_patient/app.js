@@ -679,6 +679,22 @@
     cv.width = W * 2; cv.height = H * 2;
     var ctx = cv.getContext("2d");
     ctx.scale(2, 2);
+    // Референс-линии КР МЗ РФ (Г2): ответ = редукция ≥50% от исходного; ремиссия <5.
+    // Если исходный балл известен (первая точка), рисуем обе; ремиссия — всегда.
+    var maxV = 21, base = vals && vals.length ? vals[0] : null;
+    var yOf = function (v) { return H - 18 - (v / maxV) * (H - 30); };
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.font = "10px system-ui"; ctx.textAlign = "left";
+    if (base && base > 0) {
+      var resp = Math.max(0, base * 0.5), yr = yOf(resp);
+      ctx.strokeStyle = "#d97706"; ctx.beginPath(); ctx.moveTo(28, yr); ctx.lineTo(W - 4, yr); ctx.stroke();
+      ctx.fillStyle = "#d97706"; ctx.fillText("ответ (−50%)", 30, yr - 3);
+    }
+    var yrem = yOf(5);
+    ctx.strokeStyle = "#059669"; ctx.beginPath(); ctx.moveTo(28, yrem); ctx.lineTo(W - 4, yrem); ctx.stroke();
+    ctx.fillStyle = "#059669"; ctx.fillText("ремиссия <5", 30, yrem - 3);
+    ctx.restore();
     var pad = 18;
     ctx.clearRect(0, 0, W, H);
     if (vals.length < 2) {
