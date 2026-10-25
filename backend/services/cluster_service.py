@@ -192,7 +192,9 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
     ood = _OT.evaluate_mahalanobis_ood(z24, cluster_id=cluster_id).to_dict()
 
     # проекция: кластерный центр + персональное смещение от осей вклада Махаланобиса
-    base = _ENGINE.CLUSTERS_METADATA[assigned["assigned_cluster_code"]]["umap_coords"]
+    cluster_key = next((k for k in _ENGINE.CLUSTERS_METADATA
+                        if k.startswith(assigned["assigned_cluster_code"])), None)
+    base = _ENGINE.CLUSTERS_METADATA[cluster_key]["umap_coords"] if cluster_key else [0.0, 0.0]
     contrib = ood["feature_contributions_to_d2"]
     d2_total = sum(abs(v) for v in contrib.values()) or 1.0
     px = round(base[0] + 0.9 * contrib[2] / d2_total, 3)   # ось 3 = GAD-7
