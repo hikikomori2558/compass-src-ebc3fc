@@ -487,6 +487,31 @@ async def draft_ae_1071(patient_hash: str, request: Request,
     return {"draft_text": "\n".join(lines), "drafts_formed": n}
 
 
+@bio_router.get("/sources",
+                summary="[Провенанс] Реестр источников (guideline_sources) — клик по цифре в UI")
+async def get_sources(request: Request, ref: Optional[str] = None,
+                      principal: Principal = Depends(get_principal)) -> Dict[str, Any]:
+    """Каждая цифра дашборда обязана прослеживаться до публикации (слайд 06:
+    «доверие создаёт вся система»). ref — конкретный источник или весь реестр."""
+    from backend.db.context import db_conn
+    from fastapi import HTTPException
+    pool = getattr(request.app.state, "pg_pool", None)
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    async with db_conn(pool, role=principal.role, user_id=principal.sub) as conn:
+        if ref:
+            row = await conn.fetchrow(
+                "SELECT source_id, doc_title, doc_ref, verified_url, verified_at, note "
+                "FROM guideline_sources WHERE source_id=$1", ref)
+            if row is None:
+                raise HTTPException(404, f"источник {ref} не зарегистрирован")
+            return {"source": dict(row)}
+        rows = await conn.fetch(
+            "SELECT source_id, doc_title, doc_ref, verified_url, verified_at, note "
+            "FROM guideline_sources ORDER BY source_id")
+    return {"sources": [dict(r) for r in rows]}
+
+
 @bio_router.get("/scales/{code}", summary="[Опросник] Полная шкала по КР МЗ РФ (item-level)")
 def get_scale(code: str) -> Dict[str, Any]:
     from fastapi import HTTPException
