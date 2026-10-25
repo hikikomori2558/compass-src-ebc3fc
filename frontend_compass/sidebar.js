@@ -471,6 +471,32 @@
         });
     });
   }
+  /* ==== Провенанс: реестр источников — клик по цифре → карточка ==== */
+  var srcBtn = $("btn-dash-sources");
+  if (srcBtn) {
+    srcBtn.addEventListener("click", function () {
+      call("/api/v1/compass-bio/sources")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d) return;
+          var box = $("sources-body");
+          box.innerHTML = (d.sources || []).map(function (x) {
+            return "<div class='dash-tl'><b>" + x.doc_title + "</b> <span class='when'>" +
+              x.doc_ref + (x.verified_url ? " · <a href='" + x.verified_url +
+              "' target='_blank' rel='noopener'>оригинал</a>" : " · оригинал не открывался") +
+              "</span><br><span class='sb-dim'>" + (x.note || "") + "</span></div>";
+          }).join("") ||
+            "<span class='sb-dim'>Реестр пуст.</span>";
+          $("modal-sources").hidden = false;
+        });
+    });
+  }
+  var mSrc = $("modal-sources");
+  if (mSrc) {
+    $("btn-sources-close").addEventListener("click", function () { mSrc.hidden = true; });
+    mSrc.addEventListener("click", function (e) { if (e.target === mSrc) mSrc.hidden = true; });
+  }
+
   var m1071 = $("modal-1071");
   if (m1071) {
     $("btn-1071-close").addEventListener("click", function () { m1071.hidden = true; });
