@@ -138,7 +138,7 @@ def main() -> int:
         tlp = req(f"/api/v1/compass-bio/patient/{pp['patient_hash']}/timeline", token=H)
         rows = {x["scale_code"]: x["total_score"] for x in tlp["scales"] if x["scale_code"].startswith("HADS")}
         if rows.get("HADS-A") is not None:
-            ph2, hads_rows = pp["patient_hash"], rows
+            ph2, hads_rows, tl2 = pp["patient_hash"], rows, tlp
             if rows.get("HADS-A") == ha:
                 break
     check("HADS roundtrip: серверный подсчёт A/D",
