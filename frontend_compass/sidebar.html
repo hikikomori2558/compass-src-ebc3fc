@@ -225,6 +225,8 @@
 
   <div class="dash-grid">
     <!-- Крупное состояние -->
+    <div class="dash-zone"><span class="dash-zone__p">ПРЕДЛОЖИТЬ</span>
+      <span class="sb-dim">система предлагает — из правил КР и данных, без вывода раньше данных</span></div>
     <div class="dash-card dash-card--state">
       <div class="sb-sec-t">Состояние последнего разбора</div>
       <div class="sb-svetofor dash-sv" id="dash-sv">
@@ -232,6 +234,10 @@
         <div class="sb-svetofor-text" id="dash-status-text">Разбор ещё не запускался — откройте карту в ЭМК и нажмите закладку COMPASS.</div>
       </div>
       <div class="dash-kv" id="dash-kv"></div>
+      <div class="dash-actions-row">
+        <button type="button" class="cp-btn cp-btn-outline cp-btn-sm" id="btn-disagree">Не согласен — почему?</button>
+        <span class="sb-dim" id="disagree-note"></span>
+      </div>
     </div>
 
     <!-- Уведомления -->
@@ -247,6 +253,8 @@
       <div class="sb-pk-nums" id="dash-pk-nums">—</div>
     </div>
 
+    <div class="dash-zone"><span class="dash-zone__p">ПРОВЕРИТЬ</span>
+      <span class="sb-dim">факты для проверки: дневник, НЯ, шкалы — цифры кликабельны до источника</span></div>
     <!-- Кластеризация траекторий (24D → 2D, Махаланобис, Вассерштейн) -->
     <div class="dash-card">
       <div class="sb-sec-t">Кластеризация траектории (24D → 2D)</div>
@@ -281,6 +289,8 @@
       </div>
     </div>
 
+    <div class="dash-zone"><span class="dash-zone__p">РЕШИТЬ</span>
+      <span class="sb-dim">действия врача — решение и ответственность остаются у вас (Условие 3)</span></div>
     <!-- SLA -->
     <div class="dash-card">
       <div class="sb-sec-t">Метрики платформы (живые)</div>
@@ -324,6 +334,19 @@
     <div class="sb-modal-actions">
       <button type="button" class="cp-btn cp-btn-primary" id="btn-1071-print">Печать</button>
       <button type="button" class="cp-btn" id="btn-1071-close">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<div class="sb-modal" id="modal-disagree" hidden>
+  <div class="sb-modal-box">
+    <h3>Осознанное несогласие с системой</h3>
+    <p class="sb-note">Против «иллюзии понимания»: несогласие — это данные, а не ошибка.
+    Запись попадёт в неизменяемый аудит-лог с вашей ролью.</p>
+    <textarea id="disagree-action" class="cp-input" rows="3">Система не учла …</textarea>
+    <div class="sb-modal-actions">
+      <button type="button" class="cp-btn cp-btn-primary" id="btn-disagree-ok">Записать в аудит</button>
+      <button type="button" class="cp-btn" id="btn-disagree-cancel">Отмена</button>
     </div>
   </div>
 </div>

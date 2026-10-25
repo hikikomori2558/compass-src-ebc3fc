@@ -487,6 +487,34 @@ async def draft_ae_1071(patient_hash: str, request: Request,
     return {"draft_text": "\n".join(lines), "drafts_formed": n}
 
 
+@bio_router.post("/patient/{patient_hash}/disagree",
+                 summary="[Врач] Осознанное несогласие с вердиктом системы — в неизменяемый аудит")
+async def record_disagreement(patient_hash: str, request: Request,
+                              principal: Principal = Depends(get_principal)) -> Dict[str, Any]:
+    """Против «иллюзии понимания» (Viñas): несогласие врача — данные, а не сбой.
+    Пишем в append-only audit_log (GRANT INSERT без SELECT — записать можно,
+    подделать нельзя)."""
+    import json as _json
+    import uuid as _uuid
+
+    from backend.db.context import db_conn
+    from fastapi import HTTPException
+    body = await request.json() if request.headers.get("content-length") else {}
+    note = str(body.get("note") or "").strip()[:1000]
+    if len(note) < 5:
+        raise HTTPException(400, "Опишите, что система не учла (минимум 5 символов)")
+    pool = getattr(request.app.state, "pg_pool", None)
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    async with db_conn(pool, role=principal.role, user_id=principal.sub) as conn:
+        await conn.execute(
+            "INSERT INTO audit_log (actor_id, action, entity, entity_id, details) "
+            "VALUES ($1, 'DOCTOR_DISAGREE', 'patient', $2, $3::jsonb)",
+            _uuid.UUID(principal.sub), patient_hash,
+            _json.dumps({"note": note, "role": principal.role}, ensure_ascii=False))
+    return {"recorded": True}
+
+
 @bio_router.get("/sources",
                 summary="[Провенанс] Реестр источников (guideline_sources) — клик по цифре в UI")
 async def get_sources(request: Request, ref: Optional[str] = None,

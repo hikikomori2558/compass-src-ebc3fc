@@ -471,6 +471,30 @@
         });
     });
   }
+  /* ==== Осознанное несогласие → audit_log (против иллюзии понимания) ==== */
+  var disBtn = $("btn-disagree");
+  if (disBtn) {
+    disBtn.addEventListener("click", function () { $("modal-disagree").hidden = false; });
+  }
+  var mDis = $("modal-disagree");
+  if (mDis) {
+    $("btn-disagree-cancel").addEventListener("click", function () { mDis.hidden = true; });
+    mDis.addEventListener("click", function (e) { if (e.target === mDis) mDis.hidden = true; });
+    $("btn-disagree-ok").addEventListener("click", function () {
+      var ph = dashPatientHash || (state.currentAlert && state.currentAlert.patient_hash);
+      var note = $("disagree-action").value.trim();
+      if (!ph) { $("disagree-note").textContent = "Сначала выберите пациента."; return; }
+      call("/api/v1/compass-bio/patient/" + ph + "/disagree", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: note }),
+      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          mDis.hidden = true;
+          $("disagree-note").textContent = res.ok ? "Записано в аудит-лог." : ("Ошибка: " + (res.d.detail || ""));
+        }).catch(function (e) { $("disagree-note").textContent = "Ошибка сети: " + e.message; });
+    });
+  }
+
   /* ==== Провенанс: реестр источников — клик по цифре → карточка ==== */
   var srcBtn = $("btn-dash-sources");
   if (srcBtn) {
@@ -681,12 +705,22 @@
       .then(function (d) {
         if (!d) return;
         var a = d.alerts && d.alerts[0];
+        // Alert fatigue (Ancker 2017): один и тот же алерт не пингуем чаще,
+        // чем раз в 5 минут — баннер обновляется тихо, без визуального «дёргания»
+        var now = Date.now();
+        var lastPing = state.alertPingAt && state.alertPingAt[a ? a.alert_id : 0] || 0;
+        var quiet = a && state.currentAlert && state.currentAlert.alert_id === a.alert_id &&
+                    (now - lastPing) < 5 * 60 * 1000;
         $("sb-alert").hidden = !a;
         if (a) {
           state.currentAlert = a;
-          $("sb-alert-title").textContent = "Критический алерт (" + d.count + ")";
-          $("sb-alert-sub").textContent = a.category + " • " + (a.reasons || []).join("; ") +
-            " • " + new Date(a.created_at).toLocaleTimeString("ru-RU");
+          if (!quiet) {
+            state.alertPingAt = state.alertPingAt || {};
+            state.alertPingAt[a.alert_id] = now;
+            $("sb-alert-title").textContent = "Критический алерт (" + d.count + ")";
+            $("sb-alert-sub").textContent = a.category + " • " + (a.reasons || []).join("; ") +
+              " • " + new Date(a.created_at).toLocaleTimeString("ru-RU");
+          }
         }
         // колокольчик живёт и без баннера
         var bell = $("btn-bell"), badge = $("bell-badge");
