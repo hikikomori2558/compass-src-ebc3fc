@@ -232,16 +232,24 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
         },
     }
 
+    # Внимание: INSERT ... ON CONFLICT DO UPDATE при FORCE RLS отвергается политиками
+    # (PG16 проверяет UPDATE-политику даже на пустой таблице), поэтому upsert = UPDATE→INSERT.
     async with db_conn(pool, role="AUTH_SERVICE", user_id=patient_hash) as wconn:
-        await wconn.execute(
-            "INSERT INTO patient_cluster_profiles "
-            "(patient_hash_id, z24, cluster_code, projection_x, projection_y, dtw, ood) "
-            "VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7::jsonb) "
-            "ON CONFLICT (patient_hash_id) DO UPDATE SET z24=$2::jsonb, cluster_code=$3, "
-            "projection_x=$4, projection_y=$5, dtw=$6, ood=$7::jsonb, computed_at=now()",
+        upd = await wconn.execute(
+            "UPDATE patient_cluster_profiles SET z24=$2::jsonb, cluster_code=$3, "
+            "projection_x=$4, projection_y=$5, dtw=$6, ood=$7::jsonb, computed_at=now() "
+            "WHERE patient_hash_id=$1",
             ph, json.dumps(z24), assigned["assigned_cluster_code"],
             px, py, assigned["dtw_distance_to_sechenov_rki"], json.dumps(profile["ood"]),
         )
+        if upd == "UPDATE 0":
+            await wconn.execute(
+                "INSERT INTO patient_cluster_profiles "
+                "(patient_hash_id, z24, cluster_code, projection_x, projection_y, dtw, ood) "
+                "VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7::jsonb)",
+                ph, json.dumps(z24), assigned["assigned_cluster_code"],
+                px, py, assigned["dtw_distance_to_sechenov_rki"], json.dumps(profile["ood"]),
+            )
     return profile
 
 

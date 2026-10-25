@@ -522,6 +522,7 @@ ALTER TABLE patient_cluster_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE patient_cluster_profiles FORCE ROW LEVEL SECURITY;
 CREATE POLICY pcp_select ON patient_cluster_profiles FOR SELECT USING (
   app_current_role() = 'ADMIN_METHODOLOGIST'
+  OR app_current_role() = 'AUTH_SERVICE'
   OR (app_current_role() IN ('DOCTOR_PSYCHIATRIST','DOCTOR_NEUROLOGIST','DOCTOR_GP') AND app_is_attending(patient_hash_id))
   OR (app_current_role() = 'PATIENT' AND patient_hash_id = app_current_user_id())
 );
@@ -534,6 +535,7 @@ CREATE POLICY pcp_update ON patient_cluster_profiles FOR UPDATE USING (
   app_current_role() = 'ADMIN_METHODOLOGIST' OR app_current_role() = 'AUTH_SERVICE'
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON patient_cluster_profiles TO compass_api;
+GRANT USAGE, SELECT ON SEQUENCE patient_cluster_profiles_profile_id_seq TO compass_api;
 DO $$ DECLARE r text;
 BEGIN
   FOR r IN SELECT rolname FROM pg_roles WHERE rolname LIKE 'DOCTOR%' OR rolname IN ('PATIENT','ADMIN_METHODOLOGIST','AUTH_SERVICE')
