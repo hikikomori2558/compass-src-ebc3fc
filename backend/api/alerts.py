@@ -10,6 +10,7 @@
 #                                  метрика алертинга (решение 0-bis №2), не «45 мс».
 import json
 import uuid
+import datetime
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -176,15 +177,22 @@ async def patient_checkin(req: CheckinRequest, request: Request,
             "Слабость": "asthenia", "Тревога усилилась": "anxiety_up", "Бессонница": "insomnia",
         }
         se_codes = [_CHIP2CODE.get(str(c)) for c in diary_symptoms if _CHIP2CODE.get(str(c))]
+        _it = None
+        if req.intake_time:
+            try:
+                _hh, _mm = str(req.intake_time).split(":")[:2]
+                _it = datetime.time(int(_hh), int(_mm))
+            except (ValueError, IndexError):
+                _it = None
         await conn.execute(
             "INSERT INTO patient_diary_entries "
             "(patient_hash_id, entry_date, intake_time, taken, before_meal_30min, side_effects, notes) "
-            "VALUES ($1, current_date, $2::time, $3, TRUE, $4::jsonb, $5) "
+            "VALUES ($1, current_date, $2, $3, TRUE, $4::jsonb, $5) "
             "ON CONFLICT (patient_hash_id, entry_date) DO UPDATE SET "
             "intake_time=EXCLUDED.intake_time, taken=EXCLUDED.taken, "
             "side_effects=EXCLUDED.side_effects, notes=EXCLUDED.notes",
             uuid.UUID(patient.sub),
-            req.intake_time,
+            _it,
             req.took_medication,
             json.dumps([{"code": c, "severity": 1} for c in se_codes if c],
                        ensure_ascii=False),
