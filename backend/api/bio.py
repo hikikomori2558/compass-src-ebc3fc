@@ -1,6 +1,7 @@
 # backend/api/bio.py — FastAPI-роутер биоконтура COMPASS-HYBRID v2.6
 # (автономный запуск: python3 -m backend.api.bio).
 import ctypes
+import json
 import time
 from typing import Any, Dict, List, Optional
 
