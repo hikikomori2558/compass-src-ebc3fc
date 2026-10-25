@@ -109,6 +109,85 @@ def main() -> int:
     tel1 = req("/api/v1/telemetry/summary")["requests_observed"]
     check("телеметрия живая", tel1 > tel0, f"{tel0} -> {tel1}")
 
+    # ============================================================
+    # v7: шкалы МЗ РФ, кластер-карта, НЯ/1071, HADS roundtrip, стрик
+    # ============================================================
+    print("=" * 70)
+    print("БЛОК v7: HADS/HAM-A подсчёты · кластер-карта · НЯ+1071 · engagement")
+    print("=" * 70)
+
+    # 8. HADS подсчёт на сервере: 14 ответов → HADS + HADS-A/D строки
+    inv = req("/api/v1/auth/invite", {}, H)
+    pt = req("/api/v1/auth/bind", {"token": inv["token"]})
+    PTOK = pt["access_token"]
+    hads_answers = [2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1]
+    ev = str(uuid.uuid4())
+    cr = req("/api/v1/patient/checkin", {
+        "event_uuid": ev, "gad7_total": 14, "hads_answers": hads_answers,
+        "took_medication": True, "intake_time": "08:35",
+        "diary": {"symptoms": ["Сонливость днём", "Тошнота"], "sleep": "6–7 ч", "energy": 3},
+    }, PTOK)
+    check("чекин с HADS+дневником принят", cr["status"] == "OK")
+    sc = req("/api/v1/compass-bio/scales/HADS", token=PTOK)
+    check("GET /scales/HADS: 14 пунктов + per-item options",
+          len(sc["items"]) == 14 and sc.get("per_item_options") and len(sc.get("tips", [])) == 14)
+    ha = sum(hads_answers[:7]); hd = sum(hads_answers[7:])
+    UA = req("/api/v1/alerts/unconfirmed", token=H)
+    ph2 = (UA["alerts"][0]["patient_hash"] if UA["count"] else None) or \
+          req("/api/v1/auth/my-patients", token=H)["patients"][0]["patient_hash"]
+    tl2 = req(f"/api/v1/compass-bio/patient/{ph2}/timeline", token=H)
+    hads_rows = {x["scale_code"]: x["total_score"] for x in tl2["scales"] if x["scale_code"].startswith("HADS")}
+    check("HADS roundtrip: серверный подсчёт A/D",
+          hads_rows.get("HADS-A") == ha and hads_rows.get("HADS-D") == hd,
+          f"ожидали A={ha} D={hd}, в БД {hads_rows}")
+    check("intake_time roundtrip в дневнике",
+          any(x.get("intake_time") for x in tl2["adherence"]))
+
+    # 9. HAM-A: врач записывает клиницистскую шкалу
+    hama = req(f"/api/v1/compass-bio/patient/{ph2}/clinician-scale?code=HAM-A",
+               {"answers": [2, 3, 1, 2, 2, 2, 2, 1, 1, 1, 2, 1, 2, 3]}, H)
+    check("HAM-A врачом записан: 25 = psy 15 + som 10",
+          hama.get("total_score") == 25 and hama.get("hama_psychic") == 15 and hama.get("hama_somatic") == 10,
+          str(hama)[:120])
+
+    # 10. НЯ из дневника → adverse_events → черновик 1071
+    tl3 = req(f"/api/v1/compass-bio/patient/{ph2}/timeline", token=H)
+    aes = tl3.get("adverse_events") or []
+    check("НЯ из дневника зарегистрированы (MedDRA)",
+          any("Сонливость" in a["meddra_term"] for a in aes) and any("Тошнота" in a["meddra_term"] for a in aes),
+          str([(a["meddra_term"]) for a in aes])[:120])
+    d1071 = req(f"/api/v1/compass-bio/patient/{ph2}/adverse-events/draft-1071", {}, H)
+    check("черновик 1071 сформирован", d1071.get("drafts_formed", 0) >= 1
+          and "1071" in d1071.get("draft_text", ""), str(d1071)[:120])
+
+    # 11. Кластер-профиль + карта
+    cp = req(f"/api/v1/compass-bio/patient/{ph2}/cluster-profile", {}, H)
+    check("кластерный профиль: кластер K1–K5",
+          cp.get("cluster_code", "")[:2] in ("K1", "K2", "K3", "K4", "K5"), str(cp)[:140])
+    check("OOD-отчёт C-ядра присутствует",
+          "is_ood_anomaly" in (cp.get("ood") or {}), str(cp.get("ood"))[:120])
+    cmap = req("/api/v1/compass-bio/cluster-map", token=H)
+    check("карта: референсы + пациенты + честная маркировка",
+          len(cmap.get("reference_points", [])) >= 60 and len(cmap.get("patients", [])) >= 1
+          and cmap.get("honesty", {}).get("reference_note"), 
+          f"refs={len(cmap.get('reference_points', []))} pts={len(cmap.get('patients', []))}")
+
+    # 12. Серверный стрик: чекин повышает, дубль не раздувает
+    eng0 = req("/api/v1/patient/engagement", token=PTOK)
+    ev2 = str(uuid.uuid4())
+    req("/api/v1/patient/checkin", {"event_uuid": ev2, "took_medication": True}, PTOK)
+    eng1 = req("/api/v1/patient/engagement", token=PTOK)
+    check("streak серверный растёт на новом чекине", eng1["total_points"] > eng0["total_points"],
+          f"{eng0['total_points']} -> {eng1['total_points']}")
+    req("/api/v1/patient/checkin", {"event_uuid": ev2, "took_medication": True}, PTOK)
+    eng2 = req("/api/v1/patient/engagement", token=PTOK)
+    check("дубль не раздувает streak/points", eng2 == eng1, str(eng2))
+
+    # 13. Провенанс: /sources отдаёт реестр
+    src = req("/api/v1/compass-bio/sources", token=H)
+    check("реестр источников заполнен", len(src.get("sources", [])) >= 10,
+          f"{len(src.get('sources', []))}")
+
     print("=" * 70)
     if failures:
         print(f"ПРОВАЛЕНО: {failures}")
