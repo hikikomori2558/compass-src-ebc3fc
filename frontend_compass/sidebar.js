@@ -77,6 +77,7 @@
       localStorage.setItem("compass_login", $("in-login").value.trim());
       ensureLogin();
       connectWS();
+      refreshAlerts();   // баннер критических алертов — сразу после входа, не только по WS-пингу
       /* был «экран считан до входа» — сразу разбираем его */
       if (state.pendingScreen) {
         var txt = state.pendingScreen;
