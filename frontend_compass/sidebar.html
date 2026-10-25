@@ -260,10 +260,14 @@
       <div id="dash-facts" class="dash-timeline"><span class="sb-dim">Заполнится из дневника выбранного пациента.</span></div>
     </div>
 
-    <!-- История пациента из БД (RLS): шкалы, приверженность, алерты -->
+    <!-- История пациента из БД (RLS): шкалы, приверженность, алерты, НЯ -->
     <div class="dash-card">
       <div class="sb-sec-t">История пациента (БД, RLS)</div>
       <div id="dash-timeline" class="dash-timeline"><span class="sb-dim">Откроется для привязанных пациентов из уведомлений.</span></div>
+      <div class="dash-actions-row" id="dash-ae-row" hidden>
+        <button type="button" class="cp-btn cp-btn-outline cp-btn-sm" id="btn-ae-1071">Черновик извещения 1071 (НЯ)</button>
+        <span class="sb-dim" id="ae-note"></span>
+      </div>
     </div>
 
     <!-- HAM-A-14: клиницистская шкала Гамильтона, заполняет врач (КР МЗ РФ) -->
@@ -298,6 +302,17 @@
     <div class="sb-modal-actions">
       <button type="button" class="cp-btn cp-btn-primary" id="btn-057-print">Печать</button>
       <button type="button" class="cp-btn" id="btn-057-close">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<div class="sb-modal" id="modal-1071" hidden>
+  <div class="sb-modal-box">
+    <h3>ЧЕРНОВИК ИЗВЕЩЕНИЯ О НЯ (Приказ № 1071)</h3>
+    <pre class="f057" id="ae1071-body" style="white-space: pre-wrap"></pre>
+    <div class="sb-modal-actions">
+      <button type="button" class="cp-btn cp-btn-primary" id="btn-1071-print">Печать</button>
+      <button type="button" class="cp-btn" id="btn-1071-close">Закрыть</button>
     </div>
   </div>
 </div>

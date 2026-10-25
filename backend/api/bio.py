@@ -419,6 +419,68 @@ class ScaleSubmit(BaseModel):
     answers: List[int]
 
 
+@bio_router.post("/patient/{patient_hash}/adverse-events/draft-1071",
+                 summary="[Врач] Черновик извещения о НЯ (Приказ Росздравнадзора № 1071)")
+async def draft_ae_1071(patient_hash: str, request: Request,
+                        principal: Principal = Depends(get_principal)) -> Dict[str, Any]:
+    """Собирает черновик извещения по всем НЯ пациента без черновика, сохраняет его
+    в adverse_events_and_risks.roszdravnadzor_draft и возвращает печатный текст.
+    Решение об отправке — только врача (система предупреждает и оформляет)."""
+    import uuid as _uuid
+
+    from backend.db.context import db_conn
+    from fastapi import HTTPException
+
+    if principal.role not in ("DOCTOR_PSYCHIATRIST", "DOCTOR_NEUROLOGIST", "DOCTOR_GP", "ADMIN_METHODOLOGIST"):
+        raise HTTPException(403, "Извещение формирует врач")
+    pool = getattr(request.app.state, "pg_pool", None)
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    ph = _uuid.UUID(patient_hash)
+    REL_RU = {"DEFINITELY": "определённо связана", "PROBABLE": "вероятно связана",
+              "POSSIBLE": "возможно связана", "UNLIKELY": "маловероятно связана",
+              "UNRELATED": "не связана"}
+    SEV_RU = {1: "лёгкая (CTCAE 1)", 2: "умеренная (CTCAE 2)", 3: "тяжёлая (CTCAE 3)",
+              4: "жизнеугрожающая (CTCAE 4)", 5: "смертельный исход (CTCAE 5)"}
+    async with db_conn(pool, role=principal.role, user_id=principal.sub) as conn:
+        rows = await conn.fetch(
+            "SELECT ae_id, meddra_term, severity_ctcae, related_to_drug, reported_at "
+            "FROM adverse_events_and_risks WHERE patient_hash_id=$1 "
+            "ORDER BY reported_at DESC LIMIT 20", ph)
+        if not rows:
+            raise HTTPException(404, "У пациента нет записей НЯ")
+        lines = ["ИЗВЕЩЕНИЕ О НЕЖЕЛАТЕЛЬНОЙ РЕАКЦИИ (черновик)",
+                 "Основание: Приказ Росздравнадзора № 1071 от 15.02.2017; правила GVP ЕАЭС",
+                 "Адресат: АИС Росздравнадзора; служба фармаконадзора ООО «иФарма» (ГК «ХимРар»)",
+                 "Подозреваемый препарат: Авиандр® (маритупирдин) 20 мг 2 р/сут",
+                 ""]
+        n = 0
+        for r in rows:
+            draft = {
+                "regulation": "Приказ Росздравнадзора № 1071 от 15.02.2017",
+                "recipient": "АИС Росздравнадзора + служба фармаконадзора ООО «иФарма» (ГК «ХимРар»)",
+                "suspect_drug": "Авиандр® (маритупирдин)",
+                "meddra_term": r["meddra_term"],
+                "severity_ctcae": r["severity_ctcae"],
+                "related_to_drug": r["related_to_drug"],
+                "reported_at": str(r["reported_at"]),
+                "status": "ЧЕРНОВИК — требует проверки и подписи врача",
+                "formed_by_role": principal.role,
+            }
+            await conn.execute(
+                "UPDATE adverse_events_and_risks SET roszdravnadzor_draft=$2::jsonb WHERE ae_id=$1",
+                r["ae_id"], json.dumps(draft, ensure_ascii=False))
+            n += 1
+            lines.append(f"• {r['meddra_term']} — {SEV_RU.get(r['severity_ctcae'], 'CTCAE ?')}, "
+                         f"связь с препаратом: {REL_RU.get(r['related_to_drug'], r['related_to_drug'])}, "
+                         f"зарегистрировано {r['reported_at'].strftime('%d.%m.%Y')}")
+        lines += ["", "Черновик сформирован автоматически из дневника пациента.",
+                  "Перед отправкой в Росздравнадзор требует проверки врачом и внесения данных пациента."]
+        if n == 0:
+            lines = ["Все записи НЯ уже имеют черновики извещения."] + lines[4:]
+    return {"draft_text": "\n".join(lines), "drafts_formed": n}
+
+
 @bio_router.get("/scales/{code}", summary="[Опросник] Полная шкала по КР МЗ РФ (item-level)")
 def get_scale(code: str) -> Dict[str, Any]:
     from fastapi import HTTPException
@@ -527,6 +589,11 @@ async def patient_insights(patient_hash: str, request: Request,
             "SELECT alert_id, critical, created_at, doctor_reaction_at "
             "FROM clinical_alerts_and_routing WHERE patient_hash_id=$1 "
             "ORDER BY created_at DESC LIMIT 10", ph)
+        aes = await conn.fetch(
+            "SELECT ae_id, meddra_term, severity_ctcae, related_to_drug, reported_at, "
+            "roszdravnadzor_draft IS NOT NULL AS has_draft "
+            "FROM adverse_events_and_risks WHERE patient_hash_id=$1 "
+            "ORDER BY reported_at DESC LIMIT 20", ph)
         adherence = await conn.fetchval(
             "SELECT pdc_pct FROM medication_adherence_logs WHERE patient_hash_id=$1 "
             "ORDER BY taken_at DESC LIMIT 1", ph)
@@ -539,6 +606,7 @@ async def patient_insights(patient_hash: str, request: Request,
                               scales=[dict(s) for s in scales],
                               alerts=[dict(a) for a in alerts],
                               adherence_pct=adherence)
+    insights["adverse_events"] = [dict(a) for a in aes]
     insights["patient_hash"] = patient_hash
     return insights
 

@@ -165,6 +165,33 @@ async def patient_checkin(req: CheckinRequest, request: Request,
             json.dumps(req.diary) if req.diary else None, req.event_uuid,
         )
 
+        # Фармаконадзор: жалобы из дневника → записи НЯ (adverse_events_and_risks).
+        # Дедуп на день: одна и та же жалоба в один день не плодит строки НЯ.
+        _MEDDRA = {
+            "Сонливость днём": "Сонливость (Somnolence)",
+            "Тошнота": "Тошнота (Nausea)",
+            "Головокружение": "Головокружение (Dizziness)",
+            "Головная боль": "Головная боль (Headache)",
+        }
+        diary_symptoms = (req.diary or {}).get("symptoms") or []
+        if isinstance(diary_symptoms, list):
+            for chip in diary_symptoms:
+                term = _MEDDRA.get(str(chip))
+                if not term:
+                    continue
+                dup_ae = await conn.fetchval(
+                    "SELECT ae_id FROM adverse_events_and_risks WHERE patient_hash_id=$1 "
+                    "AND meddra_term=$2 AND reported_at::date = now()::date",
+                    uuid.UUID(patient.sub), term)
+                if dup_ae is None:
+                    await conn.execute(
+                        "INSERT INTO adverse_events_and_risks "
+                        "(patient_hash_id, meddra_term, severity_ctcae, related_to_drug, roszdravnadzor_draft) "
+                        "VALUES ($1, $2, 2, 'POSSIBLE', $3::jsonb)",
+                        uuid.UUID(patient.sub), term,
+                        json.dumps({"source": "PWA_diary", "raw_chip": str(chip)},
+                                   ensure_ascii=False))
+
         alert_id: Optional[int] = None
         if critical:
             reasons = []

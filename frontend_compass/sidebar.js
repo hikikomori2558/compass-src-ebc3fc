@@ -442,6 +442,42 @@
     });
   }
 
+  /* ==== Черновик извещения о НЯ (Приказ 1071) — формирует сервер, решает врач ==== */
+  var aeBtn = $("btn-ae-1071");
+  if (aeBtn) {
+    aeBtn.addEventListener("click", function () {
+      var row = $("dash-ae-row");
+      var ph = row && row.dataset.ph;
+      if (!ph) return;
+      aeBtn.disabled = true;
+      var note = $("ae-note");
+      if (note) note.textContent = "Формирую черновик…";
+      call("/api/v1/compass-bio/patient/" + ph + "/adverse-events/draft-1071", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          aeBtn.disabled = false;
+          if (res.ok) {
+            $("ae1071-body").textContent = res.d.draft_text;
+            $("modal-1071").hidden = false;
+            if (note) note.textContent = "Черновиков сформировано: " + res.d.drafts_formed;
+            renderDash();
+          } else if (note) {
+            note.textContent = "Ошибка: " + (res.d.detail || "не сформировано");
+          }
+        }).catch(function (e) {
+          aeBtn.disabled = false;
+          if (note) note.textContent = "Ошибка сети: " + e.message;
+        });
+    });
+  }
+  var m1071 = $("modal-1071");
+  if (m1071) {
+    $("btn-1071-close").addEventListener("click", function () { m1071.hidden = true; });
+    $("btn-1071-print").addEventListener("click", function () { window.print(); });
+    m1071.addEventListener("click", function (e) { if (e.target === m1071) m1071.hidden = true; });
+  }
+
   /* CSV-отчёты: скачаются как файлы */
   function downloadCSV(name, rows) {
     var csv = rows.map(function (r) {
@@ -799,6 +835,20 @@
               (a.intake_time ? " в " + a.intake_time : "") +
               (a.notes ? " • «" + a.notes + "»" : "") + "</span></div>");
           });
+          // Нежелательные реакции: честный список из adverse_events_and_risks
+          var aes = tl.adverse_events || [];
+          aes.slice(0, 6).forEach(function (a) {
+            bits.push("<div class='dash-tl'>НЯ: <b>" + a.meddra_term + "</b> CTCAE " + a.severity_ctcae +
+              " (" + (a.related_to_drug || "?").toLowerCase() + ")" +
+              " <span class='when'>" + new Date(a.reported_at).toLocaleDateString("ru-RU") +
+              (a.has_draft ? " • черновик 1071 готов" : "") + "</span></div>");
+          });
+          var aeRow = $("dash-ae-row");
+          if (aeRow) {
+            aeRow.hidden = aes.length === 0;
+            aeRow.dataset.ph = alertPh;
+            aeRow.dataset.hasNew = aes.some(function (a) { return !a.has_draft; }) ? "1" : "";
+          }
           // «Факты действия препарата»: подсветка паттернов из дневника
           var facts = [];
           var adh = tl.adherence || [];
