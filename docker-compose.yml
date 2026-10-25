@@ -47,6 +47,7 @@ services:
     container_name: compass_api
     environment:
       DATABASE_URL: postgresql://compass_api:compass_api_demo@db:5432/compass
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET обязателен — см. .env.example (мин. 32 байта)}
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_me}
       PII_PEPPER: ${PII_PEPPER:-dev_pepper_change_me}

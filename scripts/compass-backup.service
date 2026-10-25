@@ -1,0 +1,6 @@
+[Unit]
+Description=COMPASS daily pg_dump backup
+After=docker.service
+[Service]
+Type=oneshot
+ExecStart=/root/rapira-clinical-compass/scripts/backup_db.sh

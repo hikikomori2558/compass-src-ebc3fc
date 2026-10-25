@@ -1,0 +1,7 @@
+[Unit]
+Description=COMPASS backup daily 03:40
+[Timer]
+OnCalendar=*-*-* 03:40:00
+Persistent=true
+[Install]
+WantedBy=timers.target
