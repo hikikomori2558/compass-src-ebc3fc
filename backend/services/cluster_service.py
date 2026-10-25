@@ -191,7 +191,7 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
     try:
         _fit_cluster_reference(cluster_id)
         ood = _OT.evaluate_mahalanobis_ood(z24, cluster_id=cluster_id).to_dict()
-    except (KeyError, RuntimeError, Exception):
+    except Exception:
         # C-ядро не смогло оценить OOD (кластер не обучен / сингулярная ковариация):
         # честный fallback — OOD-отчёт с неопределённым статусом
         ood = {
@@ -201,13 +201,15 @@ async def compute_profile_from_db(pool, patient_hash: str, caller_role: str = ""
         }
 
     # проекция: кластерный центр + персональное смещение от осей вклада Махаланобиса
+    # (contrib — Dict[имя_оси, вклад]; смещаем по двум самым сильным осям пациента)
     cluster_key = next((k for k in _ENGINE.CLUSTERS_METADATA
                         if k.startswith(assigned["assigned_cluster_code"])), None)
     base = _ENGINE.CLUSTERS_METADATA[cluster_key]["umap_coords"] if cluster_key else [0.0, 0.0]
     contrib = ood["feature_contributions_to_d2"]
     d2_total = sum(abs(v) for v in contrib.values()) or 1.0
-    px = round(base[0] + 0.9 * contrib[2] / d2_total, 3)   # ось 3 = GAD-7
-    py = round(base[1] + 0.9 * contrib[0] / d2_total, 3)   # ось 1 = HADS-A
+    top = sorted(contrib.items(), key=lambda x: -abs(x[1]))[:2]
+    px = round(base[0] + 0.9 * top[0][1] / d2_total, 3) if top else round(base[0], 3)
+    py = round(base[1] + (0.9 * top[1][1] / d2_total if len(top) > 1 else 0.0), 3)
 
     profile = {
         "patient_hash": patient_hash,
