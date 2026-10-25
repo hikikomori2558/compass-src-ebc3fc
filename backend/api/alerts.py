@@ -165,6 +165,31 @@ async def patient_checkin(req: CheckinRequest, request: Request,
             json.dumps(req.diary) if req.diary else None, req.event_uuid,
         )
 
+        # Дневник → patient_diary_entries (UPSERT по дню): источник «фактов
+        # действия» (intake_time × жалобы, RMSE «до еды», стрик).
+        _CHIP2CODE = {
+            "Сонливость днём": "sleepy", "Сонливость, заторможенность": "sleepy",
+            "Головокружение": "dizzy", "Головная боль": "headache",
+            "Тошнота": "nausea", "Тошнота / дискомфорт в желудке": "nausea",
+            "Покалывание, «мурашки»": "tingling", "Слабость, нет энергии": "asthenia",
+            "Слабость": "asthenia", "Тревога усилилась": "anxiety_up", "Бессонница": "insomnia",
+        }
+        se_codes = [_CHIP2CODE.get(str(c)) for c in diary_symptoms if _CHIP2CODE.get(str(c))]
+        await conn.execute(
+            "INSERT INTO patient_diary_entries "
+            "(patient_hash_id, entry_date, intake_time, taken, before_meal_30min, side_effects, notes) "
+            "VALUES ($1, current_date, $2::time, $3, TRUE, $4::jsonb, $5) "
+            "ON CONFLICT (patient_hash_id, entry_date) DO UPDATE SET "
+            "intake_time=EXCLUDED.intake_time, taken=EXCLUDED.taken, "
+            "side_effects=EXCLUDED.side_effects, notes=EXCLUDED.notes",
+            uuid.UUID(patient.sub),
+            req.intake_time,
+            req.took_medication,
+            json.dumps([{"code": c, "severity": 1} for c in se_codes if c],
+                       ensure_ascii=False),
+            (req.diary or {}).get("note"),
+        )
+
         # Фармаконадзор: жалобы из дневника → записи НЯ (adverse_events_and_risks).
         # Дедуп на день: одна и та же жалоба в один день не плодит строки НЯ.
         _MEDDRA = {
@@ -173,7 +198,6 @@ async def patient_checkin(req: CheckinRequest, request: Request,
             "Головокружение": "Головокружение (Dizziness)",
             "Головная боль": "Головная боль (Headache)",
         }
-        diary_symptoms = (req.diary or {}).get("symptoms") or []
         if isinstance(diary_symptoms, list):
             for chip in diary_symptoms:
                 term = _MEDDRA.get(str(chip))
