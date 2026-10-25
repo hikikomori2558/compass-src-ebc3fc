@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COMPASS-HYBRID v2.6 — демо стенд</title>
+<style>
+body { font-family: system-ui, -apple-system, sans-serif; max-width: 880px; margin: 0 auto; padding: 28px 18px; color: #15171a; background: #fafafa; }
+h1 { font-size: 24px; } .tag { color: #525252; font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 22px; }
+a.card { display: block; background: #fff; border: 1px solid #e4e4e7; border-radius: 12px; padding: 16px; text-decoration: none; color: inherit; transition: box-shadow .15s; }
+a.card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+.card b { display: block; font-size: 15px; margin-bottom: 4px; } .card span { font-size: 13px; color: #525252; }
+.code { background: #18181b; color: #fafafa; border-radius: 8px; padding: 10px 12px; font-family: ui-monospace, monospace; font-size: 12px; margin-top: 8px; white-space: pre-wrap; }
+ul { font-size: 14px; line-height: 1.55; }
+</style></head><body>
+<h1>COMPASS-HYBRID v2.6 <span class="tag">· команда 20-П «Rapira» · демо-стенд</span></h1>
+<p class="tag">CDSS для ведения пациентов с тревожно-депрессивной симптоматикой (препарат Авиандр®/маритупирдин). Три контура поверх реальной поликлиники: ЭМК вендора → сайдбар-ассистент врача → PWA пациента.</p>
+<div class="grid">
+  <a class="card" href="/static/compass/install.html"><b>1. Установка ассистента врача</b><span>Мастер подключения закладки к ЭМК: живые проверки, перетаскивание закладки, FAQ.</span></a>
+  <a class="card" href="/static/pwa/"><b>2. PWA пациента</b><span>Чек-ин 3 тапа, GAD-7 (Г2 КР МЗ РФ) → HADS-14 (Г1) → каскад SAFETY, дневник с подсказками в момент вопроса, стрик, связь с врачом.</span></a>
+  <a class="card" href="/emc/"><b>3. ЭМК «вендора» (порт 8100)</b><span>Утилитарная российская поликлиническая ЭМК: журнал приёма, карта пациента. COMPASS не меняет её — работает поверх.</span></a>
+  <a class="card" href="/static/compass/ehr.html"><b>4. ЭМК без закладки</b><span>Тот же журнал приёма — для сценария «врач ещё не установил ассистента».</span></a>
+  <a class="card" href="https://github.com/hikikomori2558/rapira-clinical-compass"><b>5. Исходный код</b><span>Backend C-ядро (RK45, Синкхорн-Вассерштейн, Махаланобис-OOD) + FastAPI + PostgreSQL 16 RLS.</span></a>
+</div>
+<h3 style="margin-top:26px">Сценарий проверки за 3 минуты</h3>
+<ul>
+<li><b>Врач:</b> установить закладку (п.1) → открыть ЭМК (п.3) → журнал приёма → карта пациента → закладка «COMPASS ▸» → светофор, what-if CYP2D6, кластер-карта, факты действия, НЯ + извещение 1071, HAM-A-14, ответ пациенту.</li>
+<li><b>Пациент:</b> QR от врача (п.2) → чек-ин → опросник недели → «Связь с врачом» → сообщение приходит врачу.</li>
+<li><b>Алертинг:</b> в PWA пройти каскад SAFETY с позитивным ответом — врачу мгновенно уходит критический алерт (доставка измеряется в мс, метрика видна в дашборде).</li>
+</ul>
+<div class="code">Вход врача (демо):  neuro.ivlanov / compass-demo-2026
+Команды проверки:   sudo python3 -m tests.test_db_battle   (боевой тест БД, 16+ блоков)
+Матрица соответствия кейсу: docs/COMPLIANCE_MATRIX.md (в репозитории)</div>
+<p class="tag">Решение принимает врач. COMPASS предупреждает и оформляет.</p>
+</body></html>
