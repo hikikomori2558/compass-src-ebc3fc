@@ -1107,7 +1107,7 @@
     w.document.write(
       "<!DOCTYPE html><html lang='ru'><head><meta charset='utf-8'><title>" + title + "</title>" +
       "<style>" +
-      "body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#161616;max-width:760px;margin:24px auto;padding:0 18px}" +
+      "body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#161616;max-width:760px;margin:24px auto;padding:0 18px;-webkit-print-color-adjust:exact;print-color-adjust:exact}" +
       "h1{font-size:19px;margin:0 0 2px} .sub{color:#6b7280;font-size:12px;margin-bottom:14px}" +
       "h2{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#6b7280;margin:16px 0 8px}" +
       "img{max-width:100%;height:auto}" +
