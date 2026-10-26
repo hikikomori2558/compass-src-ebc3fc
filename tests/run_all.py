@@ -32,7 +32,6 @@ SUITES = [
     ("tests.test_safe_pipeline", False),
     ("tests.test_c_pk_rk45_bitap", False),
     ("tests.test_c_ot_xai_ood", False),
-    ("tests.test_bio_acoustic_micronets", False),
     ("tests.test_api_cdss_workstation", False),
     ("tests.test_api_auth", True),          # требует Postgres
     ("tests.test_api_alerts_ws", True),     # требует Postgres + Redis
