@@ -43,7 +43,7 @@ echo "== 5. Сборка и старт =="
 docker compose build api emc 2>&1 | tail -2
 docker compose up -d db redis 2>&1 | tail -1
 sleep 8
-docker compose up -d api emc caddy 2>&1 | tail -1
+docker compose --profile prod up -d 2>&1 | tail -1
 sleep 8
 curl -sf http://localhost:8000/healthz >/dev/null && echo "API: OK" || echo "API: ЕЩЁ ПОДНИМАЕТСЯ"
 

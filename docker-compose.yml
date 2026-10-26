@@ -92,6 +92,28 @@ services:
       - "8100"
     restart: unless-stopped
 
+# Боевой TLS-гейт (профиль prod — на ноутбуке не стартует): Caddy сам держит
+  # Let's Encrypt для projectc.work.gd и проксирует на api. Caddyfile в репо.
+  caddy:
+    image: caddy:2
+    container_name: compass_caddy
+    profiles: ["prod"]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
+
 volumes:
   pg_data:
   redis_data:
