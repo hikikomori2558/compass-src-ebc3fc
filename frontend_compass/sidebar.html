@@ -30,8 +30,6 @@
     <div class="sb-src" id="sb-src" hidden>Источник: <b>экран ЭМК</b> &bull; <span id="sb-src-patient"></span></div>
     <nav class="sb-tabs">
       <button type="button" class="sb-tab sb-tab--on" data-stab="patient">Пациент</button>
-      <button type="button" class="sb-tab" data-stab="cohort">Когорта <span id="tab-cohort-n"></span></button>
-      <button type="button" class="sb-tab" data-stab="messages">Сообщения</button>
       <button type="button" class="sb-tab" data-stab="system">Система</button>
     </nav>
     <div class="sb-head-actions">
@@ -123,6 +121,17 @@
       <div class="sb-dim" id="ae-note-panel" hidden></div>
     </section>
 
+    <!-- ЧАТ с этим пациентом (автопривязан к карте ЭМК) -->
+    <section class="note-sec" id="sec-panel-chat" hidden>
+      <div class="note-sec-t">Сообщения с пациентом</div>
+      <div id="panel-chat-body" class="chat"><span class="sb-dim">Пока пусто — напишите первым.</span></div>
+      <div class="dash-actions-row" style="margin-top:8px">
+        <input id="panel-msg-reply" class="cp-input" style="flex:1" placeholder="Ответ пациенту (в его PWA)">
+        <button type="button" class="cp-btn cp-btn-primary cp-btn-sm" id="btn-panel-msg-reply">Ответить</button>
+      </div>
+      <span class="sb-dim" id="panel-msg-note"></span>
+    </section>
+
     <div class="sb-foot">Решение принимает врач. COMPASS предупреждает и оформляет.<br>
       Технология решения — вкладка «Система».<br>
       <span id="sb-telemetry" hidden></span><span id="sb-ws" hidden></span></div>
@@ -130,41 +139,7 @@
 
   </div><!-- /stab patient -->
 
-  <!-- ================= ВКЛАДКА КОГОРТА ================= -->
-  <div class="stab" data-stab-view="cohort" hidden>
-    <div class="sb-sec" style="margin-top:12px">
-      <div class="sb-sec-t">Когорта терапии <span id="cohort-count2"></span>
-        <input id="cohort-search" class="cp-input" style="margin-left:10px;width:220px;font-size:12px"
-               placeholder="поиск: номер, кластер, ярлык">
-      </div>
-      <table class="sb-table sb-table--cohort" id="cohort-table">
-        <thead><tr><th>Пациент</th><th>Кластер</th><th>GAD-7</th><th>Δ</th><th>Приёмы</th><th>Пропуски</th><th>Действия</th></tr></thead>
-        <tbody id="cohort-tbody"></tbody>
-      </table>
-      <div class="sb-actions">
-        <button type="button" class="cp-btn cp-btn-outline cp-btn-sm" id="btn-report-cohort">Скачать отчёт по когорте (CSV)</button>
-      </div>
-      <div class="sb-note">Данные из БД по RLS: только ваши пациенты. ФИО — в ЭМК; здесь обезличенные идентификаторы (152-ФЗ).</div>
-    </div>
-  </div>
 
-  <!-- ================= ВКЛАДКА СООБЩЕНИЯ ================= -->
-  <div class="stab" data-stab-view="messages" hidden>
-    <div class="sb-sec" style="margin-top:12px">
-      <div class="sb-sec-t">Переписка с пациентами</div>
-      <select id="msg-patient" class="cp-input" style="width:100%;font-size:12px">
-        <option value="">— выберите пациента —</option>
-      </select>
-      <div id="tab-msg-thread" class="dash-timeline" style="margin-top:8px">
-        <span class="sb-dim">Выберите пациента: здесь его тред из PWA.</span>
-      </div>
-      <div class="dash-actions-row">
-        <input id="tab-msg-reply" class="cp-input" style="flex:1" placeholder="Ответ пациенту (уходит в его PWA)" disabled>
-        <button type="button" class="cp-btn cp-btn-primary cp-btn-sm" id="btn-tab-msg-reply" disabled>Ответить</button>
-      </div>
-      <span class="sb-dim" id="tab-msg-note"></span>
-    </div>
-  </div>
 
   <!-- ================= ВКЛАДКА СИСТЕМА (технология — для жюри, не для приёма) ================= -->
   <div class="stab" data-stab-view="system" hidden>
@@ -318,12 +293,32 @@
     <!-- Сообщения -->
     <div class="dash-card">
       <div class="sb-sec-t">Сообщения пациента</div>
+      <select id="msg-patient" class="cp-input" style="width:100%;font-size:12px;margin-bottom:6px">
+        <option value="">— выберите пациента —</option>
+      </select>
       <div id="dash-msg-thread" class="dash-timeline"><span class="sb-dim">Выберите пациента.</span></div>
       <div class="dash-actions-row">
         <input id="msg-reply" class="cp-input" style="flex:1" placeholder="Ответ пациенту (уходит в его PWA)">
         <button type="button" class="cp-btn cp-btn-primary cp-btn-sm" id="btn-msg-reply">Ответить</button>
       </div>
       <span class="sb-dim" id="msg-reply-note"></span>
+    </div>
+
+    <div class="dash-zone"><span class="dash-zone__p">КОГОРТА</span>
+      <span class="sb-dim">все ваши пациенты: выберите «Историю», чтобы увидеть его выше; QR — приглашение; «Войти» — демо-вход</span></div>
+    <div class="dash-card dash-card--wide">
+      <div class="sb-sec-t">Когорта терапии <span id="cohort-count2"></span>
+        <input id="cohort-search" class="cp-input" style="margin-left:10px;width:240px;font-size:12px"
+               placeholder="поиск: номер, кластер, ярлык">
+      </div>
+      <table class="sb-table sb-table--cohort" id="cohort-table">
+        <thead><tr><th>Пациент</th><th>Кластер</th><th>GAD-7</th><th>Δ</th><th>Приёмы</th><th>Пропуски</th><th>Действия</th></tr></thead>
+        <tbody id="cohort-tbody"></tbody>
+      </table>
+      <div class="dash-actions-row">
+        <button type="button" class="cp-btn cp-btn-outline cp-btn-sm" id="btn-report-cohort">Отчёт по когорте (CSV) →</button>
+      </div>
+      <div class="sb-note">Данные из БД по RLS: только ваши пациенты. ФИО — в ЭМК; здесь ярлыки синтетического стенда и обезличенные идентификаторы (152-ФЗ).</div>
     </div>
 
     <div class="dash-zone"><span class="dash-zone__p">СИСТЕМА</span>

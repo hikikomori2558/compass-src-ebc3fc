@@ -408,6 +408,7 @@
   var dashPatientHash = null, dashPatientLabel = "";
   function openPatientTimeline(hash, label) {
     dashPatientHash = hash; dashPatientLabel = label || "";
+    loadCohortTable();   // таблица когорты живёт в дашборде
     // записка пациента живёт в панели: прячем инструкцию, показываем контент
     var empty = $("sb-empty"), content = $("sb-content");
     if (empty && content) { empty.hidden = true; content.hidden = false; }
@@ -445,7 +446,9 @@
         if (pb) pb.dataset.ph = hash;
         if (row) { row.hidden = aes.length === 0; row.dataset.ph = hash; }
         renderMsgThreadFor($("dash-msg-thread"), tl);
-        renderMsgThreadFor($("tab-msg-thread"), tl);
+        renderMsgThreadFor($("panel-chat-body"), tl);
+        var pc = $("sec-panel-chat");
+        if (pc) pc.hidden = false;
       }).catch(function () {
         box.innerHTML = "<span class='sb-dim'>История недоступна (сеть).</span>";
       });
@@ -977,34 +980,33 @@
         "<span class='when'>" + new Date(m.created_at).toLocaleString("ru-RU") + "</span></div>";
     }).join("") : "<span class='sb-dim'>Сообщений пока нет — напишите первым.</span>";
   }
-  var msgSel = $("msg-patient");
+  var msgSel = $("msg-patient");   // селектор в карточке сообщений дашборда
   if (msgSel) {
     msgSel.addEventListener("change", function () {
       var ph = msgSel.value;
-      var thread = $("tab-msg-thread");
-      var reply = $("tab-msg-reply"), btn = $("btn-tab-msg-reply");
+      dashPatientHash = ph;
+      var thread = $("dash-msg-thread");
       if (!ph) {
-        thread.innerHTML = "<span class='sb-dim'>Выберите пациента: здесь его тред из PWA.</span>";
-        reply.disabled = btn.disabled = true;
+        thread.innerHTML = "<span class='sb-dim'>Выберите пациента.</span>";
         return;
       }
-      reply.disabled = btn.disabled = false;
-      dashPatientHash = ph;
       thread.innerHTML = "<span class='sb-dim'>Загружаю…</span>";
+      var label = (cohortCache.find(function (p) { return p.patient_hash === ph; }) || {}).label;
+      if (label) dashPatientLabel = label;
       call("/api/v1/compass-bio/patient/" + ph + "/timeline")
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (tl) {
           if (!tl) return;
           renderMsgThreadFor(thread, tl);
-          renderMsgThreadFor($("dash-msg-thread"), tl);
+          renderPatientNoteInto($("dash-facts"), $("dash-gad-chart"), $("dash-gad-note"), tl, dashPatientLabel);
         });
     });
   }
-  var tabMsgBtn = $("btn-tab-msg-reply");
-  if (tabMsgBtn) {
-    tabMsgBtn.addEventListener("click", function () {
-      replyToPatient($("msg-patient").value, $("tab-msg-reply").value.trim(),
-                     $("tab-msg-note"), tabMsgBtn);
+  var panelMsgBtn = $("btn-panel-msg-reply");
+  if (panelMsgBtn) {
+    panelMsgBtn.addEventListener("click", function () {
+      var ph = dashPatientHash || (state.currentAlert && state.currentAlert.patient_hash);
+      replyToPatient(ph, $("panel-msg-reply").value.trim(), $("panel-msg-note"), panelMsgBtn);
     });
   }
 
@@ -1173,8 +1175,7 @@
       document.querySelectorAll(".stab").forEach(function (v) {
         v.hidden = v.dataset.stabView !== t.dataset.stab;
       });
-      if (t.dataset.stab === "cohort") { loadCohortTable(); }
-      if (t.dataset.stab === "analytics") { runWhatIf(lastPhenoAs); }
+      if (t.dataset.stab === "system") { runWhatIf(lastPhenoAs); }
     });
   });
 
@@ -1232,6 +1233,7 @@
 
   /* ================================================================ дашборд состояния (⤢) */
   $("btn-expand").addEventListener("click", function () {
+    loadCohortTable();   // когорта — часть дашборда
     renderDash();
     $("dash").hidden = false;
   });
