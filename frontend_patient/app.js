@@ -838,7 +838,8 @@
   }
 
   function renderHistory() {
-    var list = el("history-list"); if (!list) return;
+    var list = el("history-list");
+    if (!list) return;   // карточку заменяет серверная #progress-history (renderProgress)
     var log = loadLog().slice(0, 8);
     list.innerHTML = log.length ? log.map(function (x) {
       var d = new Date(x.ts);
