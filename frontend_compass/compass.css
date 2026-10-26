@@ -113,7 +113,8 @@ textarea.cp-input { height: auto; padding: 8px 11px; resize: vertical; }
 
 /* адаптив панели: узкие экраны */
 @media (max-width: 520px) {
-  .sb-src { display: none; }
+  /* .sb-src НЕ прячем: «Источник: экран ЭМК» — ключевая честная метка,
+     панель iframe всегда узкая, плашка однострочная и помещается */
   .sb-qr-img { width: 150px; height: 150px; }
 }
 
