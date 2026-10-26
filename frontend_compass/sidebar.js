@@ -1096,24 +1096,34 @@
   }
   function drawClusterBars(cv, byCl) {
     if (!cv) return;
+    // ретина-скейл + ширина колонки: канвас всегда вписан (было 640px → обрезалось)
+    var cssW = cv.clientWidth || cv.parentElement.clientWidth || 640;
+    var H = 190;
+    cv.width = cssW * 2; cv.height = H * 2;
+    cv.style.height = H + "px";
     var ctx = cv.getContext("2d");
-    var W = cv.width, H = cv.height, padB = 24;
+    ctx.scale(2, 2);
+    var W = cssW, padB = 28, padT = 18;
     ctx.clearRect(0, 0, W, H);
-    var codes = ["K1", "K2", "K3", "K4", "K5"].filter(function (c) { return byCl[c]; });
-    var cols = { K1: "#4a7c59", K2: "#b7791f", K3: "#2b6cb0", K4: "#805ad5", K5: "#c0392b" };
-    var maxN = Math.max.apply(null, codes.map(function (c) { return byCl[c]; }).concat([1]));
-    var bw = Math.min(90, (W - 60) / Math.max(1, codes.length) - 24);
-    ctx.font = "11px system-ui";
+    var codes = ["K1", "K2", "K3", "K4", "K5", "—"].filter(function (c) { return byCl[c]; });
+    var cols = { K1: "#4a7c59", K2: "#b7791f", K3: "#2b6cb0", K4: "#805ad5", K5: "#c0392b", "—": "#9aa4ad" };
+    var maxN = Math.max.apply(null, codes.map(function (c) { return byCl[c]; }).concat([1])) * 1.18;
+    var slot = (W - 40) / codes.length;
+    var bw = Math.min(110, slot - 22);
+    ctx.font = "12px system-ui";
     codes.forEach(function (c, i) {
-      var x = 30 + i * ((W - 60) / codes.length);
-      var h = Math.round((H - padB - 20) * byCl[c] / maxN);
+      var x = 20 + i * slot + (slot - bw) / 2;
+      var h = Math.round((H - padB - padT) * byCl[c] / maxN);
       ctx.fillStyle = cols[c];
       ctx.fillRect(x, H - padB - h, bw, h);
       ctx.fillStyle = "#161616";
-      ctx.fillText(String(byCl[c]), x + bw / 2 - 4, H - padB - h - 5);
+      ctx.fillText(String(byCl[c]), x + bw / 2 - 5, H - padB - h - 6);
       ctx.fillStyle = "#6b7280";
-      var titles = { K1: "быстрый ответ", K2: "адаптация", K3: "кумулятивный", K4: "диссимуляция", K5: "кризис", "—": "без профиля" };
-      ctx.fillText(c + " · " + (titles[c] || ""), x - 6, H - 8);
+      var titles = { K1: "быстрый ответ", K2: "адаптация", K3: "кумулятивный",
+                     K4: "диссимуляция", K5: "кризис", "—": "без профиля" };
+      ctx.font = "10.5px system-ui";
+      ctx.fillText(c + " · " + (titles[c] || ""), x - 2, H - 10);
+      ctx.font = "12px system-ui";
     });
   }
 

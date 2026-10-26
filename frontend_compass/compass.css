@@ -400,3 +400,6 @@ textarea.cp-input { height: auto; padding: 8px 11px; resize: vertical; }
 .dash-head { flex-wrap: wrap; }
 .dash-nav { flex-wrap: wrap; gap: 8px 12px; margin: 6px 0 0; width: 100%; }
 @media (min-width: 1100px) { .dash-nav { width: auto; margin: 0; } }
+
+/* v9.6: канвасы аналитики вписаны в колонку */
+#ov-clusters { width: 100%; height: auto; }
