@@ -1004,6 +1004,10 @@
         });
     });
   }
+  var repPat = $("btn-report-patient");
+  if (repPat) repPat.addEventListener("click", buildPatientReport);
+  var repCoh = $("btn-report-cohort-pdf");
+  if (repCoh) repCoh.addEventListener("click", buildCohortReport);
   var panelMsgBtn = $("btn-panel-msg-reply");
   if (panelMsgBtn) {
     panelMsgBtn.addEventListener("click", sendPanelMsg);
@@ -1094,6 +1098,83 @@
         }
       });
   }
+  /* ==== PDF-отчёты: печатный движок браузера (Ctrl+P → «Сохранить как PDF»).
+   * Без сторонних библиотек: документ-записка с графиками (canvas.toDataURL)
+   * в новом окне с авто-печатью. ==== */
+  function printReport(title, subtitle, bodyHtml) {
+    var w = window.open("", "_blank");
+    if (!w) { alert("Разрешите всплывающие окна — отчёт откроется в новой вкладке."); return; }
+    w.document.write(
+      "<!DOCTYPE html><html lang='ru'><head><meta charset='utf-8'><title>" + title + "</title>" +
+      "<style>" +
+      "body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#161616;max-width:760px;margin:24px auto;padding:0 18px}" +
+      "h1{font-size:19px;margin:0 0 2px} .sub{color:#6b7280;font-size:12px;margin-bottom:14px}" +
+      "h2{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#6b7280;margin:16px 0 8px}" +
+      "img{max-width:100%;height:auto}" +
+      "table{border-collapse:collapse;width:100%;font-size:11.5px} td,th{border:1px solid #e4e7eb;padding:4px 7px;text-align:left}" +
+      ".chip{display:inline-block;border:1.5px solid #c0392b;color:#c0392b;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:700;margin:2px 4px 2px 0}" +
+      ".kv div{margin:3px 0} .kv b{display:inline-block;min-width:150px;color:#525252;font-weight:600}" +
+      ".foot{margin-top:18px;color:#8d8d8d;font-size:10.5px;border-top:1px solid #e4e7eb;padding-top:8px}" +
+      "</style></head><body>" +
+      "<h1>" + title + "</h1><div class='sub'>" + subtitle + "</div>" +
+      bodyHtml +
+      "<div class='foot'>COMPASS-HYBRID v2.6 · команда 20-П «Rapira» · Решение принимает врач, система предупреждает и оформляет.<br>" +
+      "Стенд работает на синтетических данных: все пациенты вымышлены. Сформировано: " +
+      new Date().toLocaleString("ru-RU") + "</div>" +
+      "<script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>" +
+      "</body></html>");
+    w.document.close();
+  }
+
+  function patientReportHtml() {
+    var hero = document.getElementById("sb-svetofor");
+    var heroTxt = hero ? hero.innerText.replace(/\n+/g, "<br>") : "";
+    var note = document.getElementById("note-change-body");
+    var noteHtml = note ? note.innerHTML : "";
+    var chart = document.getElementById("gad-chart");
+    var chartImg = (chart && !chart.hidden) ?
+      "<img src='" + chart.toDataURL("image/png") + "' width='560'>" : "";
+    var chat = document.getElementById("panel-chat-body");
+    var chatTxt = chat ? chat.innerText.replace(/\n+/g, "<br>") : "";
+    var hama = document.getElementById("hama-saved-note");
+    var hamaTxt = hama && hama.textContent ?
+      "<div>Последняя запись HAM-A: " + hama.textContent + "</div>" : "";
+    return "<h2>Вердикт системы</h2><div class='kv'>" + heroTxt + "</div>" +
+      "<h2>Динамика GAD-7 (линии КР МЗ РФ: ответ −50%, ремиссия &lt;5)</h2>" + chartImg +
+      "<h2>Что изменилось с прошлого визита</h2>" + noteHtml +
+      "<h2>HAM-A врача</h2>" + hamaTxt +
+      "<h2>Переписка с пациентом</h2>" + chatTxt;
+  }
+
+  function buildPatientReport() {
+    var ph = dashPatientHash || (state.currentAlert && state.currentAlert.patient_hash);
+    if (!ph) { alert("Сначала откройте пациента (карта в ЭМК или «История» в когорте)."); return; }
+    var name = dashPatientLabel || "Пациент";
+    printReport("Отчёт по пациенту — " + name,
+      "COMPASS · дневник, шкалы, переписка (БД, RLS) + вердикт по карте ЭМК",
+      patientReportHtml());
+  }
+
+  function buildCohortReport() {
+    var chart = document.getElementById("ov-clusters");
+    var chartImg = chart ? "<img src='" + chart.toDataURL("image/png") + "' width='620'>" : "";
+    var nums = document.getElementById("ov-nums");
+    var numsHtml = nums ? "<div class='kv'>" + nums.innerHTML + "</div>" : "";
+    var flags = document.getElementById("intake-flags");
+    var flagsHtml = flags ? "<h2>Неполадки приёма</h2>" + flags.innerHTML : "";
+    var rows = cohortCache.map(function (p) {
+      return "<tr><td>" + (p.label || "П-" + p.patient_hash.slice(0, 6)) + "</td>" +
+        "<td>" + ((p.cluster || "—").slice(0, 2)) + (p.ood ? " ⊙" : "") + "</td>" +
+        "<td>" + (p.gad7_first === null ? "—" : p.gad7_first) + " → " + (p.gad7_last === null ? "—" : p.gad7_last) + "</td>" +
+        "<td>" + (p.doses_logged || 0) + "</td><td>" + (p.doses_skipped || 0) + "</td></tr>";
+    }).join("");
+    var table = "<h2>Когорта (" + cohortCache.length + ")</h2><table><tr><th>Пациент</th><th>Кластер</th><th>GAD-7</th><th>Приёмы</th><th>Пропуски</th></tr>" +
+      rows + "</table>";
+    printReport("Отчёт по выборке пациентов",
+      "COMPASS · вся когорта врача: аналитика, неполадки приёма, когорта",
+      "<h2>Аналитика выборки</h2>" + chartImg + numsHtml + flagsHtml + table);
+  }
+
   function drawClusterBars(cv, byCl) {
     if (!cv) return;
     // ретина-скейл + ширина колонки: канвас всегда вписан (было 640px → обрезалось)
