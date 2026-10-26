@@ -1,0 +1,7 @@
+[Unit]
+Description=COMPASS tunnel URL sync (QR/.env) every minute
+[Timer]
+OnCalendar=*-*-* *:*:30
+Persistent=true
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,6 @@
+[Unit]
+Description=COMPASS tunnel URL sync
+After=docker.service
+[Service]
+Type=oneshot
+ExecStart=/root/rapira-clinical-compass/scripts/tunnel_url_sync.sh
