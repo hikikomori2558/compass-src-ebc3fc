@@ -337,6 +337,11 @@ async def patient_timeline(patient_hash: str, request: Request,
             "roszdravnadzor_draft IS NOT NULL AS has_draft "
             "FROM adverse_events_and_risks WHERE patient_hash_id=$1 "
             "ORDER BY reported_at DESC LIMIT 20", ph)
+        # дневник пациента — его же PWA рисует «Настроение по дням» и сон
+        diary_rows = await conn.fetch(
+            "SELECT entry_date, intake_time, taken, mood_score, sleep_score, anxiety_score "
+            "FROM patient_diary_entries WHERE patient_hash_id=$1 "
+            "ORDER BY entry_date DESC LIMIT 30", ph)
         msgs = await conn.fetch(
             "SELECT message_id, sender_role, thread_kind, body, created_at "
             "FROM messages WHERE patient_hash_id=$1 ORDER BY created_at DESC LIMIT 30", ph)
@@ -362,6 +367,7 @@ async def patient_timeline(patient_hash: str, request: Request,
                    for a in alerts],
         "adherence": [dict(x) for x in adherence],
         "adverse_events": [dict(a) for a in aes],
+        "diary": [dict(d) for d in diary_rows],
         "messages": [dict(m) for m in msgs],
         "note": "RLS: врач видит только своих пациентов; чужие списки пусты",
     }
@@ -697,6 +703,11 @@ async def patient_insights(patient_hash: str, request: Request,
             "roszdravnadzor_draft IS NOT NULL AS has_draft "
             "FROM adverse_events_and_risks WHERE patient_hash_id=$1 "
             "ORDER BY reported_at DESC LIMIT 20", ph)
+        # дневник пациента — его же PWA рисует «Настроение по дням» и сон
+        diary_rows = await conn.fetch(
+            "SELECT entry_date, intake_time, taken, mood_score, sleep_score, anxiety_score "
+            "FROM patient_diary_entries WHERE patient_hash_id=$1 "
+            "ORDER BY entry_date DESC LIMIT 30", ph)
         msgs = await conn.fetch(
             "SELECT message_id, sender_role, thread_kind, body, created_at "
             "FROM messages WHERE patient_hash_id=$1 ORDER BY created_at DESC LIMIT 30", ph)

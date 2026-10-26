@@ -96,6 +96,30 @@
     }
     return streak;
   }
+  /* Серверная история пациента (шкалы/дневник): источник для «Прогресса».
+   * Локальный лог — офлайн-фолбэк; у записанного пациента история — с сервера (RLS). */
+  var SERVER_HIST = null;
+  function ownHash() {
+    var t = STORE.session;
+    if (!t || !t.access_token) return null;
+    try {
+      var p = t.access_token.split(".")[1];
+      while (p.length % 4) p += "=";
+      p = p.replace(/-/g, "+").replace(/_/g, "/");
+      return JSON.parse(atob(p)).sub;
+    } catch (e) { return null; }
+  }
+  function loadServerHistory() {
+    var t = STORE.session;
+    var h = ownHash();
+    if (!t || !t.access_token || !h) return;
+    api("/api/v1/compass-bio/patient/" + h + "/timeline", {}, t.access_token)
+      .then(function (d) {
+        SERVER_HIST = d || null;
+        if (document.getElementById("view-progress").style.display !== "none") renderProgress();
+      }).catch(function () {});
+  }
+
   function applyStreak(streak) {
     [["streak", "streak-n"], ["streak2", "streak2-n"], ["survey-streak", "survey-streak-n"], ["ob-streak", "ob-streak-n"]]
       .forEach(function (pair) {
@@ -385,6 +409,7 @@
       showFeedback(r.resp, payload);
       renderStreaks();
       renderHistory();
+      loadServerHistory();   // после отправки — серверная история обновит «Прогресс»
     }).catch(function (err) {
       var box = el("checkin-error"); if (box) { box.textContent = err.message; box.hidden = false; }
     });
@@ -690,21 +715,72 @@
 
   /* ================= прогресс ================= */
   function renderProgress() {
-    var log = loadLog();
-    var pts = log.filter(function (x) { return x.gad7; }).slice(0, 12).reverse();
+    var srv = SERVER_HIST;
+    var pts = [], stripData = [], histRows = [];
+    if (srv && srv.scales) {
+      // шкалы с сервера: хронология GAD-7
+      var gad = srv.scales.filter(function (x) { return x.scale_code === "GAD-7"; })
+        .sort(function (a, b) { return new Date(a.taken_at) - new Date(b.taken_at); })
+        .slice(-12);
+      pts = gad.map(function (g) { return { gad7: g.total_score, d: g.taken_at }; });
+      // настроение по дням — из дневника (mood_score 0–10 → лицо 1–5)
+      stripData = (srv.diary || []).filter(function (d) { return d.mood_score !== null; })
+        .slice(0, 14).reverse()
+        .map(function (d) { return { d: d.entry_date, m: Math.max(1, Math.min(5, Math.round(d.mood_score / 2))) }; });
+      // история: шкалы + приёмы вперемешку (сервер знает всё)
+      (srv.scales || []).slice(0, 8).forEach(function (x) {
+        histRows.push({ when: x.taken_at, txt: x.scale_code + ": " + x.total_score +
+          (x.scale_code === "HADS" && x.answers && x.answers.length === 14 ?
+            " (A " + x.answers.filter(function (v, i) { return i % 2 === 0; }).reduce(function (a, b) { return a + b; }, 0) +
+            "/D " + x.answers.filter(function (v, i) { return i % 2 === 1; }).reduce(function (a, b) { return a + b; }, 0) + ")" : "") });
+      });
+      (srv.adherence || []).slice(0, 8).forEach(function (a) {
+        histRows.push({ when: a.taken_at, txt: (a.dose_skipped ? "доза пропущена" : "доза принята") +
+          (a.intake_time ? " в " + a.intake_time : "") +
+          (a.diary && a.diary.sleep ? " · сон " + a.diary.sleep : "") });
+      });
+      histRows.sort(function (a, b) { return new Date(b.when) - new Date(a.when); });
+    }
+    if (!pts.length) {
+      var log = loadLog();
+      pts = log.filter(function (x) { return x.gad7; }).slice(0, 12).reverse()
+        .map(function (x) { return { gad7: x.gad7, d: x.ts }; });
+    }
     drawChart(pts.map(function (x) { return x.gad7; }));
     el("gad7-trend").textContent = pts.length >= 2
-      ? ("Последний: " + pts[pts.length - 1].gad7 + " из 21 • предыдущий: " + pts[pts.length - 2].gad7 + ".")
+      ? ("Последний: " + pts[pts.length - 1].gad7 + " из 21 • предыдущий: " + pts[pts.length - 2].gad7 +
+         ". Линии КР: пунктир — ответ (−50%) и ремиссия (<5).")
       : "Пока мало данных — пройдите опросник дважды, чтобы увидеть тренд.";
     var strip = el("mood-strip"); strip.innerHTML = "";
-    loadMoods().slice(-14).forEach(function (m) {
+    (stripData.length ? stripData : loadMoods().slice(-14)).forEach(function (m) {
       var d = document.createElement("div");
       d.className = "mood-day";
       d.title = m.d;
       d.appendChild(moodFace(m.m, 20));
       strip.appendChild(d);
     });
-    renderHistory();
+    // история отправок: сервер или локал
+    var hist = el("progress-history");
+    if (!hist) {
+      hist = document.createElement("div");
+      hist.className = "duo-card"; hist.id = "progress-history";
+      hist.innerHTML = "<h2 class='duo-h2'>История отправок</h2><div id='progress-hist-list'></div>";
+      el("view-progress").appendChild(hist);
+    }
+    var list = document.getElementById("progress-hist-list");
+    if (list) {
+      var fmt = function (r) {
+        var dt = new Date(r.when).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+        return "<div class='send-row'><b>" + dt + "</b> · " + r.txt + "</div>";
+      };
+      list.innerHTML = histRows.length ? histRows.map(fmt).join("")
+        : loadLog().slice(0, 8).map(function (x) {
+            var dt = new Date(x.ts).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+            return "<div class='send-row'><b>" + dt + "</b> · " +
+              (x.mood ? "настроение " + x.mood + "/5" : "") + (x.gad7 ? " · GAD-7: " + x.gad7 : "") +
+              (x.dose ? " · доза ✓" : "") + "</div>";
+          }).join("") || "<span style='color:#64748b'>Пока пусто.</span>";
+    }
   }
 
   function moodFace(m, size) {
@@ -784,6 +860,7 @@
   /* ================= вход/выход ================= */
   function enterHome() {
     refreshMsgThread();
+    loadServerHistory();
     showView("home");
     renderStreaks();
     renderHistory();
