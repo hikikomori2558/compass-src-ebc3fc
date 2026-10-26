@@ -26,8 +26,9 @@ def main() -> int:
                   "therapy_day": 19.0},
         pk_adherence={"m1_ctrough_pg_ml": 20.0, "pdc_adherence_pct": 21.0,
                       "kop25_score": 22.0, "meal_30min_timing_rmse_min": 23.0},
-        biomarkers={"experimental_voice_anx_class": 24.0, "experimental_voice_dep_class": 25.0,
-                    "voice_pause_ratio": 26.0, "questionnaire_response_sec_per_item": 27.0},
+        # v9: голосовые признаки удалены из продукта; оси 14–16 — нейтральные
+        # константы ABI C-ядра (см. trajectory.py), в тесте проверяем именно их
+        biomarkers={"questionnaire_response_sec_per_item": 27.0},
         biometrics_endocrine={"hrv_rmssd_ms": 28.0, "baevsky_stress_index": 29.0,
                               "circadian_5ht7_alignment_idx": 30.0,
                               "pharmacophobia_nocebo_score": 31.0,
@@ -44,10 +45,12 @@ def main() -> int:
         # Домен 3: фармакокинетика и комплаенс (4)
         10: ("Ctrough M1 (CYP2D6)", 20.0), 11: ("PDC, %", 21.0),
         12: ("КОП-25", 22.0), 13: ("RMSE «за 30 мин до еды»", 23.0),
-        # Домен 4: биомаркерный и поведенческий (4)
-        14: ("Акустика: тревога (Kintsugi, experimental)", 24.0),
-        15: ("Акустика: депрессия (Kintsugi, experimental)", 25.0),
-        16: ("Pause Ratio", 26.0), 17: ("Среднее время ответа на вопрос", 27.0),
+        # Домен 4 (v9): голосовые оси 14–16 — нейтральные константы ABI
+        # (1.0, 0.0, 0.18 — см. trajectory.py); читается только время ответа
+        14: ("[ABI] голосовая ось — константа", 1.0),
+        15: ("[ABI] голосовая ось — константа", 0.0),
+        16: ("[ABI] доля пауз — константа", 0.18),
+        17: ("Среднее время ответа на вопрос", 27.0),
         # Домен 5: биометрия, циркадный, эндокринный (6)
         18: ("HRV RMSSD, мс", 28.0), 19: ("Индекс стресса Баевского", 29.0),
         20: ("Circadian Alignment (5-HT7)", 30.0), 21: ("Pharmacophobia/Nocebo", 31.0),
