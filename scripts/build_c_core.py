@@ -41,7 +41,9 @@ def main():
     print(f"[*] Компиляция C-Core ({sys_name} / {arch}):")
     print("    " + " ".join(cmd))
     t0 = time.perf_counter()
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    # errors="replace": вывод gcc на некоторых локалях не в UTF-8 (0xa3 в русских
+    # warning-строках) — сборка не должна падать на декодировании диагностики
+    res = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
     dt = (time.perf_counter() - t0) * 1000.0
 
     if res.returncode != 0:
