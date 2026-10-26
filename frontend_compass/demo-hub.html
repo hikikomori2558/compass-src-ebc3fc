@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COMPASS — демо-вход за пациента</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;margin:0;background:#f4f4f4;color:#161616}
+header{background:#161616;color:#fff;padding:14px 18px}
+header h1{font-size:17px;margin:0} header p{margin:3px 0 0;font-size:12px;color:#a1a1aa}
+.banner{background:#7c2d12;color:#fff;font-size:12px;font-weight:600;padding:5px 18px;text-align:center}
+.wrap{max-width:680px;margin:0 auto;padding:14px}
+.search{width:100%;padding:10px 12px;border:1px solid #d4d4d8;border-radius:10px;font-size:14px;box-sizing:border-box}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+@media(max-width:520px){.grid{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid #e4e4e7;border-radius:12px;padding:10px 12px;cursor:pointer}
+.card:hover{border-color:#0043ce;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.card b{display:block;font-size:13px;line-height:1.35;margin-bottom:3px}
+.card span{font-size:11px;color:#6b7280}
+.cl{display:inline-block;font-weight:800;font-size:11px;background:#eef2ff;color:#312e81;border-radius:6px;padding:1px 7px;margin-right:4px}
+.ood{color:#c0392b;font-weight:700}
+.foot{text-align:center;color:#8d8d8d;font-size:10.5px;padding:18px}
+.err{background:#fdeaea;color:#a51616;border-radius:10px;padding:12px;font-size:13px;margin-top:12px}
+</style></head><body>
+<header><h1>COMPASS · демо-вход за пациента</h1>
+<p>Выберите пациента — откроется его PWA: дневник, приёмы, опросники, прогресс, чат</p></header>
+<div class="banner">СТЕНД · все пациенты синтетические, данные вымышлены</div>
+<div class="wrap">
+  <input id="q" class="search" placeholder="поиск: номер, кластер, ярлык">
+  <div id="list" class="grid"><span style="color:#6b7280;font-size:13px">Загружаю когорту…</span></div>
+  <div id="err" class="err" hidden></div>
+</div>
+<div class="foot">COMPASS-HYBRID v2.6 · 20-П «Rapira» · Решение принимает врач.<br>
+Демо-режим: токен на 2 часа, данные только для чтения через PWA.</div>
+<script>
+const QS = new URLSearchParams(location.search);
+const KEY = QS.get("key") || localStorage.getItem("compass_demo_key") || "";
+if (KEY) localStorage.setItem("compass_demo_key", KEY);
+let ALL = [];
+function openPatient(hash) {
+  fetch("/api/v1/auth/demo-patient-login-public", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key: KEY, patient_hash: hash }),
+  }).then(r => r.json()).then(d => {
+    if (d.access_token) location.href = "/static/pwa/index.html?demo=" + d.access_token;
+    else document.getElementById("err").textContent = d.detail || "Не удалось";
+  }).catch(e => document.getElementById("err").textContent = "Сеть: " + e.message);
+}
+function render() {
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const box = document.getElementById("list");
+  const rows = ALL.filter(p => !q || (p.label + " " + p.cluster).toLowerCase().includes(q));
+  box.innerHTML = rows.map(p =>
+    "<div class='card' onclick=\"openPatient('" + p.patient_hash + "')\">" +
+    "<b>" + p.label + "</b>" +
+    "<span class='cl'>" + p.cluster + "</span>" +
+    "<span>открыть PWA →</span></div>").join("") ||
+    "<span style='color:#6b7280;font-size:13px'>Никого не найдено.</span>";
+}
+fetch("/api/v1/auth/demo-patients?key=" + encodeURIComponent(KEY))
+  .then(r => r.json()).then(d => {
+    if (d.patients) { ALL = d.patients; render(); }
+    else { document.getElementById("err").hidden = false;
+      document.getElementById("err").textContent = d.detail || "Ключ не принят"; }
+  }).catch(e => document.getElementById("err").textContent = "Сеть: " + e.message);
+document.getElementById("q").addEventListener("input", render);
+</script></body></html>

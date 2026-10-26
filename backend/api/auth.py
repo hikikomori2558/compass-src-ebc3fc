@@ -410,6 +410,61 @@ async def cohort_overview(request: Request,
     return {"count": len(patients), "patients": patients}
 
 
+DEMO_KEY = os.getenv("DEMO_ACCESS_KEY", "")
+
+@auth_router.get("/demo-patients",
+                 summary="[Демо] Список синтетических пациентов по постоянному ключу стенда")
+async def demo_patients(key: str, request: Request) -> Dict[str, Any]:
+    """Публичный (но закрытый ключом) список для демо-хаба жюри: только is_synthetic,
+    только ярлыки/кластеры — никаких ПДн даже в синтетике. Ключ не истекает — QR постоянный."""
+    from fastapi import HTTPException
+    if not DEMO_KEY or key != DEMO_KEY:
+        raise HTTPException(403, "Неверный ключ демо-стенда")
+    pool = request.app.state.pg_pool
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    # ярлыки лежат в привязках (RLS): читаем под сервисной ролью методиста
+    from backend.db.context import db_conn
+    async with db_conn(pool, role="ADMIN_METHODOLOGIST") as conn:
+        rows = await conn.fetch(
+            "SELECT DISTINCT ON (b.patient_hash_id) b.patient_hash_id::text AS patient_hash, "
+            "b.consents->>'label' AS label, "
+            "(SELECT c.cluster_code FROM patient_cluster_profiles c "
+            " WHERE c.patient_hash_id = b.patient_hash_id LIMIT 1) AS cluster "
+            "FROM doctor_patient_bindings b JOIN patient_pii_vault v "
+            "ON v.patient_hash_id = b.patient_hash_id "
+            "WHERE v.is_synthetic ORDER BY b.patient_hash_id")
+    pts = [{"patient_hash": r["patient_hash"],
+            "label": r["label"] or ("П-" + r["patient_hash"][:6]),
+            "cluster": (r["cluster"] or "—")[:2]} for r in rows]
+    pts.sort(key=lambda x: x["label"])
+    return {"count": len(pts), "patients": pts}
+
+
+class DemoLoginPublic(BaseModel):
+    key: str = Field(min_length=4)
+    patient_hash: str
+
+
+@auth_router.post("/demo-patient-login-public",
+                  summary="[Демо] Токен «от лица» синтетического пациента по постоянному ключу")
+async def demo_patient_login_public(req: DemoLoginPublic, request: Request) -> Dict[str, Any]:
+    from fastapi import HTTPException
+    if not DEMO_KEY or req.key != DEMO_KEY:
+        raise HTTPException(403, "Неверный ключ демо-стенда")
+    pool = request.app.state.pg_pool
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    async with pool.acquire() as conn:
+        is_syn = await conn.fetchval(
+            "SELECT is_synthetic FROM patient_pii_vault WHERE patient_hash_id=$1",
+            uuid.UUID(req.patient_hash))
+    if not is_syn:
+        raise HTTPException(403, "Демо-вход разрешён только синтетическим пациентам")
+    token = mint_demo_access(req.patient_hash, "PATIENT")
+    return {"access_token": token, "demo": True}
+
+
 @auth_router.post("/bind", response_model=TokenPair, status_code=201)
 async def bind(req: BindRequest, request: Request):
     """Пациент сканирует QR -> здесь. Что происходит по шагам:

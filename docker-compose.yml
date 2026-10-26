@@ -52,6 +52,7 @@ services:
       # а не «тихий» запуск с публичными ключами (см. .env.example)
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET обязателен — скопируйте .env.example}
       LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-10}
+      DEMO_ACCESS_KEY: ${DEMO_ACCESS_KEY:-}
       PII_PEPPER: ${PII_PEPPER:?PII_PEPPER обязателен — скопируйте .env.example}
       CORS_ORIGINS: "*"
       # QR-приглашение пациента ведёт на PWA; для показа с телефона укажи LAN-IP:
