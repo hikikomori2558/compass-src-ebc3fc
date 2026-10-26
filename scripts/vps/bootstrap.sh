@@ -51,5 +51,12 @@ echo "== 6. Демо-данные (105 пациентов) + сиды =="
 PW=$(docker exec compass_db printenv POSTGRES_PASSWORD 2>/dev/null || grep '^POSTGRES_PASSWORD=' .env | cut -d= -f2)
 docker compose exec -e OWNER_DATABASE_URL="postgresql://compass_app:${PW}@db:5432/compass" -T api \
   python3 -m scripts.seed_105_patients 2>&1 | tail -1 || echo "(сид уже применён при первом старте api)"
-echo "== 7. Бэкап-расписание + синк туннеля не нужны: домен постоянный =="
+echo "== 7. Файрвол: наружу только 80/443/22 (8000/5432 — только внутри docker-сети) =="
+if command -v ufw >/dev/null; then
+  ufw allow 22/tcp; ufw allow 80/tcp; ufw allow 443/tcp; ufw --force enable
+fi
+
+echo "== 8. Ежедневный бэкап (03:40) =="
+cp scripts/compass-backup.* /etc/systemd/system/ 2>/dev/null && systemctl daemon-reload && systemctl enable --now compass-backup.timer 2>/dev/null || true
+echo "== 9. Домен постоянный — туннель-синк не нужен =="
 echo "ГОТОВО. Проверка: https://$DOMAIN/healthz  (сертификат встанет после A-записи в DNS)"
