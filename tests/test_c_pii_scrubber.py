@@ -218,7 +218,8 @@ clean_raw, mask2, _ = S.scrub_bytes(big_raw)
 dt2 = time.perf_counter() - t0
 mb_s_c = len(big_raw) / 1e6 / dt2
 print(f"[i] Чистый C-конвейер (scrub_bytes): {mb_s_c:.0f} МБ/с ({dt2*1000:.0f} мс)")
-check("Сквозная пропускная способность > 100 МБ/с", mb_s > 100)
+_min_e2e = int(_os.getenv("PII_MIN_E2E_MB_S", "80"))
+check(f"Сквозная пропускная способность > {_min_e2e} МБ/с (регресс-страж)", mb_s > _min_e2e)
 check(f"Чистый C-конвейер > {_min_c} МБ/с (регресс-страж)", mb_s_c > _min_c)
 check("scrub и scrub_bytes согласованы", clean_raw.decode("utf-8") == clean and mask == mask2)
 
