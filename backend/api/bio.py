@@ -354,8 +354,9 @@ async def patient_timeline(patient_hash: str, request: Request,
         "patient_hash": patient_hash,
         "scales": [{**dict(s), "total_score": _num(s["total_score"]),
                     "delta_prev": _num(s["delta_prev"]) if s["delta_prev"] is not None else None,
-                    "answers": (s["items"] or {}).get("answers")
-                    if isinstance(s["items"], dict) else None}
+                    "answers": (lambda it: it.get("answers") if isinstance(it, dict) else None)(
+                        s["items"] if isinstance(s["items"], dict)
+                        else (json.loads(s["items"]) if s["items"] else None))}
                    for s in scales],
         "alerts": [{**dict(a), "reasons": _json.loads(a["reasons"]) if a["reasons"] else []}
                    for a in alerts],
