@@ -1182,7 +1182,7 @@
    * Резолвим на сервере среди СВОИХ привязок; удача — записка/сообщения/1071
    * работают сразу, без ручного выбора в «Когорте». */
   function resolvePatientRef(payload) {
-    if (!payload || !payload.ref) return;
+    if (!payload || !payload.ref || !state.session) return;   // без сессии call() упадёт
     call("/api/v1/auth/patient-by-ref?ref=" + encodeURIComponent(payload.ref))
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {

@@ -321,6 +321,7 @@
 
   function sendCheckin(payload) {
     var t = STORE.session;
+    if (!t || !t.access_token) { showView("bind"); return Promise.reject(new Error("Сессия истекла")); }
     var btn = el("btn-checkin"); btn.disabled = true; btn.textContent = "Отправляю…";
     return api("/api/v1/patient/checkin", { method: "POST", body: JSON.stringify(payload) }, t.access_token)
       .then(function (resp) { return { resp: resp, offline: false }; })
