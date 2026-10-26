@@ -386,7 +386,11 @@ async def cohort_overview(request: Request,
         if r["skips_14"] and r["doses_14"] and r["skips_14"] / max(1, r["doses_14"]) >= 0.2:
             flags.append("missed")
         if r["t_min"] is not None and r["t_max"] is not None:
-            spread = (r["t_max"] - r["t_min"]).total_seconds() / 60.0
+            # intake_time в логах — TEXT «HH:MM»: разброс считаем в минутах на Python
+            def _m(v):
+                pp = str(v).split(":")
+                return int(pp[0]) * 60 + int(pp[1])
+            spread = _m(r["t_max"]) - _m(r["t_min"])
             if spread >= 45:
                 flags.append("irregular")
         if r["last_checkin"] is None or (today - r["last_checkin"]).days >= 3:
