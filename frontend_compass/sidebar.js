@@ -80,13 +80,12 @@
       refreshAlerts();   // баннер критических алертов — сразу после входа, не только по WS-пингу
       /* был «экран считан до входа» — сразу разбираем его */
       if (state.pendingScreen) {
-        var txt = state.pendingScreen;
+        state.screen = state.pendingScreen;          // ФИО/ИБ — для «Источник: экран ЭМК»
+        var txt = state.pendingScreen.screenText;
         state.pendingScreen = null;
         state.confirmations = {};
-        if (state.screen) {
-          $("sb-src").hidden = false;
-          $("sb-src-patient").textContent = state.screen.fio + " • ИБ № " + state.screen.ib;
-        }
+        $("sb-src").hidden = false;
+        $("sb-src-patient").textContent = state.screen.fio + " • ИБ № " + state.screen.ib;
         analyze(txt);
       }
     }).catch(function (err) {
@@ -109,7 +108,8 @@
       $("sb-empty").hidden = true;
       analyze(d.payload.screenText);
     } else {
-      state.pendingScreen = d.payload.screenText;
+      // храним весь payload: после входа нужен и текст, и ФИО/ИБ для плашки источника
+      state.pendingScreen = d.payload;
       var msg = "Экран ЭМК считан: " + d.payload.fio + " (ИБ № " + d.payload.ib + "). " +
         "Нажмите «Войти» — разбор запустится автоматически.";
       // виден где угодно: и в карточке (если открыта), и прямо в форме логина
