@@ -304,6 +304,32 @@ async def demo_patient_qr(patient_hash: str, request: Request,
             "demo": True, "expires_in_hours": 2}
 
 
+@auth_router.get("/patient-by-ref",
+                 summary="[Врач] ИБ/ярлык карты ЭМК → patient_hash (среди СВОИх привязок)")
+async def patient_by_ref(ref: str, request: Request,
+                         doctor: Principal = Depends(require_doctor)) -> Dict[str, Any]:
+    """Автосвязка «карта ЭМК → пациент БД»: агент считывает ярлык персоны (С-003)
+    с экрана ЭМК, здесь резолвим его в patient_hash по ярлыку привязки. RLS:
+    ищем только среди своих пациентов, чужой ИБ не отдастся."""
+    import json as _json
+    from fastapi import HTTPException
+    pool = request.app.state.pg_pool
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    ref_q = ref.strip()
+    async with db_conn(pool, role=doctor.role, user_id=doctor.sub) as conn:
+        row = await conn.fetchrow(
+            "SELECT b.patient_hash_id::text AS patient_hash, b.consents->>'label' AS label "
+            "FROM doctor_patient_bindings b "
+            "WHERE b.doctor_id=$1 AND b.active "
+            "AND (b.consents->>'label' LIKE $2 OR b.consents->>'label' LIKE $3) "
+            "LIMIT 1",
+            uuid.UUID(doctor.sub), ref_q + " %", ref_q + "%")
+    if row is None:
+        raise HTTPException(404, f"Пациент «{ref_q}» не найден среди ваших привязок")
+    return {"patient_hash": row["patient_hash"], "label": row["label"]}
+
+
 @auth_router.post("/bind", response_model=TokenPair, status_code=201)
 async def bind(req: BindRequest, request: Request):
     """Пациент сканирует QR -> здесь. Что происходит по шагам:

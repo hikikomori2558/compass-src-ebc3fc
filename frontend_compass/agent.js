@@ -60,9 +60,11 @@
       (labs.length ? "Лабораторные данные: " + labs.join(", ") + ". " : "") +
       (scales.length ? "Шкалы: " + scales.join(", ") + "." : "");
 
+    var refTag = (($("cb-source") || {}).textContent || "").match(/С-\d{3}/);
     return {
       ib: (($("cb-ib") || {}).textContent || "").replace("ИБ № ", "").trim(),
       fio: fio.textContent.trim(),
+      ref: refTag ? refTag[0] : null,   // синтетические: «С-003» → связь с картой БД
       screenText: screenText,
     };
   }

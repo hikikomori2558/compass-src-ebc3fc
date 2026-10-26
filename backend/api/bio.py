@@ -322,7 +322,7 @@ async def patient_timeline(patient_hash: str, request: Request,
 
     async with db_conn(pool, role=principal.role, user_id=principal.sub) as conn:
         scales = await conn.fetch(
-            "SELECT scale_code, total_score, taken_at, delta_prev FROM patient_scale_assessments "
+            "SELECT scale_code, total_score, items, taken_at, delta_prev FROM patient_scale_assessments "
             "WHERE patient_hash_id=$1 ORDER BY taken_at DESC LIMIT 60", ph)
         alerts = await conn.fetch(
             "SELECT alert_id, category, critical, reasons, created_at, doctor_reaction_at "
@@ -353,7 +353,9 @@ async def patient_timeline(patient_hash: str, request: Request,
     return {
         "patient_hash": patient_hash,
         "scales": [{**dict(s), "total_score": _num(s["total_score"]),
-                    "delta_prev": _num(s["delta_prev"]) if s["delta_prev"] is not None else None}
+                    "delta_prev": _num(s["delta_prev"]) if s["delta_prev"] is not None else None,
+                    "answers": (s["items"] or {}).get("answers")
+                    if isinstance(s["items"], dict) else None}
                    for s in scales],
         "alerts": [{**dict(a), "reasons": _json.loads(a["reasons"]) if a["reasons"] else []}
                    for a in alerts],

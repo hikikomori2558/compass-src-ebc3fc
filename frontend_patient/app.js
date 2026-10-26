@@ -153,10 +153,11 @@
   function renderMsgThread(rows) {
     var box = el("msg-thread");
     if (!box) return;
+    box.classList.add("chat");
     box.innerHTML = (rows || []).reverse().map(function (m) {
-      return "<div class='msg-item" + (m.sender_role === "PATIENT" ? " msg-item--patient" : "") + "'>" +
-        (m.sender_role === "DOCTOR" ? "<b>Ответ врача:</b> " : "") +
-        String(m.body).replace(/[<>]/g, "") +
+      var pat = m.sender_role === "PATIENT";
+      return "<div class='chat-msg " + (pat ? "chat-msg--pat" : "chat-msg--doc") + "'>" +
+        (pat ? "" : "<b>Врач:</b> ") + String(m.body).replace(/[<>]/g, "") +
         "<span class='when'>" + new Date(m.created_at).toLocaleString("ru-RU") + "</span></div>";
     }).join("") || "";
   }

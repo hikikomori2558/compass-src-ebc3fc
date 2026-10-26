@@ -359,3 +359,26 @@ textarea.cp-input { height: auto; padding: 8px 11px; resize: vertical; }
 #dash-gad-chart { width: 100%; height: auto; margin-bottom: 6px; }
 #gad-chart { width: 100%; height: auto; margin: 6px 0 2px; }
 .msg-doc { background: #f8fafc; }
+
+/* ==== v9.3: опросники по пунктам + расписание приёма + чат ==== */
+.bars { display: flex; flex-direction: column; gap: 3px; margin: 4px 0 8px; }
+.bar-row { display: flex; align-items: center; gap: 6px; }
+.bar-lbl { flex: 0 0 158px; font-size: 10.5px; color: #525252; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+.bar-track { flex: 1; height: 8px; background: #f1f3f5; border-radius: 4px; overflow: hidden; }
+.bar-track i { display: block; height: 100%; background: #0043ce; border-radius: 4px; }
+.bar-track i.bar--hi { background: #c0392b; }
+.bar-v { flex: 0 0 12px; font-size: 10.5px; text-align: right; color: #161616; }
+.day-strip { display: flex; gap: 3px; align-items: center; margin: 4px 0 6px; flex-wrap: wrap; }
+.day-strip .day { width: 13px; height: 13px; border-radius: 3px; }
+.day-strip .day--ok { background: #1f8a4c; }
+.day-strip .day--skip { background: #c0392b; }
+.day-strip .when { margin-left: 6px; }
+
+/* чат-пузыри: врач слева, пациент справа */
+.chat { display: flex; flex-direction: column; gap: 6px; }
+.chat-msg { max-width: 88%; padding: 7px 11px; border-radius: 12px; font-size: 12.5px;
+  line-height: 1.45; position: relative; }
+.chat-msg--doc { align-self: flex-start; background: #eef3ff; border: 1px solid #d5e2ff; }
+.chat-msg--pat { align-self: flex-end; background: #f0f7f2; border: 1px solid #d5e8dc; }
+.chat-msg .when { display: block; font-size: 9.5px; color: #8d8d8d; margin-top: 2px; }

@@ -86,6 +86,7 @@
         state.confirmations = {};
         $("sb-src").hidden = false;
         $("sb-src-patient").textContent = state.screen.fio + " • ИБ № " + state.screen.ib;
+        resolvePatientRef(state.screen);
         analyze(txt);
       }
     }).catch(function (err) {
@@ -102,6 +103,7 @@
     state.confirmations = {};
     $("sb-src").hidden = false;
     $("sb-src-patient").textContent = d.payload.fio + " • ИБ № " + d.payload.ib;
+    resolvePatientRef(d.payload);
     /* Сессии может не быть (врач не входил в COMPASS) — тогда экран ждёт входа:
        после успешного логина pending-анализ запускается автоматически. */
     if (state.session) {
@@ -482,15 +484,52 @@
           " <span class='when'>" + new Date(arr[0].taken_at).toLocaleDateString("ru-RU") + "</span></div>");
       }
     });
-    // 2. Приёмы за 7 дней + стрик
-    var adh = (tl.adherence || []).slice(0, 7);
+    // 2. Приёмы: полоса 14 дней + расписание времени (утро/вечер, разброс)
+    var adh = (tl.adherence || []).slice(0, 14);   // newest-first
     if (adh.length) {
       var taken = adh.filter(function (a) { return !a.dose_skipped; }).length;
       var skips = adh.length - taken;
       var times = adh.filter(function (a) { return a.intake_time; }).map(function (a) { return a.intake_time; });
-      bits.push("<div class='note-line'>Приёмы (7 дн.): <b>" + taken + "/" + adh.length + "</b>" +
+      bits.push("<div class='note-line'>Приёмы (" + adh.length + " дн.): <b>" + taken + "/" + adh.length + "</b>" +
         (skips ? " · пропущено " + skips : " · без пропусков") +
-        (times.length ? " · приём в " + times[0] : "") + "</div>");
+        (times.length ? " · обычно в " + times[0] : "") + "</div>");
+      // полоса-календарь: старые слева → свежие справа
+      var strip = adh.slice().reverse().map(function (a) {
+        return "<i class='day " + (a.dose_skipped ? "day--skip" : "day--ok") + "' title='" +
+          new Date(a.taken_at).toLocaleDateString("ru-RU") + (a.dose_skipped ? " · пропуск" : " · принят") +
+          "'></i>";
+      }).join("");
+      bits.push("<div class='day-strip'>" + strip +
+        "<span class='when'>← старые · свежие → (зелёный принят, красный пропуск)</span></div>");
+      // паттерн времени: медиана + разброс
+      if (times.length >= 3) {
+        var mins = times.map(function (t) { var p = t.split(":"); return (+p[0]) * 60 + (+p[1]); }).sort(function (a, b) { return a - b; });
+        var med = mins[Math.floor(mins.length / 2)];
+        var spread = mins[mins.length - 1] - mins[0];
+        var when = med < 12 * 60 ? "утро" : "вечер";
+        bits.push("<div class='note-line'>Расписание: <b>" + when + " (" +
+          ("0" + Math.floor(med / 60)).slice(-2) + ":" + ("0" + med % 60).slice(-2) +
+          " ±" + Math.round(spread / 2) + " мин)</b> — " +
+          (spread <= 30 ? "режим стабильный" : "время «плавает», стоит уточнить") + "</div>");
+      }
+    }
+    // 2b. Профиль опросников по пунктам (бары) — последние ответы из items
+    var gadLast = (byScale["GAD-7"] || []).slice().sort(function (a, b) {
+      return new Date(a.taken_at) - new Date(b.taken_at);
+    }).slice(-1)[0];
+    var hadsLast = (byScale["HADS"] || []).slice().sort(function (a, b) {
+      return new Date(a.taken_at) - new Date(b.taken_at);
+    }).slice(-1)[0];
+    if (gadLast && gadLast.answers && gadLast.answers.length === 7) {
+      bits.push("<div class='note-line' style='margin-top:4px'><b>GAD-7 по пунктам</b> <span class='when'>" +
+        new Date(gadLast.taken_at).toLocaleDateString("ru-RU") + "</span></div>" +
+        itemsBars(gadLast.answers, ["Нервозность", "Не могу остановить", "Чрезмерное беспокойство",
+          "Трудно расслабиться", "Не усидеть на месте", "Раздражительность", "Страх ужасного"]));
+    }
+    if (hadsLast && hadsLast.answers && hadsLast.answers.length === 14) {
+      bits.push("<div class='note-line' style='margin-top:4px'><b>HADS по пунктам</b> <span class='when'>" +
+        new Date(hadsLast.taken_at).toLocaleDateString("ru-RU") + "</span></div>" +
+        hadsBars(hadsLast.answers));
     }
     // 3. Жалобы/НЯ за период
     var aes = (tl.adverse_events || []).slice(0, 4);
@@ -521,6 +560,29 @@
       canvas.hidden = true;
       if (noteEl) noteEl.hidden = true;
     }
+  }
+
+  function itemsBars(answers, labels) {
+    return "<div class='bars'>" + answers.map(function (v, i) {
+      return "<div class='bar-row'><span class='bar-lbl'>" + (labels ? labels[i] : "п." + (i + 1)) + "</span>" +
+        "<span class='bar-track'><i style='width:" + (v / 3 * 100) + "%' class='" +
+        (v >= 2 ? "bar--hi" : "") + "'></i></span><b class='bar-v'>" + v + "</b></div>";
+    }).join("") + "</div>";
+  }
+  function hadsBars(answers) {
+    var A = ["Напряжённость", "Страх ужасного", "Мысли по кругу", "Не могу расслабиться",
+             "Внутр. напряжение/дрожь", "Не усидеть на месте", "Внезапная паника"];
+    var D = ["Удовольствие от дел", "Способность смеяться", "Бодрость", "Заторможенность",
+             "Интерес к внешности", "Предвкушение приятного", "Радость от книги/ТВ"];
+    var out = "";
+    for (var k = 0; k < 7; k++) {
+      var av = answers[k * 2], dv = answers[k * 2 + 1];
+      out += "<div class='bar-row'><span class='bar-lbl'>" + A[k] + "</span>" +
+        "<span class='bar-track'><i style='width:" + (av / 3 * 100) + "%' class='" + (av >= 2 ? "bar--hi" : "") + "'></i></span><b class='bar-v'>" + av + "</b></div>" +
+        "<div class='bar-row'><span class='bar-lbl'>" + D[k] + "</span>" +
+        "<span class='bar-track'><i style='width:" + (dv / 3 * 100) + "%' class='" + (dv >= 2 ? "bar--hi" : "") + "'></i></span><b class='bar-v'>" + dv + "</b></div>";
+    }
+    return "<div class='bars'>" + out + "</div>";
   }
 
   /* График GAD-7: точки + линии КР МЗ РФ (ответ −50% от исходного, ремиссия <5) */
@@ -906,13 +968,14 @@
   }
   function renderMsgThreadFor(box, tl) {
     if (!box) return;
+    box.classList.add("chat");
     var msgs = (tl.messages || []).slice().reverse();
     box.innerHTML = msgs.length ? msgs.map(function (m) {
-      return "<div class='dash-tl" + (m.sender_role === 'DOCTOR' ? " msg-doc" : "") + "'>" +
-        (m.sender_role === 'PATIENT' ? "<b>Пациент:</b> " : "<b>Врач:</b> ") +
-        String(m.body).replace(/[<>]/g, "") +
+      var doc = m.sender_role === "DOCTOR";
+      return "<div class='chat-msg " + (doc ? "chat-msg--doc" : "chat-msg--pat") + "'>" +
+        "<b>" + (doc ? "Врач" : "Пациент") + "</b> " + String(m.body).replace(/[<>]/g, "") +
         "<span class='when'>" + new Date(m.created_at).toLocaleString("ru-RU") + "</span></div>";
-    }).join("") : "<span class='sb-dim'>Сообщений пока нет.</span>";
+    }).join("") : "<span class='sb-dim'>Сообщений пока нет — напишите первым.</span>";
   }
   var msgSel = $("msg-patient");
   if (msgSel) {
@@ -1114,6 +1177,23 @@
       if (t.dataset.stab === "analytics") { runWhatIf(lastPhenoAs); }
     });
   });
+
+  /* ==== Автосвязка «карта ЭМК → пациент БД»: ref (С-0XX) → patient_hash ====
+   * Резолвим на сервере среди СВОИХ привязок; удача — записка/сообщения/1071
+   * работают сразу, без ручного выбора в «Когорте». */
+  function resolvePatientRef(payload) {
+    if (!payload || !payload.ref) return;
+    call("/api/v1/auth/patient-by-ref?ref=" + encodeURIComponent(payload.ref))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.patient_hash) return;
+        dashPatientHash = d.patient_hash;
+        dashPatientLabel = (payload.fio ? payload.fio + " · " : "") + (d.label || payload.ref);
+        var empty = $("sb-empty"), content = $("sb-content");
+        if (empty && content) { empty.hidden = true; content.hidden = false; }
+        renderPatientNote(d.patient_hash, dashPatientLabel);
+      }).catch(function () { /* не синтетический — ручной путь остаётся */ });
+  }
 
   /* ================================================================ колокольчик уведомлений */
   $("btn-bell").addEventListener("click", function () {

@@ -260,3 +260,14 @@ body {
   background: #f1f5f9; color: #0f172a; }
 .msg-item--patient { background: #e0e7ff; }
 .msg-item .when { display: block; font-size: 10px; color: #64748b; margin-top: 2px; }
+
+/* Чат с врачом (v9.3): пузыри — пациент справа */
+.msg-thread.chat { display: flex; flex-direction: column; gap: 6px; }
+.msg-thread .chat-msg { max-width: 85%; padding: 8px 12px; border-radius: 14px;
+  font-size: 13.5px; line-height: 1.45; }
+.msg-thread .chat-msg--pat { align-self: flex-end; background: #007d79; color: #fff;
+  border-bottom-right-radius: 4px; }
+.msg-thread .chat-msg--pat .when { color: rgba(255,255,255,.7); }
+.msg-thread .chat-msg--doc { align-self: flex-start; background: #eef3f6; color: #16242f;
+  border: 1px solid #dce7ec; border-bottom-left-radius: 4px; }
+.msg-thread .chat-msg .when { font-size: 10px; margin-top: 3px; }

@@ -71,6 +71,33 @@ def sleep_bucket(gad: int) -> str:
     return "8+ ч" if gad <= 6 else "6–7 ч" if gad <= 13 else "4–5 ч"
 
 
+def spread(total: int, n: int, cap: int) -> list:
+    """Разложить total по n пунктам 0..cap правдоподобно: базовый уровень + волна."""
+    base = min(cap, total // max(1, n))
+    out = [base] * n
+    left = total - base * n
+    i = 0
+    while left > 0:
+        if out[i % n] < cap:
+            out[i % n] += 1
+            left -= 1
+        i += 1
+    return out
+
+
+def gad_items(score: int) -> list:
+    return spread(score, 7, 3)
+
+
+def hads_items(ha: int, hd: int) -> list:
+    a = spread(ha, 7, 3)
+    d = spread(hd, 7, 3)
+    out = []
+    for k in range(14):          # интерлив: чётные 0-based = A, нечётные = D
+        out.append(a[k // 2] if k % 2 == 0 else d[k // 2])
+    return out
+
+
 def gad_at(p: dict, week: int) -> int:
     g = p["gad"]
     i = min(week, len(g) - 1)
@@ -151,7 +178,8 @@ async def main() -> int:
                     "(patient_hash_id, scale_code, total_score, items, taken_at) "
                     "VALUES ($1,'GAD-7',$2,$3::jsonb, now() - make_interval(days => $4::int))",
                     P, score,
-                    json.dumps({"source": "PWA_checkin", "synthetic": True, "week": k}),
+                    json.dumps({"source": "PWA_checkin", "synthetic": True, "week": k,
+                                "answers": gad_items(score)}),
                     max(0, d - k * 7))
                 stats["scales"] += 1
             start_a = min(21, p["ha"] + 4)
@@ -160,7 +188,7 @@ async def main() -> int:
                 t = k / max(1, weeks - 1)
                 ha_k = round(start_a + (p["ha"] - start_a) * t)
                 hd_k = round(start_d + (p["hd"] - start_d) * t)
-                row = json.dumps({"answers": "synthetic", "synthetic": True})
+                row = json.dumps({"answers": hads_items(ha_k, hd_k), "synthetic": True})
                 for code, sc in (("HADS", ha_k + hd_k), ("HADS-A", ha_k), ("HADS-D", hd_k)):
                     await conn.execute(
                         "INSERT INTO patient_scale_assessments "
