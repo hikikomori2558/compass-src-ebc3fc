@@ -21,7 +21,7 @@ ssh -i "$KEY" -o PasswordAuthentication=no "$VPS" \
     "mkdir -p /opt/rapira-clinical-compass /root/compass_backups"
 tar czf - --exclude '.venv' --exclude 'node_modules' --exclude '.git' \
     --exclude '__pycache__' --exclude '*.pyc' --exclude '.DS_Store' \
-    --exclude '.env' --no-xattrs \
+    --exclude '.env' --exclude '._*' --exclude '*.swp' --no-xattrs \
     -C /Users/hikikmori/rapira-clinical-compass . | \
   ssh -i "$KEY" -o PasswordAuthentication=no "$VPS" \
     "tar xzf - -C /opt/rapira-clinical-compass"
