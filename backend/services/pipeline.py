@@ -127,7 +127,28 @@ class SafeCompassPipeline:
             headline = "ТРЕБУЕТСЯ ЭКСТРЕННАЯ КОНСУЛЬТАЦИЯ ПСИХИАТРА (Монотерапия анксиолитиком не показана)"
         elif data_required:
             status = "DATA_REQUIRED"
-            names = ", ".join(sorted({g["field"] for g in data_required}))
+            # врачу — человеческие названия, не ключи правил; «что делать» — ниже, в confirm-списке
+            _FIELD_RU = {
+                "has_epilepsy_or_organic_cns": "эпилепсия/органическое поражение ЦНС",
+                "has_lactase_deficiency": "непереносимость лактозы",
+                "maoi_ever": "приём ИМАО (14 суток)",
+                "is_pregnant_or_lactating": "беременность/лактация",
+                "hepatic_insufficiency_documented": "печёночная недостаточность",
+                "suicidal_ideation_documented": "оценка суицидальных мыслей",
+                "has_psychotic_symptoms": "психотическая симптоматика",
+                "diagnosis_icd10": "код МКБ-10",
+                "egfr_ckd_epi": "СКФ (CKD-EPI)",
+                "child_pugh_class": "класс Чайлд-Пью",
+                "suicide_risk_assessment": "оценка суицидального риска",
+                "serum_creatinine_umol_l": "креатинин сыворотки",
+                "age": "возраст", "sex": "пол",
+                "drives_vehicle": "водит ли транспорт",
+                "days_since_maoi": "сутки после ИМАО",
+                "comedication_bitmask": "сопутствующие препараты",
+                "hypersensitivity": "гиперчувствительность",
+            }
+            names = ", ".join(sorted({_FIELD_RU.get(g["field"], g["field"])
+                                      for g in data_required}))
             headline = ("Недостаточно данных для оценки назначения: " + names +
                         ". Внесите данные или подтвердите отсутствие — зелёного статуса при пробелах не бывает.")
         elif icd in meta["in_label_icd10"]:

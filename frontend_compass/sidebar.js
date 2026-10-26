@@ -210,8 +210,9 @@
     var req = d.data_required || [];
     var secReq = $("sec-datareq");
     if (secReq) secReq.hidden = req.length === 0;
+    // почему_needed — законченная фраза по-русски; ключ правила врачу не нужен
     $("datareq-list").innerHTML = req.map(function (g) {
-      return "<div class='sb-datareq'><b>" + (g.field || "?") + "</b> — " + (g.why_needed || "") + "</div>";
+      return "<div class='sb-datareq'>" + (g.why_needed || "") + "</div>";
     }).join("");
 
     /* находки правил ОХЛП */
