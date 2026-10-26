@@ -803,14 +803,14 @@
   el("bind-token").addEventListener("keydown", function (e) {
     if (e.key === "Enter" && !el("btn-bind").disabled) bind(el("bind-token").value.trim());
   });
-  el("btn-care-ok").addEventListener("click", function () {
+  function closeFeedback() {
     el("card-feedback").hidden = true;
     el("card-today").hidden = false;
-  });
-  el("btn-care-ok2").addEventListener("click", function () {
-    el("card-feedback").hidden = true;
-    el("card-today").hidden = false;
-  });
+    resetDraft();      // форма чек-ина заново с шага 1 (раньше застревала на шаге 3)
+    goStep(1);
+  }
+  el("btn-care-ok").addEventListener("click", closeFeedback);
+  el("btn-care-ok2").addEventListener("click", closeFeedback);
   var btnLogout = el("btn-logout");
   if (btnLogout) btnLogout.addEventListener("click", function () { STORE.clear(); location.reload(); });
 
