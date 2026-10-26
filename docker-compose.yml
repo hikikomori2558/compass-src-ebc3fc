@@ -111,9 +111,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  caddy_data:
-  caddy_config:
-
-volumes:
   pg_data:
   redis_data:
+  caddy_data:
+  caddy_config:
