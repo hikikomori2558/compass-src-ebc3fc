@@ -233,7 +233,12 @@
 <!-- ============ ДАШБОРД СОСТОЯНИЯ (fullscreen поверх ЭМК; из панели ⤢) ============ -->
 <div class="dash" id="dash" hidden>
   <header class="dash-head">
-    <div class="dash-title">COMPASS <span>дашборд состояния</span></div>
+    <div class="dash-title">COMPASS <span>выборка и состояние</span></div>
+    <nav class="dash-nav">
+      <a href="#zone-alerts">Уведомления</a><a href="#zone-intake">Неполадки приёма</a><a
+        href="#zone-analytics">Аналитика</a><a href="#zone-cohort">Когорта</a><a
+        href="#zone-system">Система</a>
+    </nav>
     <div class="dash-actions">
       <button type="button" class="cp-btn cp-btn-sm" id="btn-dash-collapse">◂ Свернуть в панель</button>
       <button type="button" class="cp-btn cp-btn-sm" id="btn-dash-close">✕ К ЭМК</button>
@@ -259,13 +264,13 @@
     </div>
 
     <!-- Уведомления -->
-    <div class="dash-card">
-      <div class="sb-sec-t">Требует реакции <span id="dash-notif-count"></span></div>
+    <div class="dash-card" id="zone-alerts">
+      <div class="sb-sec-t">Уведомления — требуют реакции <span id="dash-notif-count"></span></div>
       <div id="dash-notif-items" class="dash-notifs"><span class="sb-dim">Пока пусто.</span></div>
     </div>
 
-    <div class="dash-zone"><span class="dash-zone__p">ПРОВЕРИТЬ</span>
-      <span class="sb-dim">что изменилось у пациента: динамика, жалобы, приёмы — запиской, цифры кликабельны до источника</span></div>
+    <div class="dash-zone"><span class="dash-zone__p">ПРОВЕРИТЬ — ТЕКУЩИЙ ПАЦИЕНТ</span>
+      <span class="sb-dim">что изменилось у выбранного пациента: динамика, жалобы, приёмы — запиской; полный портрет — в панели</span></div>
     <!-- Что изменилось (записка): динамика + факты + история БД + НЯ -->
     <div class="dash-card dash-card--wide">
       <div class="note-sec-t">Что изменилось с прошлого визита</div>
@@ -304,7 +309,24 @@
       <span class="sb-dim" id="msg-reply-note"></span>
     </div>
 
-    <div class="dash-zone"><span class="dash-zone__p">КОГОРТА</span>
+    <div class="dash-zone" id="zone-intake"><span class="dash-zone__p">НЕПОЛАДКИ ПРИЁМА</span>
+      <span class="sb-dim">пациенты с признаками проблем: пропуски, плавающее время, молчание 3+ дней</span></div>
+    <div class="dash-card dash-card--wide">
+      <div id="intake-flags" class="dash-timeline"><span class="sb-dim">Загружаю обзор когорты…</span></div>
+    </div>
+
+    <div class="dash-zone" id="zone-analytics"><span class="dash-zone__p">АНАЛИТИКА ВЫБОРКИ</span>
+      <span class="sb-dim">вся выборка разом: кластеры, ответ на терапию, приверженность, аномалии</span></div>
+    <div class="dash-card">
+      <div class="sb-sec-t">Распределение по кластерам</div>
+      <canvas id="ov-clusters" width="640" height="170"></canvas>
+    </div>
+    <div class="dash-card">
+      <div class="sb-sec-t">Ключевые цифры выборки</div>
+      <div id="ov-nums" class="dash-kv">—</div>
+    </div>
+
+    <div class="dash-zone" id="zone-cohort"><span class="dash-zone__p">КОГОРТА</span>
       <span class="sb-dim">все ваши пациенты: выберите «Историю», чтобы увидеть его выше; QR — приглашение; «Войти» — демо-вход</span></div>
     <div class="dash-card dash-card--wide">
       <div class="sb-sec-t">Когорта терапии <span id="cohort-count2"></span>
@@ -321,7 +343,7 @@
       <div class="sb-note">Данные из БД по RLS: только ваши пациенты. ФИО — в ЭМК; здесь ярлыки синтетического стенда и обезличенные идентификаторы (152-ФЗ).</div>
     </div>
 
-    <div class="dash-zone"><span class="dash-zone__p">СИСТЕМА</span>
+    <div class="dash-zone" id="zone-system"><span class="dash-zone__p">СИСТЕМА</span>
       <span class="sb-dim">технология решения: PK, 24D-кластеры, метрики — врачу в приёме не нужен, жюри видно всё</span></div>
     <!-- Тренд PK -->
     <div class="dash-card">

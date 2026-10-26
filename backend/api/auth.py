@@ -330,6 +330,82 @@ async def patient_by_ref(ref: str, request: Request,
     return {"patient_hash": row["patient_hash"], "label": row["label"]}
 
 
+@auth_router.get("/cohort-overview",
+                 summary="[Врач] Обзор всей выборки: динамика, приверженность, флаги неполадок")
+async def cohort_overview(request: Request,
+                          doctor: Principal = Depends(require_doctor)) -> Dict[str, Any]:
+    """Данные для аналитики дашборда: по каждому пациенту врача — динамика GAD-7,
+    приёмы за 14 дней, разброс времени приёма, давность последнего чек-ина и
+    ФЛАГИ неполадок (пропуски / плавающее время / дропаут / OOD / неподтверждённый
+    критический алерт). Всё — SQL-агрегаты по RLS-скоупу врача."""
+    pool = request.app.state.pg_pool
+    if pool is None:
+        raise HTTPException(503, "БД недоступна")
+    from backend.db.context import db_conn
+    async with db_conn(pool, role=doctor.role, user_id=doctor.sub) as conn:
+     rows = await conn.fetch(
+        """
+        SELECT b.patient_hash_id::text AS patient_hash,
+               b.consents->>'label' AS label,
+               (SELECT c.cluster_code FROM patient_cluster_profiles c
+                 WHERE c.patient_hash_id = b.patient_hash_id LIMIT 1) AS cluster,
+               (SELECT (c.ood->>'is_ood_anomaly')::boolean FROM patient_cluster_profiles c
+                 WHERE c.patient_hash_id = b.patient_hash_id LIMIT 1) AS ood,
+               (SELECT s.total_score FROM patient_scale_assessments s
+                 WHERE s.patient_hash_id = b.patient_hash_id AND s.scale_code='GAD-7'
+                 ORDER BY taken_at ASC LIMIT 1) AS gad_first,
+               (SELECT s.total_score FROM patient_scale_assessments s
+                 WHERE s.patient_hash_id = b.patient_hash_id AND s.scale_code='GAD-7'
+                 ORDER BY taken_at DESC LIMIT 1) AS gad_last,
+               (SELECT count(*) FROM medication_adherence_logs m
+                 WHERE m.patient_hash_id = b.patient_hash_id
+                   AND m.taken_at >= now() - interval '14 days') AS doses_14,
+               (SELECT count(*) FROM medication_adherence_logs m
+                 WHERE m.patient_hash_id = b.patient_hash_id
+                   AND m.taken_at >= now() - interval '14 days' AND m.dose_skipped) AS skips_14,
+               (SELECT max(m.intake_time) FROM medication_adherence_logs m
+                 WHERE m.patient_hash_id = b.patient_hash_id
+                   AND m.taken_at >= now() - interval '14 days' AND m.intake_time IS NOT NULL) AS t_max,
+               (SELECT min(m.intake_time) FROM medication_adherence_logs m
+                 WHERE m.patient_hash_id = b.patient_hash_id
+                   AND m.taken_at >= now() - interval '14 days' AND m.intake_time IS NOT NULL) AS t_min,
+               (SELECT max(m.taken_at)::date FROM medication_adherence_logs m
+                 WHERE m.patient_hash_id = b.patient_hash_id) AS last_checkin,
+               EXISTS (SELECT 1 FROM clinical_alerts_and_routing a
+                       WHERE a.patient_hash_id = b.patient_hash_id
+                         AND a.critical AND a.doctor_reaction_at IS NULL) AS crit_unconf
+        FROM doctor_patient_bindings b
+        WHERE b.doctor_id = $1 AND b.active
+        """,
+        uuid.UUID(doctor.sub),
+     )
+    today = datetime.now(timezone.utc).date()
+    patients = []
+    for r in rows:
+        flags = []
+        if r["skips_14"] and r["doses_14"] and r["skips_14"] / max(1, r["doses_14"]) >= 0.2:
+            flags.append("missed")
+        if r["t_min"] is not None and r["t_max"] is not None:
+            spread = (r["t_max"] - r["t_min"]).total_seconds() / 60.0
+            if spread >= 45:
+                flags.append("irregular")
+        if r["last_checkin"] is None or (today - r["last_checkin"]).days >= 3:
+            flags.append("dropout")
+        if r["ood"]:
+            flags.append("ood")
+        if r["crit_unconf"]:
+            flags.append("critical")
+        patients.append({
+            "patient_hash": r["patient_hash"], "label": r["label"],
+            "cluster": r["cluster"], "ood": bool(r["ood"]),
+            "gad_first": r["gad_first"], "gad_last": r["gad_last"],
+            "doses_14": r["doses_14"], "skips_14": r["skips_14"],
+            "last_checkin": str(r["last_checkin"]) if r["last_checkin"] else None,
+            "flags": flags,
+        })
+    return {"count": len(patients), "patients": patients}
+
+
 @auth_router.post("/bind", response_model=TokenPair, status_code=201)
 async def bind(req: BindRequest, request: Request):
     """Пациент сканирует QR -> здесь. Что происходит по шагам:

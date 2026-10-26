@@ -980,6 +980,7 @@
         "<b>" + (doc ? "Врач" : "Пациент") + "</b> " + String(m.body).replace(/[<>]/g, "") +
         "<span class='when'>" + new Date(m.created_at).toLocaleString("ru-RU") + "</span></div>";
     }).join("") : "<span class='sb-dim'>Сообщений пока нет — напишите первым.</span>";
+    box.scrollTop = box.scrollHeight;   // мессенджер: свежее — внизу
   }
   var msgSel = $("msg-patient");   // селектор в карточке сообщений дашборда
   if (msgSel) {
@@ -1005,9 +1006,113 @@
   }
   var panelMsgBtn = $("btn-panel-msg-reply");
   if (panelMsgBtn) {
-    panelMsgBtn.addEventListener("click", function () {
-      var ph = dashPatientHash || (state.currentAlert && state.currentAlert.patient_hash);
-      replyToPatient(ph, $("panel-msg-reply").value.trim(), $("panel-msg-note"), panelMsgBtn);
+    panelMsgBtn.addEventListener("click", sendPanelMsg);
+    $("panel-msg-reply").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") sendPanelMsg();
+    });
+  }
+  function sendPanelMsg() {
+    var ph = dashPatientHash || (state.currentAlert && state.currentAlert.patient_hash);
+    var inp = $("panel-msg-reply");
+    replyToPatient(ph, inp.value.trim(), $("panel-msg-note"), panelMsgBtn || { disabled: false });
+    inp.value = "";
+  }
+
+  /* ==== Обзор выборки: уведомления/неполадки приёма/аналитика (дашборд) ==== */
+  var FLAG_RU = {
+    missed: ["Пропуски ≥20% за 14 дней", "#c0392b"],
+    irregular: ["Время приёма «плавает» (разброс ≥45 мин)", "#d97706"],
+    dropout: ["Молчит 3+ дней — риск дропаута", "#c0392b"],
+    ood: ["Вне границ кластера (OOD) — без экстраполяции", "#805ad5"],
+    critical: ["Неподтверждённый критический алерт", "#da1e28"],
+  };
+  function loadCohortOverview() {
+    call("/api/v1/auth/cohort-overview").then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        var pts = d.patients || [];
+        // --- НЕПОЛАДКИ ПРИЁМА: только пациенты с флагами, сортировка по тяжести
+        var order = ["critical", "dropout", "missed", "irregular", "ood"];
+        var flagged = pts.filter(function (p) { return p.flags.length; })
+          .sort(function (a, b) {
+            return order.indexOf(a.flags[0]) - order.indexOf(b.flags[0]);
+          });
+        var fb = $("intake-flags");
+        if (fb) {
+          fb.innerHTML = flagged.length ? flagged.map(function (p) {
+            var name = p.label || ("П-" + p.patient_hash.slice(0, 6));
+            var chips = p.flags.map(function (f) {
+              return "<span class='flag-chip' style='border-color:" + FLAG_RU[f][1] +
+                ";color:" + FLAG_RU[f][1] + "'>" + FLAG_RU[f][0] + "</span>";
+            }).join(" ");
+            var hist = "data-act='hist' data-hash='" + p.patient_hash + "' data-label='" +
+              name.replace(/"/g, "") + "'";
+            return "<div class='dash-tl'><b>" + name + "</b><br>" + chips +
+              " <span class='when'>приёмы 14 дн.: " + (p.doses_14 - p.skips_14) + "/" + p.doses_14 +
+              (p.last_checkin ? " · последний " + p.last_checkin : " · чек-инов нет") + "</span>" +
+              " <button type='button' class='cp-btn cp-btn-sm' " + hist + ">История</button></div>";
+          }).join("") : "<span class='sb-dim'>Проблем приёма не обнаружено — все идут по режиму.</span>";
+          fb.querySelectorAll("button[data-act='hist']").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              openPatientTimeline(btn.dataset.hash, btn.dataset.label);
+            });
+          });
+        }
+        // --- АНАЛИТИКА: распределение по кластерам (канвас-бары)
+        var byCl = {};
+        pts.forEach(function (p) {
+          var c = (p.cluster || "—").slice(0, 2);
+          byCl[c] = (byCl[c] || 0) + 1;
+        });
+        drawClusterBars($("ov-clusters"), byCl);
+        // --- ключевые цифры
+        var resp = 0, respKnown = 0, doses = 0, skips = 0, ood = 0, dropout = 0;
+        pts.forEach(function (p) {
+          if (p.gad_first > 0 && p.gad_last !== null) {
+            respKnown += 1;
+            if ((p.gad_first - p.gad_last) / p.gad_first >= 0.25) resp += 1;
+          }
+          doses += (p.doses_14 || 0); skips += (p.skips_14 || 0);
+          if (p.ood) ood += 1;
+          if (p.flags.indexOf("dropout") >= 0) dropout += 1;
+        });
+        var nums = $("ov-nums");
+        if (nums) {
+          nums.innerHTML =
+            "<div><b>В выборке:</b> " + pts.length + " пациентов · ответ на терапию (ΔGAD-7 ≥25%): <b>" +
+            (respKnown ? Math.round(100 * resp / respKnown) : 0) + "%</b> (" + resp + " из " + respKnown +
+            " измеренных — КР: точка 4-й недели)</div>" +
+            "<div><b>Приверженность (14 дн.):</b> " +
+            (doses ? Math.round(100 * (doses - skips) / doses) : 0) + "% принятых (" + doses +
+            " приёмов, " + skips + " пропусков)</div>" +
+            "<div><b>Кластеры:</b> " + Object.keys(byCl).sort().map(function (c) {
+              return c + " — " + byCl[c];
+            }).join(" · ") + "</div>" +
+            "<div><b>Аномалии:</b> OOD — " + ood + " · риск дропаута — " + dropout +
+            " · <span class='sb-dim'>полный список — «Неполадки приёма» выше</span></div>";
+        }
+      });
+  }
+  function drawClusterBars(cv, byCl) {
+    if (!cv) return;
+    var ctx = cv.getContext("2d");
+    var W = cv.width, H = cv.height, padB = 24;
+    ctx.clearRect(0, 0, W, H);
+    var codes = ["K1", "K2", "K3", "K4", "K5"].filter(function (c) { return byCl[c]; });
+    var cols = { K1: "#4a7c59", K2: "#b7791f", K3: "#2b6cb0", K4: "#805ad5", K5: "#c0392b" };
+    var maxN = Math.max.apply(null, codes.map(function (c) { return byCl[c]; }).concat([1]));
+    var bw = Math.min(90, (W - 60) / Math.max(1, codes.length) - 24);
+    ctx.font = "11px system-ui";
+    codes.forEach(function (c, i) {
+      var x = 30 + i * ((W - 60) / codes.length);
+      var h = Math.round((H - padB - 20) * byCl[c] / maxN);
+      ctx.fillStyle = cols[c];
+      ctx.fillRect(x, H - padB - h, bw, h);
+      ctx.fillStyle = "#161616";
+      ctx.fillText(String(byCl[c]), x + bw / 2 - 4, H - padB - h - 5);
+      ctx.fillStyle = "#6b7280";
+      var titles = { K1: "быстрый ответ", K2: "адаптация", K3: "кумулятивный", K4: "диссимуляция", K5: "кризис" };
+      ctx.fillText(c + " · " + (titles[c] || ""), x - 6, H - 8);
     });
   }
 
@@ -1268,6 +1373,7 @@
     } else if (tlBox) {
       tlBox.innerHTML = "";
     }
+    loadCohortOverview();
     var stMap = {
       GREEN_IN_LABEL: "green", AMBER_DATA_REQUIRED: "amber", AMBER_REVIEW: "amber",
       RED_HARD_STOP: "red", RED_CRITICAL_ALERT: "red",
