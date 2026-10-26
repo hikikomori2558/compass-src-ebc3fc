@@ -320,7 +320,8 @@
       .then(function (d) {
         if (!d) return;
         cohortCache = d.patients || [];
-        $("tab-cohort-n").textContent = d.count ? "(" + d.count + ")" : "";
+        var ccn = $("tab-cohort-n");
+        if (ccn) ccn.textContent = "";   // вкладки «Когорта» в панели больше нет
         renderCohortTable("");
         var search = $("cohort-search");
         if (search && !search.__bound) {
