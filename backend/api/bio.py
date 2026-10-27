@@ -565,6 +565,34 @@ async def record_disagreement(patient_hash: str, request: Request,
     return {"recorded": True}
 
 
+@bio_router.get("/repo/archive",
+                summary="[Жюри] Архив исходного кода по ключу демо-стенда (QR с презентации)")
+async def repo_archive(request: Request, key: str = ""):
+    """QR с презентации ведёт на gate-страницу /static/compass/repo.html?key=…,
+    откуда скачивается ZIP исходников. Репозиторий на GitHub — приватный,
+    поисковиками не индексируется; архив отдаётся только с валидным ключом."""
+    import os as _os
+    import shutil as _shutil
+    import subprocess as _sub
+
+    from fastapi import HTTPException
+    from fastapi.responses import FileResponse
+
+    demo_key = _os.getenv("DEMO_ACCESS_KEY", "")
+    if not demo_key or key != demo_key:
+        raise HTTPException(403, "Неверный ключ демо-стенда")
+    src = "/tmp/compass_repo_export"
+    _shutil.rmtree(src, ignore_errors=True)
+    try:
+        # в контейнере есть .git (COPY . /app) — каноничный чистый архив с export-ignore
+        _sub.run(["git", "archive", "--format=zip", "--output", src + ".zip", "HEAD"],
+                 cwd="/app", check=True, capture_output=True)
+    except Exception:
+        _shutil.make_archive(src, "zip", "/app")
+    fname = f"compass-hybrid-src-{__import__('datetime').date.today().isoformat()}.zip"
+    return FileResponse(src + ".zip", media_type="application/zip", filename=fname)
+
+
 @bio_router.get("/sources",
                 summary="[Провенанс] Реестр источников (guideline_sources) — клик по цифре в UI")
 async def get_sources(request: Request, ref: Optional[str] = None,

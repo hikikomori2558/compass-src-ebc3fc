@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>COMPASS — исходный код для жюри</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;background:#1F0E33;color:#EFE7F8;max-width:680px;margin:0 auto;padding:40px 20px}
+h1{font-size:24px} h1 span{color:#C9A6E8}
+.card{background:#EFE7F8;color:#1A1026;border-radius:14px;padding:22px;margin:18px 0}
+.btn{display:block;width:100%;box-sizing:border-box;background:#2B4BF2;color:#fff;text-decoration:none;
+     text-align:center;padding:14px;border-radius:10px;font-size:16px;font-weight:700;margin-top:10px}
+.btn:hover{filter:brightness(1.1)}
+.mono{font-family:ui-monospace,monospace;font-size:12px;color:#9A8FB5;word-break:break-all}
+.note{font-size:12.5px;color:#9A8FB5;line-height:1.5}
+.err{background:#3A1A2A;color:#F0C9D2;border-radius:10px;padding:12px;font-size:14px}
+</style></head><body>
+<h1>COMPASS-<span>HYBRID</span> · исходный код</h1>
+<p class="note">Приватный репозиторий команды Rapira (20-П). Доступ — по QR-коду
+с презентации. Архив собирается с боевого стенда прямо сейчас и содержит актуальный
+код, документацию для жюри и синтетические данные.</p>
+<div id="body" class="card">
+  <b>Скачать исходный код (ZIP, ~5–8 МБ)</b>
+  <p style="font-size:13.5px">Внутри: backend (FastAPI + C-ядро), фронтенды (ЭМК, панель врача,
+  PWA пациента), тесты (322 автопроверки), документация для жюри (13 технических метрик,
+  матрица соответствия, 31 источник), README с инструкцией запуска.</p>
+  <a id="dl" class="btn" href="#">Скачать ZIP</a>
+  <p class="mono" id="url"></p>
+</div>
+<div id="err" class="err" hidden></div>
+<p class="note">COMPASS-HYBRID · команда Rapira (20-П) · Чемпионат «Клинический компас», финал ·
+Проприетарно: использование только в рамках процедуры Чемпионата.</p>
+<script>
+const KEY = new URLSearchParams(location.search).get("key") || "";
+const API = "/api/v1/compass-bio/repo/archive?key=" + encodeURIComponent(KEY);
+if (!KEY) { document.getElementById("err").hidden = false;
+  document.getElementById("err").textContent = "Откройте страницу по QR-коду с презентации (в ссылке должен быть ключ)."; }
+else {
+  document.getElementById("dl").href = API;
+  document.getElementById("url").textContent = "прямая ссылка: " + API;
+}
+</script></body></html>
