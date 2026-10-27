@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.api.alerts import alerts_router, ws_router
 from backend.api.auth import auth_router
-from backend.api.bio import bio_router
+from backend.api.bio import bio_router, router_repo
 from backend.api.cdss_workstation import router as cdss_router
 
 
@@ -191,7 +191,7 @@ async def telemetry_summary():
 
 
 app.include_router(bio_router)
-app.include_router(getattr(__import__("backend.api.bio", fromlist=["router_repo"]), "router_repo"))
+app.include_router(router_repo)
 app.include_router(auth_router)
 app.include_router(alerts_router)
 app.include_router(ws_router)
