@@ -191,6 +191,7 @@ async def telemetry_summary():
 
 
 app.include_router(bio_router)
+app.include_router(getattr(__import__("backend.api.bio", fromlist=["router_repo"]), "router_repo"))
 app.include_router(auth_router)
 app.include_router(alerts_router)
 app.include_router(ws_router)
