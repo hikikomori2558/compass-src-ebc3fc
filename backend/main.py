@@ -191,7 +191,7 @@ async def telemetry_summary():
 
 
 app.include_router(bio_router)
-app.include_router(router_repo)
+app.include_router(router_repo, prefix="/api/v1/compass-bio")
 app.include_router(auth_router)
 app.include_router(alerts_router)
 app.include_router(ws_router)
