@@ -38,3 +38,4 @@ design_refs/case_sources/
 .env
 .env.*
 !.env.example
+docs/screens/render_tmp/
